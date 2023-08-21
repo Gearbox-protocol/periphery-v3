@@ -1,6 +1,19 @@
 [profile.default]
-src = "src"
-out = "out"
-libs = ["lib"]
+libs = ['lib']
+out = 'forge-out'
 
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+solc_version = '0.8.17'
+src = 'contracts'
+optimizer_runs = 1000000
+
+# See more config options https://github.com/gakonst/foundry/tree/master/config
+block_number = 120000 
+block_timestamp = 1640000000 
+gas_limit = 9223372036854775807 # the gas limit in tests
+block_base_fee_per_gas = 100000000
+fs_permissions = [{ access = "read-write", path = "./"}]
+evm_version = 'shanghai'
+
+[fuzz]
+runs = 256
+max_test_rejects = 1000000
