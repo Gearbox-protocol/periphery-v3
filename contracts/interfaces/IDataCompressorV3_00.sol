@@ -6,30 +6,39 @@ pragma solidity ^0.8.10;
 import {CreditAccountData, CreditManagerData, PoolData, TokenInfo} from "../data/Types.sol";
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
-interface IDataCompressorV2_10 is IVersion {
+struct PriceOnDemand {
+    address token;
+    bytes data;
+}
+
+interface IDataCompressorV3_00 is IVersion {
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
-    function getCreditAccountList(address borrower) external view returns (CreditAccountData[] memory);
+    /// @param priceUpdates Price updates for price on demand oracles
+    function getCreditAccountByBorrower(address borrower, PriceOnDemand[] memory priceUpdates)
+        external
+        returns (CreditAccountData[] memory);
 
-    /// @dev Returns whether the borrower has an open credit account with the credit manager
-    /// @param creditManager Credit manager to check
-    /// @param borrower Borrower to check
-    function hasOpenedCreditAccount(address creditManager, address borrower) external view returns (bool);
+    /// @dev Returns CreditAccountData for all opened accounts for particular borrower
+    /// @param creditManager Address
+    /// @param priceUpdates Price updates for price on demand oracles
+    function getCreditAccountByCreditManager(address creditManager, PriceOnDemand[] memory priceUpdates)
+        external
+        returns (CreditAccountData[] memory);
 
     /// @dev Returns CreditAccountData for a particular Credit Account account, based on creditManager and borrower
-    /// @param _creditManager Credit manager address
-    /// @param borrower Borrower address
-    function getCreditAccountData(address _creditManager, address borrower)
+    /// @param creditAccount Address of credit account
+    /// @param priceUpdates Price updates for price on demand oracles
+    function getCreditAccountData(address creditAccount, PriceOnDemand[] memory priceUpdates)
         external
-        view
         returns (CreditAccountData memory);
 
     /// @dev Returns CreditManagerData for all Credit Managers
-    function getCreditManagersList() external view returns (CreditManagerData[] memory);
+    function getCreditManagersV3List() external view returns (CreditManagerData[] memory);
 
     /// @dev Returns CreditManagerData for a particular _creditManager
-    /// @param _creditManager CreditManager address
-    function getCreditManagerData(address _creditManager) external view returns (CreditManagerData memory);
+    /// @param creditManager CreditManager address
+    function getCreditManagerData(address creditManager) external view returns (CreditManagerData memory);
 
     /// @dev Returns PoolData for a particular pool
     /// @param _pool Pool address

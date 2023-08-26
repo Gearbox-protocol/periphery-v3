@@ -1,15 +1,17 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Foundation, 2023.
-pragma solidity ^0.8.17;
+// (c) Gearbox Holdings, 2022
+pragma solidity ^0.8.10;
+pragma experimental ABIEncoderV2;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v2/contracts/libraries/PercentageMath.sol";
 
-import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
-import {ICreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
-import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
+import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
+
+import {ICreditManagerV2} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditManagerV2.sol";
+import {ICreditFacadeV2} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditFacadeV2.sol";
+import {ICreditConfiguratorV2} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditConfiguratorV2.sol";
 import {ICreditAccount} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditAccount.sol";
 import {IPoolService} from "@gearbox-protocol/core-v2/contracts/interfaces/IPoolService.sol";
 
@@ -17,44 +19,24 @@ import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.
 
 import {AddressProvider} from "@gearbox-protocol/core-v2/contracts/core/AddressProvider.sol";
 import {ContractsRegister} from "@gearbox-protocol/core-v2/contracts/core/ContractsRegister.sol";
-import {IDataCompressorV2_10} from "../interfaces/IDataCompressorV2_10.sol";
+import {IDataCompressorV3_00} from "../interfaces/IDataCompressorV3_00.sol";
 
 import {CreditAccountData, CreditManagerData, PoolData, TokenInfo, TokenBalance, ContractAdapter} from "./Types.sol";
 
 // EXCEPTIONS
 import {ZeroAddressException} from "@gearbox-protocol/core-v2/contracts/interfaces/IErrors.sol";
 
-/// @title Data compressor 2.1.
+/// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV2_10 is IDataCompressorV2_10 {
+contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
     // Contract version
     uint256 public constant version = 2_10;
-
-    /// @dev Address of the AddressProvider
-    AddressProvider public immutable addressProvider;
-
-    /// @dev Address of the ContractsRegister
-    ContractsRegister public immutable contractsRegister;
 
     /// @dev Address of WETH
     address public immutable WETHToken;
 
-    /// @dev Prevents function usage for target contracts that are not Gearbox pools
-    modifier targetIsRegisteredPool(address pool) {
-        if (!contractsRegister.isPool(pool)) revert NotPoolException(); // T:[WG-1]
-        _;
-    }
-
-    /// @dev Prevents function usage for target contracts that are not Gearbox Credit Managers
-    modifier targetIsRegisteredCreditManager(address creditManager) {
-        if (!contractsRegister.isCreditManager(creditManager)) {
-            revert NotCreditManagerException();
-        } // T:[WG-3]
-        _;
-    }
-
-    constructor(address _addressProvider) {
+    constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {
         if (_addressProvider == address(0)) revert ZeroAddressException();
 
         addressProvider = AddressProvider(_addressProvider);
@@ -101,7 +83,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10 {
     function hasOpenedCreditAccount(address _creditManager, address borrower)
         public
         view
-        targetIsRegisteredCreditManager(_creditManager)
+        registeredCreditManagerOnly(_creditManager)
         returns (bool)
     {
         return _hasOpenedCreditAccount(_creditManager, borrower);
@@ -115,7 +97,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10 {
         view
         returns (CreditAccountData memory result)
     {
-        (uint256 ver, ICreditManagerV2 creditManagerV2, ICreditFacadeV3 creditFacade,) =
+        (uint256 ver, ICreditManagerV2 creditManagerV2, ICreditFacadeV2 creditFacade,) =
             getCreditContracts(_creditManager);
 
         result.version = ver;
@@ -182,8 +164,8 @@ contract DataCompressorV2_10 is IDataCompressorV2_10 {
         (
             uint256 ver,
             ICreditManagerV2 creditManagerV2,
-            ICreditFacadeV3 creditFacade,
-            ICreditConfiguratorV3 creditConfigurator
+            ICreditFacadeV2 creditFacade,
+            ICreditConfiguratorV2 creditConfigurator
         ) = getCreditContracts(_creditManager);
 
         result.addr = _creditManager;
@@ -249,7 +231,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10 {
 
     /// @dev Returns PoolData for a particular pool
     /// @param _pool Pool address
-    function getPoolData(address _pool) public view targetIsRegisteredPool(_pool) returns (PoolData memory result) {
+    function getPoolData(address _pool) public view registeredPoolOnly(_pool) returns (PoolData memory result) {
         IPoolService pool = IPoolService(_pool);
 
         result.addr = _pool;
@@ -297,10 +279,10 @@ contract DataCompressorV2_10 is IDataCompressorV2_10 {
     function getAdapter(address _creditManager, address _allowedContract)
         external
         view
-        targetIsRegisteredCreditManager(_creditManager)
+        registeredCreditManagerOnly(_creditManager)
         returns (address adapter)
     {
-        (uint256 ver, ICreditManagerV2 creditManagerV2,,) = getCreditContracts(_creditManager);
+        (, ICreditManagerV2 creditManagerV2,,) = getCreditContracts(_creditManager);
 
         adapter = creditManagerV2.contractToAdapter(_allowedContract);
     }
@@ -318,13 +300,13 @@ contract DataCompressorV2_10 is IDataCompressorV2_10 {
         returns (
             uint256 ver,
             ICreditManagerV2 creditManagerV2,
-            ICreditFacadeV3 creditFacade,
-            ICreditConfiguratorV3 creditConfigurator
+            ICreditFacadeV2 creditFacade,
+            ICreditConfiguratorV2 creditConfigurator
         )
     {
         creditManagerV2 = ICreditManagerV2(_creditManager);
-        creditFacade = ICreditFacadeV3(creditManagerV2.creditFacade());
-        creditConfigurator = ICreditConfiguratorV3(creditManagerV2.creditConfigurator());
-        ver = ICreditFacadeV3(creditFacade).version();
+        creditFacade = ICreditFacadeV2(creditManagerV2.creditFacade());
+        creditConfigurator = ICreditConfiguratorV2(creditManagerV2.creditConfigurator());
+        ver = ICreditFacadeV2(creditFacade).version();
     }
 }
