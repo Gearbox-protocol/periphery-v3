@@ -7,8 +7,10 @@
   "license": "MIT",
   "devDependencies": {
     "@1inch/solidity-utils": "^2.2.27",
-    "@gearbox-protocol/core-v2": "1.19.0-base.12",
+    "@gearbox-protocol/core-v2": "1.19.0-base.14",
     "@gearbox-protocol/core-v3": "^1.36.5",
+    "@gearbox-protocol/oracles-v3": "^1.7.2",
+    "@gearbox-protocol/sdk-gov": "^1.5.10",
     "@openzeppelin/contracts": "4.8.3"
   }
 }

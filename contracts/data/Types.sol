@@ -6,7 +6,7 @@ pragma solidity ^0.8.17;
 struct TokenBalance {
     address token;
     uint256 balance;
-    bool isAllowed;
+    bool isForbidden;
     bool isEnabled;
     bool isQuoted;
     uint256 quota;
@@ -22,7 +22,7 @@ struct QuotaInfo {
 }
 
 struct ContractAdapter {
-    address allowedContract;
+    address targetContract;
     address adapter;
 }
 
@@ -64,7 +64,7 @@ struct CreditManagerData {
     uint256 baseBorrowRate;
     uint256 minDebt;
     uint256 maxDebt;
-    uint256 availableLiquidity;
+    uint256 availableToBorrow;
     address[] collateralTokens;
     ContractAdapter[] adapters;
     uint256[] liquidationThresholds;
@@ -90,7 +90,6 @@ struct CreditManagerData {
 
 struct PoolData {
     address addr;
-    bool isWETH;
     address underlying;
     address dieselToken;
     uint256 linearCumulativeIndex;
@@ -98,17 +97,11 @@ struct PoolData {
     uint256 expectedLiquidity;
     uint256 expectedLiquidityLimit;
     uint256 totalBorrowed;
-    uint256 depositAPY_RAY;
-    uint256 borrowAPY_RAY;
+    uint256 supplyRate;
+    uint256 baseInterestRate;
     uint256 dieselRate_RAY;
     uint256 withdrawFee;
     uint256 cumulativeIndex_RAY;
-    uint256 timestampLU;
+    uint256 baseInterestIndexLU;
     uint256 version;
-}
-
-struct TokenInfo {
-    address addr;
-    string symbol;
-    uint8 decimals;
 }

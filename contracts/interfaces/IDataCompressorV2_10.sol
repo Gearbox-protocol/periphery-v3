@@ -3,7 +3,7 @@
 // (c) Gearbox Holdings, 2022
 pragma solidity ^0.8.10;
 
-import {CreditAccountData, CreditManagerData, PoolData, TokenInfo} from "../data/Types.sol";
+import {CreditAccountData, CreditManagerData, PoolData} from "../data/Types.sol";
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
 interface IDataCompressorV2_10 is IVersion {

@@ -3,26 +3,26 @@
 // (c) Gearbox Holdings, 2022
 pragma solidity ^0.8.10;
 
-import {CreditAccountData, CreditManagerData, PoolData, TokenInfo} from "../data/Types.sol";
+import {CreditAccountData, CreditManagerData, PoolData} from "../data/Types.sol";
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
 struct PriceOnDemand {
     address token;
-    bytes data;
+    bytes callData;
 }
 
 interface IDataCompressorV3_00 is IVersion {
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
     /// @param priceUpdates Price updates for price on demand oracles
-    function getCreditAccountByBorrower(address borrower, PriceOnDemand[] memory priceUpdates)
+    function getCreditAccountsByBorrower(address borrower, PriceOnDemand[] memory priceUpdates)
         external
         returns (CreditAccountData[] memory);
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param creditManager Address
     /// @param priceUpdates Price updates for price on demand oracles
-    function getCreditAccountByCreditManager(address creditManager, PriceOnDemand[] memory priceUpdates)
+    function getCreditAccountsByCreditManager(address creditManager, PriceOnDemand[] memory priceUpdates)
         external
         returns (CreditAccountData[] memory);
 
@@ -45,8 +45,5 @@ interface IDataCompressorV3_00 is IVersion {
     function getPoolData(address _pool) external view returns (PoolData memory);
 
     /// @dev Returns PoolData for all registered pools
-    function getPoolsList() external view returns (PoolData[] memory);
-
-    /// @dev Returns the adapter address for a particular creditManager and targetContract
-    function getAdapter(address _creditManager, address _allowedContract) external view returns (address adapter);
+    function getPoolsV3List() external view returns (PoolData[] memory);
 }

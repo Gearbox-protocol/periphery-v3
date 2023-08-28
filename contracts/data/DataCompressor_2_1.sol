@@ -8,6 +8,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v2/contracts/libraries/PercentageMath.sol";
 
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
+import {IContractsRegister} from "@gearbox-protocol/core-v2/contracts/interfaces/IContractsRegister.sol";
 
 import {ICreditManagerV2} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditManagerV2.sol";
 import {ICreditFacadeV2} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditFacadeV2.sol";
@@ -17,11 +18,10 @@ import {IPoolService} from "@gearbox-protocol/core-v2/contracts/interfaces/IPool
 
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
-import {AddressProvider} from "@gearbox-protocol/core-v2/contracts/core/AddressProvider.sol";
-import {ContractsRegister} from "@gearbox-protocol/core-v2/contracts/core/ContractsRegister.sol";
+import {IAddressProvider} from "@gearbox-protocol/core-v2/contracts/interfaces/IAddressProvider.sol";
 import {IDataCompressorV2_10} from "../interfaces/IDataCompressorV2_10.sol";
 
-import {CreditAccountData, CreditManagerData, PoolData, TokenInfo, TokenBalance, ContractAdapter} from "./Types.sol";
+import {CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter} from "./Types.sol";
 
 // EXCEPTIONS
 import {ZeroAddressException} from "@gearbox-protocol/core-v2/contracts/interfaces/IErrors.sol";
@@ -33,26 +33,17 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
     // Contract version
     uint256 public constant version = 2_10;
 
-    /// @dev Address of WETH
-    address public immutable WETHToken;
-
-    constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {
-        if (_addressProvider == address(0)) revert ZeroAddressException();
-
-        addressProvider = AddressProvider(_addressProvider);
-        contractsRegister = ContractsRegister(addressProvider.getContractsRegister());
-        WETHToken = addressProvider.getWethToken();
-    }
+    constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {}
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
     function getCreditAccountList(address borrower) external view returns (CreditAccountData[] memory result) {
         // Counts how many opened accounts a borrower has
         uint256 count;
-        uint256 creditManagersLength = contractsRegister.getCreditManagersCount();
+        uint256 creditManagersLength = IContractsRegister(contractsRegister).getCreditManagersCount();
         unchecked {
             for (uint256 i = 0; i < creditManagersLength; ++i) {
-                address creditManager = contractsRegister.creditManagers(i);
+                address creditManager = IContractsRegister(contractsRegister).creditManagers(i);
                 if (hasOpenedCreditAccount(creditManager, borrower)) {
                     ++count;
                 }
@@ -64,7 +55,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         // Get data & fill the array
         count = 0;
         for (uint256 i = 0; i < creditManagersLength;) {
-            address creditManager = contractsRegister.creditManagers(i);
+            address creditManager = IContractsRegister(contractsRegister).creditManagers(i);
             unchecked {
                 if (hasOpenedCreditAccount(creditManager, borrower)) {
                     result[count] = getCreditAccountData(creditManager, borrower);
@@ -100,7 +91,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         (uint256 ver, ICreditManagerV2 creditManagerV2, ICreditFacadeV2 creditFacade,) =
             getCreditContracts(_creditManager);
 
-        result.version = ver;
+        result.cfVersion = ver;
 
         address creditAccount = creditManagerV2.getCreditAccountOrRevert(borrower);
 
@@ -112,11 +103,17 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         (result.totalValue,) = creditFacade.calcTotalValue(creditAccount);
         result.healthFactor = creditFacade.calcCreditAccountHealthFactor(creditAccount);
 
-        (result.debt, result.borrowedAmountPlusInterest, result.borrowedAmountPlusInterestAndFees) =
-            creditManagerV2.calcCreditAccountAccruedInterest(creditAccount);
+        {
+            (uint256 debt, uint256 borrowedAmountPlusInterest, uint256 borrowedAmountPlusInterestAndFees) =
+                creditManagerV2.calcCreditAccountAccruedInterest(creditAccount);
+
+            result.debt = debt;
+            result.accruedInterest = borrowedAmountPlusInterest - debt;
+            result.accruedFees = borrowedAmountPlusInterestAndFees - borrowedAmountPlusInterest;
+        }
 
         address pool = creditManagerV2.pool();
-        result.borrowRate = IPoolService(pool).borrowAPY_RAY();
+        result.baseBorrowRate = IPoolService(pool).borrowAPY_RAY();
 
         uint256 collateralTokenCount = creditManagerV2.collateralTokensCount();
 
@@ -132,7 +129,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
                 (balance.token,) = creditManagerV2.collateralTokens(i);
                 balance.balance = IERC20(balance.token).balanceOf(creditAccount);
 
-                balance.isAllowed = creditFacade.isTokenAllowed(balance.token);
+                balance.isForbidden = !creditFacade.isTokenAllowed(balance.token);
                 balance.isEnabled = tokenMask & result.enabledTokensMask == 0 ? false : true;
 
                 result.balances[i] = balance;
@@ -146,13 +143,13 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
 
     /// @dev Returns CreditManagerData for all Credit Managers
     function getCreditManagersList() external view returns (CreditManagerData[] memory result) {
-        uint256 creditManagersCount = contractsRegister.getCreditManagersCount();
+        uint256 creditManagersCount = IContractsRegister(contractsRegister).getCreditManagersCount();
 
         result = new CreditManagerData[](creditManagersCount);
 
         unchecked {
             for (uint256 i = 0; i < creditManagersCount; ++i) {
-                address creditManager = contractsRegister.creditManagers(i);
+                address creditManager = IContractsRegister(contractsRegister).creditManagers(i);
                 result[i] = getCreditManagerData(creditManager);
             }
         }
@@ -172,17 +169,16 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         result.version = ver;
 
         result.underlying = creditManagerV2.underlying();
-        result.isWETH = result.underlying == WETHToken;
 
         {
             result.pool = creditManagerV2.pool();
             IPoolService pool = IPoolService(result.pool);
-            result.canBorrow = pool.creditManagersCanBorrow(_creditManager);
-            result.borrowRate = pool.borrowAPY_RAY();
-            result.availableLiquidity = pool.availableLiquidity();
+            // result.canBorrow =;
+            result.baseBorrowRate = pool.borrowAPY_RAY();
+            result.availableToBorrow = pool.creditManagersCanBorrow(_creditManager) ? pool.availableLiquidity() : 0;
         }
 
-        (result.minAmount, result.maxAmount) = creditFacade.limits();
+        (result.minDebt, result.maxDebt) = creditFacade.limits();
 
         {
             uint256 collateralTokenCount = creditManagerV2.collateralTokensCount();
@@ -203,11 +199,11 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
 
         unchecked {
             for (uint256 i = 0; i < len; ++i) {
-                address allowedContract = allowedContracts[i];
+                address targetContract = allowedContracts[i];
 
                 result.adapters[i] = ContractAdapter({
-                    allowedContract: allowedContract,
-                    adapter: creditManagerV2.contractToAdapter(allowedContract)
+                    targetContract: targetContract,
+                    adapter: creditManagerV2.contractToAdapter(targetContract)
                 });
             }
         }
@@ -241,20 +237,19 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         result.totalBorrowed = pool.totalBorrowed();
         result.dieselRate_RAY = pool.getDieselRate_RAY();
         result.linearCumulativeIndex = pool.calcLinearCumulative_RAY();
-        result.borrowAPY_RAY = pool.borrowAPY_RAY();
+        result.baseInterestRate = pool.borrowAPY_RAY();
         result.underlying = pool.underlyingToken();
         result.dieselToken = pool.dieselToken();
         result.dieselRate_RAY = pool.getDieselRate_RAY();
         result.withdrawFee = pool.withdrawFee();
-        result.isWETH = result.underlying == WETHToken;
-        result.timestampLU = pool._timestampLU();
+        result.baseInterestIndexLU = pool._timestampLU();
         result.cumulativeIndex_RAY = pool._cumulativeIndex_RAY();
 
         uint256 dieselSupply = IERC20(result.dieselToken).totalSupply();
         uint256 totalLP = pool.fromDiesel(dieselSupply);
-        result.depositAPY_RAY = totalLP == 0
-            ? result.borrowAPY_RAY
-            : (result.borrowAPY_RAY * result.totalBorrowed) * (PERCENTAGE_FACTOR - result.withdrawFee) / totalLP
+        result.supplyRate = totalLP == 0
+            ? result.baseInterestRate
+            : (result.baseInterestRate * result.totalBorrowed) * (PERCENTAGE_FACTOR - result.withdrawFee) / totalLP
                 / PERCENTAGE_FACTOR;
 
         result.version = uint8(pool.version());
@@ -264,12 +259,12 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
 
     /// @dev Returns PoolData for all registered pools
     function getPoolsList() external view returns (PoolData[] memory result) {
-        uint256 poolsLength = contractsRegister.getPoolsCount();
+        uint256 poolsLength = IContractsRegister(contractsRegister).getPoolsCount();
 
         result = new PoolData[](poolsLength);
         unchecked {
             for (uint256 i = 0; i < poolsLength; ++i) {
-                address pool = contractsRegister.pools(i);
+                address pool = IContractsRegister(contractsRegister).pools(i);
                 result[i] = getPoolData(pool);
             }
         }
@@ -296,7 +291,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
     function getCreditContracts(address _creditManager)
         internal
         view
-        targetIsRegisteredCreditManager(_creditManager)
+        registeredCreditManagerOnly(_creditManager)
         returns (
             uint256 ver,
             ICreditManagerV2 creditManagerV2,
