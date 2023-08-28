@@ -232,7 +232,6 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
 
         result.addr = _pool;
         result.expectedLiquidity = pool.expectedLiquidity();
-        result.expectedLiquidityLimit = pool.expectedLiquidityLimit();
         result.availableLiquidity = pool.availableLiquidity();
         result.totalBorrowed = pool.totalBorrowed();
         result.dieselRate_RAY = pool.getDieselRate_RAY();

@@ -92,15 +92,27 @@ struct CreditManagerData {
     QuotaInfo[] quotas;
 }
 
+struct CreditManagerDebtParams {
+    address creditManager;
+    uint256 borrowed;
+    uint256 limit;
+    uint256 availableToBorrow;
+}
+
 struct PoolData {
     address addr;
     address underlying;
     address dieselToken;
+    ///
     uint256 linearCumulativeIndex;
     uint256 availableLiquidity;
     uint256 expectedLiquidity;
-    uint256 expectedLiquidityLimit;
+    //
     uint256 totalBorrowed;
+    uint256 totalDebtLimit;
+    CreditManagerDebtParams[] creditManagerDebtParams;
+    uint256 totalAssets;
+    uint256 totalSupply;
     uint256 supplyRate;
     uint256 baseInterestRate;
     uint256 dieselRate_RAY;
@@ -109,4 +121,21 @@ struct PoolData {
     uint256 baseInterestIndexLU;
     uint256 version;
     QuotaInfo[] quotas;
+}
+
+struct GaugeQuotaParams {
+    address token;
+    uint16 minRate;
+    uint16 maxRate;
+    uint96 totalVotesLpSide;
+    uint96 totalVotesCaSide;
+    uint16 rate;
+    uint16 quotaIncreaseFee;
+    uint96 totalQuoted;
+    uint96 limit;
+}
+
+struct GaugeInfo {
+    address addr;
+    GaugeQuotaParams[] quotaParams;
 }
