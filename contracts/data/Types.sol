@@ -3,6 +3,8 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
+import {ScheduledWithdrawal} from "@gearbox-protocol/core-v3/contracts/interfaces/IWithdrawalManagerV3.sol";
+
 struct TokenBalance {
     address token;
     uint256 balance;
@@ -51,8 +53,13 @@ struct CreditAccountData {
     uint256 baseBorrowRate;
     uint256 aggregatedBorrowRate;
     TokenBalance[] balances;
-    uint256 since;
+    uint64 since;
     uint256 cfVersion;
+    // V3 features
+    uint40 expirationDate;
+    address[] activeBots;
+    uint256 maxApprovedBots;
+    ScheduledWithdrawal[2] schedultedWithdrawals;
 }
 
 struct CreditManagerData {
@@ -82,9 +89,6 @@ struct CreditManagerData {
     uint16 feeLiquidationExpired; // Liquidation fee protocol charges on expired accounts
     uint16 liquidationDiscountExpired; // Multiplier for the amount the liquidator has to pay when closing an expired account
     // V3 Fileds
-    address[] connectedBots;
-    uint256 maxApprovedBots;
-    uint40 expirationDate;
     QuotaInfo[] quotas;
 }
 
@@ -104,4 +108,5 @@ struct PoolData {
     uint256 cumulativeIndex_RAY;
     uint256 baseInterestIndexLU;
     uint256 version;
+    QuotaInfo[] quotas;
 }

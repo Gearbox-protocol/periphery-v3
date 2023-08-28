@@ -138,7 +138,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
 
         result.cumulativeIndexLastUpdate = ICreditAccount(creditAccount).cumulativeIndexAtOpen();
 
-        result.since = ICreditAccount(creditAccount).since();
+        result.since = uint64(ICreditAccount(creditAccount).since());
     }
 
     /// @dev Returns CreditManagerData for all Credit Managers
