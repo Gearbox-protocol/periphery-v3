@@ -45,7 +45,8 @@ import {
     QuotaInfo,
     GaugeInfo,
     GaugeQuotaParams,
-    CreditManagerDebtParams
+    CreditManagerDebtParams,
+    GaugeVote
 } from "./Types.sol";
 
 // EXCEPTIONS
@@ -392,7 +393,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
         result.expectedLiquidity = pool.expectedLiquidity();
         result.availableLiquidity = pool.availableLiquidity();
 
-        // result.dieselRate_RAY = pool.getDieselRate_RAY();
+        result.dieselRate_RAY = pool.convertToAssets(RAY);
         result.linearCumulativeIndex = pool.calcLinearCumulative_RAY();
         result.baseInterestRate = pool.baseInterestRate();
         result.underlying = pool.underlyingToken();
@@ -572,5 +573,49 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
         }
     }
 
-    // function getGaugeVotes(address gauge) external view returns (GaugeVote[] memory gaugeVotes) {}
+    function getGaugeVotes(address staker) external view returns (GaugeVote[] memory gaugeVotes) {
+        address[] memory poolsV3 = _listPoolsV3();
+        uint256 len = poolsV3.length;
+        uint256 index;
+
+        unchecked {
+            for (uint256 op = COUNT; op <= QUERY; ++op) {
+                if (op == QUERY && index == 0) {
+                    break;
+                } else {
+                    gaugeVotes = new GaugeVote[](index);
+                    index = 0;
+                }
+                for (uint256 i; i < len; ++i) {
+                    address[] memory quotaTokens;
+                    address gauge;
+                    {
+                        IPoolQuotaKeeperV3 pqk = IPoolQuotaKeeperV3(IPoolV3(poolsV3[i]).poolQuotaKeeper());
+                        gauge = pqk.gauge();
+
+                        quotaTokens = pqk.quotedTokens();
+                    }
+                    uint256 quotaTokensLen = quotaTokens.length;
+
+                    for (uint256 j; j < quotaTokensLen; ++j) {
+                        address token = quotaTokens[j];
+
+                        (uint96 votesLpSide, uint96 votesCaSide) = IGaugeV3(gauge).userTokenVotes(staker, token);
+
+                        if (votesLpSide > 0 || votesCaSide > 0) {
+                            if (op == QUERY) {
+                                gaugeVotes[index] = GaugeVote({
+                                    gauge: gauge,
+                                    token: token,
+                                    totalVotesLpSide: votesLpSide,
+                                    totalVotesCaSide: votesCaSide
+                                });
+                            }
+                            ++index;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

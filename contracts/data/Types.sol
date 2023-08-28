@@ -139,3 +139,10 @@ struct GaugeInfo {
     address addr;
     GaugeQuotaParams[] quotaParams;
 }
+
+struct GaugeVote {
+    address gauge;
+    address token;
+    uint96 totalVotesLpSide;
+    uint96 totalVotesCaSide;
+}
