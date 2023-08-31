@@ -24,6 +24,8 @@ import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
 
 import {CreditManagerV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditManagerV3.sol";
+
+import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 import {IBotListV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IBotListV3.sol";
 import {IWithdrawalManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IWithdrawalManagerV3.sol";
 import {IGaugeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IGaugeV3.sol";
@@ -382,6 +384,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
         }
 
         result.quotas = _getQuotas(result.pool);
+
+        result.isPaused = CreditFacadeV3(address(creditFacade)).paused();
     }
 
     /// @dev Returns PoolData for a particular pool

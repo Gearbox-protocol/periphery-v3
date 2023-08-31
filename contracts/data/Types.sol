@@ -64,6 +64,9 @@ struct CreditAccountData {
 
 struct CreditManagerData {
     address addr;
+    uint256 cfVersion;
+    address creditFacade; // V2 only: address of creditFacade
+    address creditConfigurator; // V2 only: address of creditConfigurator
     address underlying;
     address pool;
     uint256 totalDebt;
@@ -75,12 +78,8 @@ struct CreditManagerData {
     address[] collateralTokens;
     ContractAdapter[] adapters;
     uint256[] liquidationThresholds;
-    uint256 version;
-    address creditFacade; // V2 only: address of creditFacade
-    address creditConfigurator; // V2 only: address of creditConfigurator
     bool isDegenMode; // V2 only: true if contract is in Degen mode
     address degenNFT; // V2 only: degenNFT, address(0) if not in degen mode
-    bool isIncreaseDebtForbidden; // V2 only: true if increasing debt is forbidden
     uint256 forbiddenTokenMask; // V2 only: mask which forbids some particular tokens
     uint8 maxEnabledTokensLength; // V2 only: in V1 as many tokens as the CM can support (256)
     uint16 feeInterest; // Interest fee protocol charges: fee = interest accrues * feeInterest
@@ -90,6 +89,7 @@ struct CreditManagerData {
     uint16 liquidationDiscountExpired; // Multiplier for the amount the liquidator has to pay when closing an expired account
     // V3 Fileds
     QuotaInfo[] quotas;
+    bool isPaused;
 }
 
 struct CreditManagerDebtParams {
