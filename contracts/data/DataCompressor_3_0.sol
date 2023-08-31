@@ -173,7 +173,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
     {
         ICreditManagerV3 creditManager = ICreditManagerV3(_pool);
         ICreditFacadeV3 creditFacade = ICreditFacadeV3(creditManager.creditFacade());
-        ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
+        // ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
 
         result.cfVersion = creditFacade.version();
 
@@ -325,7 +325,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
         ICreditFacadeV3 creditFacade = ICreditFacadeV3(creditManager.creditFacade());
 
         result.addr = _pool;
-        result.version = creditFacade.version();
+        result.cfVersion = creditFacade.version();
 
         result.underlying = creditManager.underlying();
 

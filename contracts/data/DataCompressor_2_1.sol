@@ -168,7 +168,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         ) = getCreditContracts(_creditManager);
 
         result.addr = _creditManager;
-        result.version = ver;
+        result.cfVersion = ver;
 
         result.underlying = creditManagerV2.underlying();
 
