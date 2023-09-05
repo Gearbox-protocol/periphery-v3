@@ -1,5 +1,5 @@
 {
-  "name": "periphery-v3",
+  "name": "@gearbox-protocol/periphery-v3",
   "version": "1.0.0",
   "main": "index.js",
   "repository": "git@github.com:Gearbox-protocol/periphery-v3.git",
