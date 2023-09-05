@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Configure access to private npm packages
+        run: echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
+
       # prepare script runs before publish, and it needs husky
       - name: Install dependencies
         run: |
