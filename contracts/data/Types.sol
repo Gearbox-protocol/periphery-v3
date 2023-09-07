@@ -100,6 +100,7 @@ struct CreditManagerData {
     // V3 Fileds
     QuotaInfo[] quotas;
     LinearModel lirm;
+    bool isPaused;
 }
 // LIR
 

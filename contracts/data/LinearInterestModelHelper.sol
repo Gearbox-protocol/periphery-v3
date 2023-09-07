@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: BUSL-1.1
+// Gearbox Protocol. Generalized leverage for DeFi protocols
+// (c) Gearbox Holdings, 2023
+pragma solidity ^0.8.17;
+
 import {LinearInterestRateModelV3} from "@gearbox-protocol/core-v3/contracts/pool/LinearInterestRateModelV3.sol";
 import {LinearModel} from "./Types.sol";
 
