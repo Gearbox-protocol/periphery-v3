@@ -25,6 +25,8 @@ import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.so
 import {PoolV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolV3.sol";
 
 import {CreditManagerV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditManagerV3.sol";
+
+import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 import {IBotListV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IBotListV3.sol";
 import {IWithdrawalManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IWithdrawalManagerV3.sol";
 import {IGaugeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IGaugeV3.sol";
@@ -173,7 +175,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
     {
         ICreditManagerV3 creditManager = ICreditManagerV3(_pool);
         ICreditFacadeV3 creditFacade = ICreditFacadeV3(creditManager.creditFacade());
-        ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
+        // ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
 
         result.cfVersion = creditFacade.version();
 
@@ -325,7 +327,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         ICreditFacadeV3 creditFacade = ICreditFacadeV3(creditManager.creditFacade());
 
         result.addr = _pool;
-        result.version = creditFacade.version();
+        result.cfVersion = creditFacade.version();
 
         result.underlying = creditManager.underlying();
 
@@ -385,6 +387,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         }
 
         result.quotas = _getQuotas(result.pool);
+
+        result.isPaused = CreditFacadeV3(address(creditFacade)).paused();
     }
 
     /// @dev Returns PoolData for a particular pool

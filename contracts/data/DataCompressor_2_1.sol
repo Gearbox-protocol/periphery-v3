@@ -5,6 +5,8 @@ pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v2/contracts/libraries/PercentageMath.sol";
 
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
@@ -168,7 +170,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
         ) = getCreditContracts(_creditManager);
 
         result.addr = _creditManager;
-        result.version = ver;
+        result.cfVersion = ver;
 
         result.underlying = creditManagerV2.underlying();
 
@@ -216,11 +218,14 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
         result.creditFacade = address(creditFacade);
         result.creditConfigurator = creditManagerV2.creditConfigurator();
         result.degenNFT = creditFacade.degenNFT();
-        (, result.isIncreaseDebtForbidden,,) = creditFacade.params(); // V2 only: true if increasing debt is forbidden
+        {
+            bool isIncreaseDebtForbidden;
+            (, isIncreaseDebtForbidden,,) = creditFacade.params(); // V2 only: true if increasing debt is forbidden
 
-        //     result.borrowed= creditFacade.
-        //    result.limit;
-        //    result.availableToBorrow;
+            (uint128 currentTotalDebt, uint128 totalDebtLimit) = creditFacade.totalDebt(); // V2 only: total debt and total debt limit
+
+            result.availableToBorrow = isIncreaseDebtForbidden ? 0 : totalDebtLimit - currentTotalDebt;
+        }
 
         result.forbiddenTokenMask = creditManagerV2.forbiddenTokenMask(); // V2 only: mask which forbids some particular tokens
         result.maxEnabledTokensLength = creditManagerV2.maxAllowedEnabledTokenLength(); // V2 only: a limit on enabled tokens imposed for security
@@ -233,6 +238,8 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
                 result.liquidationDiscountExpired
             ) = creditManagerV2.fees();
         }
+
+        result.isPaused = Pausable(address(creditManagerV2)).paused();
     }
 
     /// @dev Returns PoolData for a particular pool
