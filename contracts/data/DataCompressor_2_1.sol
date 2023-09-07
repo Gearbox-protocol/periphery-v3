@@ -4,6 +4,8 @@
 pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
@@ -177,11 +179,12 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
         {
             result.pool = creditManagerV2.pool();
             PoolService pool = PoolService(result.pool);
-            // result.canBorrow =;
             result.baseBorrowRate = pool.borrowAPY_RAY();
-            // TODO: add limit calculation
-            result.availableToBorrow = pool.creditManagersCanBorrow(_creditManager) ? pool.availableLiquidity() : 0;
 
+            (uint128 currentTotalDebt, uint128 totalDebtLimit) = creditFacade.totalDebt();
+            result.availableToBorrow = pool.creditManagersCanBorrow(_creditManager)
+                ? Math.min(pool.availableLiquidity(), totalDebtLimit - currentTotalDebt)
+                : 0;
             result.lirm = getLIRMData(address(pool.interestRateModel()));
         }
 
@@ -244,8 +247,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
 
     /// @dev Returns PoolData for a particular pool
     /// @param _pool Pool address
-    // TODO: add isPaused()
-    // TODO: add interestRateModel address / data
+
     function getPoolData(address _pool) public view registeredPoolOnly(_pool) returns (PoolData memory result) {
         PoolService pool = PoolService(_pool);
 
