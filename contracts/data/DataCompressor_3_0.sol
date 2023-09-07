@@ -22,6 +22,7 @@ import {IPriceOracleV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPr
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
+import {PoolV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolV3.sol";
 
 import {CreditManagerV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditManagerV3.sol";
 import {IBotListV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IBotListV3.sol";
@@ -51,6 +52,7 @@ import {
 
 // EXCEPTIONS
 import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
+import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
 
 uint256 constant COUNT = 0;
 uint256 constant QUERY = 1;
@@ -58,7 +60,7 @@ uint256 constant QUERY = 1;
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
+contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, LinearInterestModelHelper {
     // Contract version
     uint256 public constant version = 3_00;
 
@@ -332,6 +334,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
             IPoolV3 pool = IPoolV3(result.pool);
             result.baseBorrowRate = pool.baseInterestRate();
             result.availableToBorrow = pool.creditManagerBorrowable(_pool);
+            result.lirm = getLIRMData(pool.interestRateModel());
         }
 
         (result.minDebt, result.maxDebt) = creditFacade.debtLimits();
@@ -387,7 +390,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
     /// @dev Returns PoolData for a particular pool
     /// @param _pool Pool address
     function getPoolData(address _pool) public view registeredPoolOnly(_pool) returns (PoolData memory result) {
-        IPoolV3 pool = IPoolV3(_pool);
+        PoolV3 pool = PoolV3(_pool);
 
         result.addr = _pool;
         result.expectedLiquidity = pool.expectedLiquidity();
@@ -432,6 +435,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
         result.version = uint8(pool.version());
 
         result.quotas = _getQuotas(_pool);
+        result.lirm = getLIRMData(pool.interestRateModel());
+        result.isPaused = pool.paused();
 
         return result;
     }

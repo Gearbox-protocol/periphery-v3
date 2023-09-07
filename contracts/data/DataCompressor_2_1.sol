@@ -15,6 +15,7 @@ import {ICreditFacadeV2} from "@gearbox-protocol/core-v2/contracts/interfaces/IC
 import {ICreditConfiguratorV2} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditConfiguratorV2.sol";
 import {ICreditAccount} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditAccount.sol";
 import {IPoolService} from "@gearbox-protocol/core-v2/contracts/interfaces/IPoolService.sol";
+import {PoolService} from "@gearbox-protocol/core-v2/contracts/pool/PoolService.sol";
 
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
@@ -25,11 +26,12 @@ import {CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAd
 
 // EXCEPTIONS
 import {ZeroAddressException} from "@gearbox-protocol/core-v2/contracts/interfaces/IErrors.sol";
+import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
 
 /// @title Data compressor 2.1.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
+contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, LinearInterestModelHelper {
     // Contract version
     uint256 public constant version = 2_10;
 
@@ -172,10 +174,13 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
 
         {
             result.pool = creditManagerV2.pool();
-            IPoolService pool = IPoolService(result.pool);
+            PoolService pool = PoolService(result.pool);
             // result.canBorrow =;
             result.baseBorrowRate = pool.borrowAPY_RAY();
+            // TODO: add limit calculation
             result.availableToBorrow = pool.creditManagersCanBorrow(_creditManager) ? pool.availableLiquidity() : 0;
+
+            result.lirm = getLIRMData(address(pool.interestRateModel()));
         }
 
         (result.minDebt, result.maxDebt) = creditFacade.limits();
@@ -212,6 +217,11 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         result.creditConfigurator = creditManagerV2.creditConfigurator();
         result.degenNFT = creditFacade.degenNFT();
         (, result.isIncreaseDebtForbidden,,) = creditFacade.params(); // V2 only: true if increasing debt is forbidden
+
+        //     result.borrowed= creditFacade.
+        //    result.limit;
+        //    result.availableToBorrow;
+
         result.forbiddenTokenMask = creditManagerV2.forbiddenTokenMask(); // V2 only: mask which forbids some particular tokens
         result.maxEnabledTokensLength = creditManagerV2.maxAllowedEnabledTokenLength(); // V2 only: a limit on enabled tokens imposed for security
         {
@@ -227,8 +237,10 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
 
     /// @dev Returns PoolData for a particular pool
     /// @param _pool Pool address
+    // TODO: add isPaused()
+    // TODO: add interestRateModel address / data
     function getPoolData(address _pool) public view registeredPoolOnly(_pool) returns (PoolData memory result) {
-        IPoolService pool = IPoolService(_pool);
+        PoolService pool = PoolService(_pool);
 
         result.addr = _pool;
         result.expectedLiquidity = pool.expectedLiquidity();
@@ -252,6 +264,9 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
                 / PERCENTAGE_FACTOR;
 
         result.version = uint8(pool.version());
+        result.lirm = getLIRMData(address(pool.interestRateModel()));
+
+        result.isPaused = pool.paused();
 
         return result;
     }

@@ -62,6 +62,16 @@ struct CreditAccountData {
     ScheduledWithdrawal[2] schedultedWithdrawals;
 }
 
+struct LinearModel {
+    address interestModel;
+    uint16 U_1;
+    uint16 U_2;
+    uint16 R_base;
+    uint16 R_slope1;
+    uint16 R_slope2;
+    uint16 R_slope3;
+}
+
 struct CreditManagerData {
     address addr;
     address underlying;
@@ -90,7 +100,9 @@ struct CreditManagerData {
     uint16 liquidationDiscountExpired; // Multiplier for the amount the liquidator has to pay when closing an expired account
     // V3 Fileds
     QuotaInfo[] quotas;
+    LinearModel lirm;
 }
+// LIR
 
 struct CreditManagerDebtParams {
     address creditManager;
@@ -121,6 +133,8 @@ struct PoolData {
     uint256 baseInterestIndexLU;
     uint256 version;
     QuotaInfo[] quotas;
+    LinearModel lirm;
+    bool isPaused;
 }
 
 struct GaugeQuotaParams {
