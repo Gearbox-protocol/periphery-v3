@@ -6,7 +6,7 @@ pragma solidity ^0.8.10;
 import {CreditAccountDataV2, CreditManagerDataV2, PoolDataV2, TokenInfoV2} from "../data/Types.sol";
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
-interface IDataCompressorExceptions {
+interface IDataCompressorV2Exceptions {
     /// @dev Thrown if attempting to get data on a contract that is not a registered
     ///      Credit Manager
     error NotCreditManagerException();
@@ -16,7 +16,7 @@ interface IDataCompressorExceptions {
     error NotPoolException();
 }
 
-interface IDataCompressor is IDataCompressorExceptions, IVersion {
+interface IDataCompressorV2 is IDataCompressorV2Exceptions, IVersion {
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
     function getCreditAccountList(address borrower) external view returns (CreditAccountDataV2[] memory);
