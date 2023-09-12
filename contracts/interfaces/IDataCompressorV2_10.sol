@@ -25,7 +25,7 @@ interface IDataCompressorV2_10 is IVersion {
         returns (CreditAccountData memory);
 
     /// @dev Returns CreditManagerData for all Credit Managers
-    function getCreditManagersList() external view returns (CreditManagerData[] memory);
+    function getCreditManagersV2List() external view returns (CreditManagerData[] memory);
 
     /// @dev Returns CreditManagerData for a particular _creditManager
     /// @param _creditManager CreditManager address
@@ -36,7 +36,7 @@ interface IDataCompressorV2_10 is IVersion {
     function getPoolData(address _pool) external view returns (PoolData memory);
 
     /// @dev Returns PoolData for all registered pools
-    function getPoolsList() external view returns (PoolData[] memory);
+    function getPoolsV1List() external view returns (PoolData[] memory);
 
     /// @dev Returns the adapter address for a particular creditManager and targetContract
     function getAdapter(address _creditManager, address _allowedContract) external view returns (address adapter);

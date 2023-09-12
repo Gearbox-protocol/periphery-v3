@@ -64,6 +64,7 @@ struct CreditAccountData {
 
 struct LinearModel {
     address interestModel;
+    uint256 version;
     uint16 U_1;
     uint16 U_2;
     uint16 R_base;
