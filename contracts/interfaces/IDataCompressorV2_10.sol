@@ -9,7 +9,7 @@ import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.
 interface IDataCompressorV2_10 is IVersion {
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
-    function getCreditAccountList(address borrower) external view returns (CreditAccountData[] memory);
+    function getCreditAccountsByBorrower(address borrower) external view returns (CreditAccountData[] memory);
 
     /// @dev Returns whether the borrower has an open credit account with the credit manager
     /// @param creditManager Credit manager to check

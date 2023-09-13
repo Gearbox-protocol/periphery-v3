@@ -94,7 +94,7 @@ contract DCTest {
         }
     }
 
-    function test_dc_pools() public view {
+    function test_dc_01_pools() public view {
         PoolData[] memory pools = dc2.getPoolsV1List();
         console.log("V1 pools");
         _printPools(pools);
@@ -104,7 +104,7 @@ contract DCTest {
         _printPools(pools);
     }
 
-    function test_dc_credit_managers() public view {
+    function test_dc_02_credit_managers() public view {
         CreditManagerData[] memory cms = dc2.getCreditManagersV2List();
         console.log("V2 credit managers");
         _printCreditManagers(cms);
@@ -112,5 +112,10 @@ contract DCTest {
         cms = dc3.getCreditManagersV3List();
         console.log("\n\nV3 credit managers");
         _printCreditManagers(cms);
+    }
+
+    function test_dc_03_credit_accounts() public view {
+        CreditAccountData[] memory cas = dc2.getCreditAccountsByBorrower(address(this));
+        console.log("V2 credit accounts", cas.length);
     }
 }

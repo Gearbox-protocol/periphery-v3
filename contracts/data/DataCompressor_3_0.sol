@@ -40,6 +40,8 @@ import {AddressProvider} from "@gearbox-protocol/core-v2/contracts/core/AddressP
 import {IDataCompressorV3_00, PriceOnDemand} from "../interfaces/IDataCompressorV3_00.sol";
 
 import {
+    COUNT,
+    QUERY,
     CreditAccountData,
     CreditManagerData,
     PoolData,
@@ -55,9 +57,6 @@ import {
 // EXCEPTIONS
 import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
-
-uint256 constant COUNT = 0;
-uint256 constant QUERY = 1;
 
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp

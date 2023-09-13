@@ -26,14 +26,13 @@ import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.
 import {IAddressProvider} from "@gearbox-protocol/core-v2/contracts/interfaces/IAddressProvider.sol";
 import {IDataCompressorV2_10} from "../interfaces/IDataCompressorV2_10.sol";
 
-import {CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter} from "./Types.sol";
+import {
+    COUNT, QUERY, CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter
+} from "./Types.sol";
 
 // EXCEPTIONS
 import {ZeroAddressException} from "@gearbox-protocol/core-v2/contracts/interfaces/IErrors.sol";
 import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
-
-uint256 constant COUNT = 0;
-uint256 constant QUERY = 1;
 
 /// @title Data compressor 2.1.
 /// @notice Collects data from various contracts for use in the dApp
@@ -46,33 +45,27 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
-    function getCreditAccountList(address borrower) external view returns (CreditAccountData[] memory result) {
+    function getCreditAccountsByBorrower(address borrower) external view returns (CreditAccountData[] memory result) {
         // Counts how many opened accounts a borrower has
-        uint256 count;
-        uint256 creditManagersLength = IContractsRegister(contractsRegister).getCreditManagersCount();
+        address[] memory cms = _listCreditManagersV2();
+        uint256 creditManagersLength = cms.length;
+
+        uint256 index;
         unchecked {
-            for (uint256 i = 0; i < creditManagersLength; ++i) {
-                address creditManager = IContractsRegister(contractsRegister).creditManagers(i);
-                if (hasOpenedCreditAccount(creditManager, borrower)) {
-                    ++count;
+            for (uint256 op = COUNT; op <= QUERY; ++op) {
+                if (op == QUERY && index == 0) {
+                    break;
+                } else {
+                    result = new CreditAccountData[](index);
+                    index = 0;
                 }
-            }
-        }
-
-        result = new CreditAccountData[](count);
-
-        // Get data & fill the array
-        count = 0;
-        for (uint256 i = 0; i < creditManagersLength;) {
-            address creditManager = IContractsRegister(contractsRegister).creditManagers(i);
-            unchecked {
-                if (hasOpenedCreditAccount(creditManager, borrower)) {
-                    result[count] = getCreditAccountData(creditManager, borrower);
-
-                    count++;
+                for (uint256 i = 0; i < creditManagersLength; ++i) {
+                    address creditManager = cms[i];
+                    if (hasOpenedCreditAccount(creditManager, borrower)) {
+                        if (op == QUERY) result[index] = getCreditAccountData(creditManager, borrower);
+                        ++index;
+                    }
                 }
-
-                ++i;
             }
         }
     }
@@ -153,12 +146,12 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
     /// @dev Returns CreditManagerData for all Credit Managers
     function getCreditManagersV2List() external view returns (CreditManagerData[] memory result) {
         address[] memory cms = _listCreditManagersV2();
-        uint256 creditManagersCount = cms.length;
+        uint256 creditManagersLength = cms.length;
 
-        result = new CreditManagerData[](creditManagersCount);
+        result = new CreditManagerData[](creditManagersLength);
 
         unchecked {
-            for (uint256 i = 0; i < creditManagersCount; ++i) {
+            for (uint256 i = 0; i < creditManagersLength; ++i) {
                 result[i] = getCreditManagerData(cms[i]);
             }
         }

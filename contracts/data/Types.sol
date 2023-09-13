@@ -5,6 +5,9 @@ pragma solidity ^0.8.17;
 
 import {ScheduledWithdrawal} from "@gearbox-protocol/core-v3/contracts/interfaces/IWithdrawalManagerV3.sol";
 
+uint256 constant COUNT = 0;
+uint256 constant QUERY = 1;
+
 struct TokenBalance {
     address token;
     uint256 balance;
