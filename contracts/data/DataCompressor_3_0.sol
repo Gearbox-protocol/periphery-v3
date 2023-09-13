@@ -540,8 +540,14 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         unchecked {
             for (uint256 i; i < len; ++i) {
                 quotas[i].token = quotaTokens[i];
-                (quotas[i].rate,, quotas[i].quotaIncreaseFee, quotas[i].totalQuoted, quotas[i].limit) =
-                    pqk.getTokenQuotaParams(quotaTokens[i]);
+                (
+                    quotas[i].rate,
+                    ,
+                    quotas[i].quotaIncreaseFee,
+                    quotas[i].totalQuoted,
+                    quotas[i].limit,
+                    quotas[i].isActive
+                ) = pqk.getTokenQuotaParams(quotaTokens[i]);
             }
         }
     }
@@ -567,8 +573,14 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                     address token = quotaTokens[j];
                     quotaParams.token = token;
 
-                    (quotaParams.rate,, quotaParams.quotaIncreaseFee, quotaParams.totalQuoted, quotaParams.limit) =
-                        pqk.getTokenQuotaParams(token);
+                    (
+                        quotaParams.rate,
+                        ,
+                        quotaParams.quotaIncreaseFee,
+                        quotaParams.totalQuoted,
+                        quotaParams.limit,
+                        quotaParams.isActive
+                    ) = pqk.getTokenQuotaParams(token);
 
                     (
                         quotaParams.minRate,

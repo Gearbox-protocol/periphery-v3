@@ -24,6 +24,7 @@ struct QuotaInfo {
     uint16 quotaIncreaseFee;
     uint96 totalQuoted;
     uint96 limit;
+    bool isActive;
 }
 
 struct ContractAdapter {
@@ -151,6 +152,7 @@ struct GaugeQuotaParams {
     uint16 quotaIncreaseFee;
     uint96 totalQuoted;
     uint96 limit;
+    bool isActive;
 }
 
 struct GaugeInfo {
