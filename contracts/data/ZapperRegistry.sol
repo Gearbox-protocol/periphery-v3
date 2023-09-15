@@ -18,7 +18,7 @@ contract ZapperRegistry is ACLNonReentrantTrait, IZapperRegistry {
     function addZapper(address zapper) external controllerOnly {
         EnumerableSet.AddressSet storage zapperSet = _zappersMap[IZapper(zapper).pool()];
         if (!zapperSet.contains(zapper)) {
-            _zappersMap[IZapper(zapper).pool()].add(zapper);
+            zapperSet.add(zapper);
             emit AddZapper(zapper);
         }
     }
@@ -26,7 +26,7 @@ contract ZapperRegistry is ACLNonReentrantTrait, IZapperRegistry {
     function removeZapper(address zapper) external controllerOnly {
         EnumerableSet.AddressSet storage zapperSet = _zappersMap[IZapper(zapper).pool()];
         if (zapperSet.contains(zapper)) {
-            _zappersMap[IZapper(zapper).pool()].remove(zapper);
+            zapperSet.remove(zapper);
             emit RemoveZapper(zapper);
         }
     }
