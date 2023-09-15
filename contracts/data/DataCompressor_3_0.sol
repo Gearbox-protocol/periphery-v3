@@ -433,7 +433,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
 
         result.supplyRate = pool.supplyRate();
 
-        result.version = uint8(pool.version());
+        result.version = pool.version();
 
         result.quotas = _getQuotas(_pool);
 
