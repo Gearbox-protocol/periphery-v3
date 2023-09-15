@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Holdings, 2022
+// (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
@@ -22,6 +22,7 @@ import {IPriceOracleV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPr
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
+import {PoolV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolV3.sol";
 
 import {CreditManagerV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditManagerV3.sol";
 
@@ -39,6 +40,8 @@ import {AddressProvider} from "@gearbox-protocol/core-v2/contracts/core/AddressP
 import {IDataCompressorV3_00, PriceOnDemand} from "../interfaces/IDataCompressorV3_00.sol";
 
 import {
+    COUNT,
+    QUERY,
     CreditAccountData,
     CreditManagerData,
     PoolData,
@@ -53,14 +56,12 @@ import {
 
 // EXCEPTIONS
 import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
-
-uint256 constant COUNT = 0;
-uint256 constant QUERY = 1;
+import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
 
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
+contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, LinearInterestModelHelper {
     // Contract version
     uint256 public constant version = 3_00;
 
@@ -334,6 +335,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
             IPoolV3 pool = IPoolV3(result.pool);
             result.baseBorrowRate = pool.baseInterestRate();
             result.availableToBorrow = pool.creditManagerBorrowable(_pool);
+            result.lirm = getLIRMData(pool.interestRateModel());
         }
 
         (result.minDebt, result.maxDebt) = creditFacade.debtLimits();
@@ -391,7 +393,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
     /// @dev Returns PoolData for a particular pool
     /// @param _pool Pool address
     function getPoolData(address _pool) public view registeredPoolOnly(_pool) returns (PoolData memory result) {
-        IPoolV3 pool = IPoolV3(_pool);
+        PoolV3 pool = PoolV3(_pool);
 
         result.addr = _pool;
         result.expectedLiquidity = pool.expectedLiquidity();
@@ -436,6 +438,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
         result.version = pool.version();
 
         result.quotas = _getQuotas(_pool);
+        result.lirm = getLIRMData(pool.interestRateModel());
+        result.isPaused = pool.paused();
 
         return result;
     }
@@ -536,8 +540,14 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
         unchecked {
             for (uint256 i; i < len; ++i) {
                 quotas[i].token = quotaTokens[i];
-                (quotas[i].rate,, quotas[i].quotaIncreaseFee, quotas[i].totalQuoted, quotas[i].limit) =
-                    pqk.getTokenQuotaParams(quotaTokens[i]);
+                (
+                    quotas[i].rate,
+                    ,
+                    quotas[i].quotaIncreaseFee,
+                    quotas[i].totalQuoted,
+                    quotas[i].limit,
+                    quotas[i].isActive
+                ) = pqk.getTokenQuotaParams(quotaTokens[i]);
             }
         }
     }
@@ -563,8 +573,14 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
                     address token = quotaTokens[j];
                     quotaParams.token = token;
 
-                    (quotaParams.rate,, quotaParams.quotaIncreaseFee, quotaParams.totalQuoted, quotaParams.limit) =
-                        pqk.getTokenQuotaParams(token);
+                    (
+                        quotaParams.rate,
+                        ,
+                        quotaParams.quotaIncreaseFee,
+                        quotaParams.totalQuoted,
+                        quotaParams.limit,
+                        quotaParams.isActive
+                    ) = pqk.getTokenQuotaParams(token);
 
                     (
                         quotaParams.minRate,

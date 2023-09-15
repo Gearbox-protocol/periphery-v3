@@ -1,19 +1,39 @@
 {
-  "name": "periphery-v3",
+  "name": "@gearbox-protocol/periphery-v3",
   "version": "1.0.0",
   "main": "index.js",
   "repository": "git@github.com:Gearbox-protocol/periphery-v3.git",
   "author": "Mikael <26343374+0xmikko@users.noreply.github.com>",
   "license": "MIT",
+  "files": [
+    "contracts"
+  ],
+  "scripts": {
+    "prepare": "husky install",
+    "prettier": "forge fmt",
+    "prettier:ci": "forge fmt"
+  },
   "devDependencies": {
     "@1inch/solidity-utils": "^2.2.27",
+    "@commitlint/cli": "^17.6.3",
+    "@commitlint/config-conventional": "17.6.0",
     "@gearbox-protocol/core-v2": "1.19.0-base.14",
-    "@gearbox-protocol/core-v3": "^1.36.5",
+    "@gearbox-protocol/core-v3": "^1.39.0",
     "@gearbox-protocol/oracles-v3": "^1.7.2",
     "@gearbox-protocol/sdk-gov": "^1.5.10",
+   "@gearbox-protocol/integrations-v3": "^1.16.0",
     "@openzeppelin/contracts": "4.8.3"
   },
   "dependencies": {
-    "@gearbox-protocol/integrations-v3": "^1.16.0"
+   
+    "husky": "^8.0.3",
+    "lint-staged": "^13.0.3",
+    "prettier": "^3.0.3"
+  },
+  "prettier": "@gearbox-protocol/prettier-config",
+  "lint-staged": {
+    "*.sol": "forge fmt",
+    "*.{json,md}": "prettier --write"
+
   }
 }
