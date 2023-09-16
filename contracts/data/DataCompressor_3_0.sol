@@ -435,7 +435,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         result.supplyRate = pool.supplyRate();
 
-        result.version = uint8(pool.version());
+        result.version = pool.version();
 
         result.quotas = _getQuotas(_pool);
         result.lirm = getLIRMData(pool.interestRateModel());

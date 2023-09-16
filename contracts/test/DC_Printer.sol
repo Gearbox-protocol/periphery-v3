@@ -9,6 +9,8 @@ import {DataCompressorV2_10} from "../data/DataCompressor_2_1.sol";
 import {DataCompressorV3_00} from "../data/DataCompressor_3_0.sol";
 import {CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter} from "../data/Types.sol";
 
+import {NetworkDetector} from "@gearbox-protocol/sdk-gov/contracts/NetworkDetector.sol";
+
 import "forge-std/console.sol";
 
 address constant ap = 0x5BcB06c56e8F28da0b038a373199240ca3F5a2f4;
@@ -17,7 +19,20 @@ contract DCTest {
     DataCompressorV2_10 public dc2;
     DataCompressorV3_00 public dc3;
 
-    function setUp() public {
+    uint256 chainId;
+
+    constructor() {
+        NetworkDetector nd = new NetworkDetector();
+        chainId = nd.chainId();
+    }
+
+    modifier liveTestOnly() {
+        if (chainId == 1) {
+            _;
+        }
+    }
+
+    function setUp() public liveTestOnly {
         dc2 = new DataCompressorV2_10(ap);
         dc3 = new DataCompressorV3_00(ap);
     }
@@ -94,7 +109,7 @@ contract DCTest {
         }
     }
 
-    function test_dc_01_pools() public view {
+    function test_dc_01_pools() public view liveTestOnly {
         PoolData[] memory pools = dc2.getPoolsV1List();
         console.log("V1 pools");
         _printPools(pools);
@@ -104,7 +119,7 @@ contract DCTest {
         _printPools(pools);
     }
 
-    function test_dc_02_credit_managers() public view {
+    function test_dc_02_credit_managers() public view liveTestOnly {
         CreditManagerData[] memory cms = dc2.getCreditManagersV2List();
         console.log("V2 credit managers");
         _printCreditManagers(cms);
@@ -114,7 +129,7 @@ contract DCTest {
         _printCreditManagers(cms);
     }
 
-    function test_dc_03_credit_accounts() public view {
+    function test_dc_03_credit_accounts() public view liveTestOnly {
         CreditAccountData[] memory cas = dc2.getCreditAccountsByBorrower(address(this));
         console.log("V2 credit accounts", cas.length);
     }

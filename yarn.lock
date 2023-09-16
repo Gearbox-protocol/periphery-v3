@@ -965,6 +965,11 @@
     "@gearbox-protocol/sdk" "1.22.1"
     axios "^1.1.3"
 
+"@gearbox-protocol/integrations-v3@^1.16.0":
+  version "1.16.0"
+  resolved "https://registry.yarnpkg.com/@gearbox-protocol/integrations-v3/-/integrations-v3-1.16.0.tgz#62a7fc6b2f73bb10d67ba5eff8368e14eb15920a"
+  integrity sha512-cv70TB4cbtz1rX+LbCMWud85da4+hsRjzYJq/XZ5Qha4DqMZBF7wcco55pbEqp+cZ95hLjjl9J00xEY7JIVuSw==
+
 "@gearbox-protocol/oracles-v3@^1.7.2":
   version "1.7.2"
   resolved "https://registry.yarnpkg.com/@gearbox-protocol/oracles-v3/-/oracles-v3-1.7.2.tgz#5e1804493dbf854e18cc2384012cf8d3f1c15365"
