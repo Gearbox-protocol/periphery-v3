@@ -7,23 +7,30 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IZapper} from "@gearbox-protocol/integrations-v3/contracts/interfaces/zappers/IZapper.sol";
 import {IZapperRegistry} from "../interfaces/IZapperRegistry.sol";
 import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
+import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
 
-contract ZapperRegistry is ACLNonReentrantTrait, IZapperRegistry {
+contract ZapperRegister is ACLNonReentrantTrait, ContractsRegisterTrait, IZapperRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     mapping(address => EnumerableSet.AddressSet) internal _zappersMap;
 
-    constructor(address addressProvider) ACLNonReentrantTrait(addressProvider) {}
+    constructor(address addressProvider)
+        ACLNonReentrantTrait(addressProvider)
+        ContractsRegisterTrait(addressProvider)
+    {}
 
-    function addZapper(address zapper) external controllerOnly {
-        EnumerableSet.AddressSet storage zapperSet = _zappersMap[IZapper(zapper).pool()];
+    function addZapper(address zapper) external nonZeroAddress(zapper) controllerOnly {
+        address pool = IZapper(zapper).pool();
+        _ensureRegisteredPool(pool);
+
+        EnumerableSet.AddressSet storage zapperSet = _zappersMap[pool];
         if (!zapperSet.contains(zapper)) {
             zapperSet.add(zapper);
             emit AddZapper(zapper);
         }
     }
 
-    function removeZapper(address zapper) external controllerOnly {
+    function removeZapper(address zapper) external nonZeroAddress(zapper) controllerOnly {
         EnumerableSet.AddressSet storage zapperSet = _zappersMap[IZapper(zapper).pool()];
         if (zapperSet.contains(zapper)) {
             zapperSet.remove(zapper);
@@ -32,7 +39,6 @@ contract ZapperRegistry is ACLNonReentrantTrait, IZapperRegistry {
     }
 
     function zappers(address pool) external view override returns (address[] memory) {
-        EnumerableSet.AddressSet storage zapperSet = _zappersMap[pool];
-        return zapperSet.values();
+        return _zappersMap[pool].values();
     }
 }
