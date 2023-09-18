@@ -142,6 +142,8 @@ struct PoolData {
     uint256 cumulativeIndex_RAY;
     uint256 baseInterestIndexLU;
     uint256 version;
+    address poolQuotaKeeper;
+    address gauge;
     QuotaInfo[] quotas;
     ZapperInfo[] zappers;
     LinearModel lirm;

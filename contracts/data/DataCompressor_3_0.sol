@@ -203,6 +203,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.enabledTokensMask = creditManager.enabledTokensMaskOf(_creditAccount);
 
         result.balances = new TokenBalance[](collateralTokenCount);
+
+        uint256 quotaRevenue = 0;
         {
             uint256 forbiddenTokenMask = creditFacade.forbiddenTokenMask();
             uint256 quotedTokensMask = creditManager.quotedTokensMask();
@@ -224,12 +226,16 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                     if (balance.isQuoted) {
                         (balance.quota,) = pqk.getQuota(_creditAccount, balance.token);
                         balance.quotaRate = pqk.getQuotaRate(balance.token);
+
+                        quotaRevenue += balance.quota * balance.quotaRate;
                     }
 
                     result.balances[i] = balance;
                 }
             }
         }
+
+        result.aggregatedBorrowRate = result.baseBorrowRate + RAY * quotaRevenue / PERCENTAGE_FACTOR / result.debt;
 
         // uint256 debt;
         // uint256 cumulativeIndexNow;
@@ -460,6 +466,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                 result.zappers[i] = ZapperInfo({tokenFrom: tokenFrom, zapper: zappers[i]});
             }
         }
+
+        result.poolQuotaKeeper = pool.poolQuotaKeeper();
+        result.gauge = IPoolQuotaKeeperV3(result.poolQuotaKeeper).gauge();
 
         return result;
     }
