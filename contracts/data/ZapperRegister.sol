@@ -5,11 +5,11 @@ pragma solidity ^0.8.10;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IZapper} from "@gearbox-protocol/integrations-v3/contracts/interfaces/zappers/IZapper.sol";
-import {IZapperRegistry} from "../interfaces/IZapperRegistry.sol";
+import {IZapperRegister} from "../interfaces/IZapperRegister.sol";
 import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
 
-contract ZapperRegister is ACLNonReentrantTrait, ContractsRegisterTrait, IZapperRegistry {
+contract ZapperRegister is ACLNonReentrantTrait, ContractsRegisterTrait, IZapperRegister {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     // Contract version

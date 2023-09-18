@@ -60,7 +60,7 @@ import {
 // EXCEPTIONS
 import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
-import {ZapperRegister} from "./ZapperRegister.sol";
+import {IZapperRegister} from "../interfaces/IZapperRegister.sol";
 
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
@@ -69,13 +69,13 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
     // Contract version
     uint256 public constant version = 3_00;
 
-    ZapperRegister public zapperRegister;
+    IZapperRegister public zapperRegister;
 
     error CreditManagerIsNotV3Exception();
 
     constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {
         zapperRegister =
-            ZapperRegister(IAddressProviderV3(_addressProvider).getAddressOrRevert("ZAPPER_REGISTER", 3_00));
+            IZapperRegister(IAddressProviderV3(_addressProvider).getAddressOrRevert("ZAPPER_REGISTER", 3_00));
     }
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
@@ -130,24 +130,21 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                 }
 
                 for (uint256 i = 0; i < len; ++i) {
-                    address _pool = creditManagers[i];
+                    address _cm = creditManagers[i];
 
-                    _updatePrices(_pool, priceUpdates);
-                    address[] memory creditAccounts = ICreditManagerV3(_pool).creditAccounts();
+                    _updatePrices(_cm, priceUpdates);
+                    address[] memory creditAccounts = ICreditManagerV3(_cm).creditAccounts();
                     uint256 caLen = creditAccounts.length;
                     for (uint256 j; j < caLen; ++j) {
                         if (
-                            (
-                                borrower == address(0)
-                                    || ICreditManagerV3(_pool).getBorrowerOrRevert(creditAccounts[i]) == borrower
-                            )
+                            (borrower == address(0) || _getBorrowerOrRevert(_cm, creditAccounts[i]) == borrower)
                                 && (
                                     !liquidatableOnly
-                                        || ICreditManagerV3(_pool).isLiquidatable(creditAccounts[i], PERCENTAGE_FACTOR)
+                                        || ICreditManagerV3(_cm).isLiquidatable(creditAccounts[i], PERCENTAGE_FACTOR)
                                 )
                         ) {
                             if (op == QUERY) {
-                                result[index] = _getCreditAccountData(_pool, creditAccounts[j]);
+                                result[index] = _getCreditAccountData(_cm, creditAccounts[j]);
                             }
                             ++index;
                         }
@@ -182,12 +179,12 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         returns (CreditAccountData memory result)
     {
         ICreditManagerV3 creditManager = ICreditManagerV3(_pool);
-        ICreditFacadeV3 creditFacade = ICreditFacadeV3(creditManager.creditFacade());
+        ICreditFacadeV3 creditFacade = _getCreditFacade(address(creditManager));
         // ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
 
-        result.cfVersion = creditFacade.version();
+        result.cfVersion = _getVersion(address(creditFacade));
 
-        address borrower = creditManager.getBorrowerOrRevert(_creditAccount);
+        address borrower = _getBorrowerOrRevert(address(creditManager), _creditAccount);
 
         result.borrower = borrower;
         result.creditManager = _pool;
@@ -196,7 +193,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.underlying = creditManager.underlying();
 
         address pool = creditManager.pool();
-        result.baseBorrowRate = IPoolV3(pool).baseInterestRate();
+        result.baseBorrowRate = _getBaseInterestRate(pool);
 
         uint256 collateralTokenCount = creditManager.collateralTokensCount();
 
@@ -208,7 +205,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         {
             uint256 forbiddenTokenMask = creditFacade.forbiddenTokenMask();
             uint256 quotedTokensMask = creditManager.quotedTokensMask();
-            IPoolQuotaKeeperV3 pqk = IPoolQuotaKeeperV3(creditManager.poolQuotaKeeper());
+            IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(pool);
 
             unchecked {
                 for (uint256 i = 0; i < collateralTokenCount; ++i) {
@@ -315,7 +312,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
     }
 
     function _isContractV3(address _pool) internal view returns (bool) {
-        uint256 cmVersion = IVersion(_pool).version();
+        uint256 cmVersion = _getVersion(_pool);
         return cmVersion >= 3_00 && cmVersion < 3_99;
     }
 
@@ -333,23 +330,23 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         }
     }
 
-    /// @dev Returns CreditManagerData for a particular _pool
-    /// @param _pool CreditManager address
-    function getCreditManagerData(address _pool) public view returns (CreditManagerData memory result) {
-        ICreditManagerV3 creditManager = ICreditManagerV3(_pool);
+    /// @dev Returns CreditManagerData for a particular _cm
+    /// @param _cm CreditManager address
+    function getCreditManagerData(address _cm) public view returns (CreditManagerData memory result) {
+        ICreditManagerV3 creditManager = ICreditManagerV3(_cm);
         ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
-        ICreditFacadeV3 creditFacade = ICreditFacadeV3(creditManager.creditFacade());
+        ICreditFacadeV3 creditFacade = _getCreditFacade(address(creditManager));
 
-        result.addr = _pool;
-        result.cfVersion = creditFacade.version();
+        result.addr = _cm;
+        result.cfVersion = _getVersion(address(creditFacade));
 
         result.underlying = creditManager.underlying();
 
         {
             result.pool = creditManager.pool();
             IPoolV3 pool = IPoolV3(result.pool);
-            result.baseBorrowRate = pool.baseInterestRate();
-            result.availableToBorrow = pool.creditManagerBorrowable(_pool);
+            result.baseBorrowRate = _getBaseInterestRate(address(pool));
+            result.availableToBorrow = pool.creditManagerBorrowable(_cm);
             result.lirm = getLIRMData(pool.interestRateModel());
         }
 
@@ -416,7 +413,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         result.dieselRate_RAY = pool.convertToAssets(RAY);
         result.linearCumulativeIndex = pool.calcLinearCumulative_RAY();
-        result.baseInterestRate = pool.baseInterestRate();
+        result.baseInterestRate = _getBaseInterestRate(address(pool));
         result.underlying = pool.underlyingToken();
         result.dieselToken = address(pool);
 
@@ -450,7 +447,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         result.supplyRate = pool.supplyRate();
 
-        result.version = pool.version();
+        result.version = _getVersion(address(pool));
 
         result.quotas = _getQuotas(_pool);
         result.lirm = getLIRMData(pool.interestRateModel());
@@ -467,7 +464,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             }
         }
 
-        result.poolQuotaKeeper = pool.poolQuotaKeeper();
+        result.poolQuotaKeeper = address(_getPoolQuotaKeeper(_pool));
         result.gauge = IPoolQuotaKeeperV3(result.poolQuotaKeeper).gauge();
 
         return result;
@@ -515,8 +512,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         uint256 len = priceUpdates.length;
         unchecked {
             for (uint256 i; i < len; ++i) {
-                address priceFeed =
-                    IPriceOracleV3(ICreditManagerV3(creditManager).priceOracle()).priceFeeds(priceUpdates[i].token);
+                address priceFeed = _getPriceOracle(creditManager).priceFeeds(priceUpdates[i].token);
                 if (priceFeed == address(0)) revert PriceFeedDoesNotExistException();
 
                 IUpdatablePriceFeed(priceFeed).updatePrice(priceUpdates[i].callData);
@@ -524,14 +520,14 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         }
     }
 
-    function _getPriceFeedFailedList(address _pool, TokenBalance[] memory balances)
+    function _getPriceFeedFailedList(address _cm, TokenBalance[] memory balances)
         internal
         view
         returns (address[] memory priceFeedFailed)
     {
         uint256 len = balances.length;
 
-        IPriceOracleV3 priceOracle = IPriceOracleV3(ICreditManagerV3(_pool).priceOracle());
+        IPriceOracleV3 priceOracle = _getPriceOracle(_cm);
 
         uint256 index;
 
@@ -560,8 +556,32 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         }
     }
 
+    function _getPoolQuotaKeeper(address pool) internal view returns (IPoolQuotaKeeperV3) {
+        return IPoolQuotaKeeperV3(IPoolV3(pool).poolQuotaKeeper());
+    }
+
+    function _getPriceOracle(address _cm) internal view returns (IPriceOracleV3) {
+        return IPriceOracleV3(ICreditManagerV3(_cm).priceOracle());
+    }
+
+    function _getBaseInterestRate(address pool) internal view returns (uint256) {
+        return IPoolV3(pool).baseInterestRate();
+    }
+
+    function _getBorrowerOrRevert(address cm, address creditAccount) internal view returns (address) {
+        return ICreditManagerV3(cm).getBorrowerOrRevert(creditAccount);
+    }
+
+    function _getVersion(address versionedContract) internal view returns (uint256) {
+        return IVersion(versionedContract).version();
+    }
+
+    function _getCreditFacade(address cm) internal view returns (ICreditFacadeV3) {
+        return ICreditFacadeV3(ICreditManagerV3(cm).creditFacade());
+    }
+
     function _getQuotas(address _pool) internal view returns (QuotaInfo[] memory quotas) {
-        IPoolQuotaKeeperV3 pqk = IPoolQuotaKeeperV3(IPoolV3(_pool).poolQuotaKeeper());
+        IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(_pool);
 
         address[] memory quotaTokens = pqk.quotedTokens();
         uint256 len = quotaTokens.length;
@@ -589,7 +609,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         unchecked {
             for (uint256 i; i < len; ++i) {
                 GaugeInfo memory gaugeInfo = result[i];
-                IPoolQuotaKeeperV3 pqk = IPoolQuotaKeeperV3(IPoolV3(poolsV3[i]).poolQuotaKeeper());
+                IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(poolsV3[i]);
                 address gauge = pqk.gauge();
                 gaugeInfo.addr = gauge;
 
@@ -639,7 +659,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                     address[] memory quotaTokens;
                     address gauge;
                     {
-                        IPoolQuotaKeeperV3 pqk = IPoolQuotaKeeperV3(IPoolV3(poolsV3[i]).poolQuotaKeeper());
+                        IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(poolsV3[i]);
                         gauge = pqk.gauge();
 
                         quotaTokens = pqk.quotedTokens();

@@ -3,7 +3,7 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.10;
 
-interface IZapperRegistry {
+interface IZapperRegister {
     event AddZapper(address);
     event RemoveZapper(address);
 
