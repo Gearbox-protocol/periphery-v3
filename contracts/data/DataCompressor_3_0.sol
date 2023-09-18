@@ -4,6 +4,7 @@
 pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
+import "@gearbox-protocol/core-v3/contracts/interfaces/IAddressProviderV3.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {PERCENTAGE_FACTOR, RAY} from "@gearbox-protocol/core-v2/contracts/libraries/Constants.sol";
 
@@ -38,6 +39,7 @@ import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.
 
 import {AddressProvider} from "@gearbox-protocol/core-v2/contracts/core/AddressProvider.sol";
 import {IDataCompressorV3_00, PriceOnDemand} from "../interfaces/IDataCompressorV3_00.sol";
+import {IZapper} from "@gearbox-protocol/integrations-v3/contracts/interfaces/zappers/IZapper.sol";
 
 import {
     COUNT,
@@ -51,12 +53,14 @@ import {
     GaugeInfo,
     GaugeQuotaParams,
     CreditManagerDebtParams,
-    GaugeVote
+    GaugeVote,
+    ZapperInfo
 } from "./Types.sol";
 
 // EXCEPTIONS
 import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
+import {ZapperRegister} from "./ZapperRegister.sol";
 
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
@@ -65,9 +69,14 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
     // Contract version
     uint256 public constant version = 3_00;
 
+    ZapperRegister public zapperRegister;
+
     error CreditManagerIsNotV3Exception();
 
-    constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {}
+    constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {
+        zapperRegister =
+            ZapperRegister(IAddressProviderV3(_addressProvider).getAddressOrRevert("ZAPPER_REGISTER", 3_00));
+    }
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
@@ -440,6 +449,17 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.quotas = _getQuotas(_pool);
         result.lirm = getLIRMData(pool.interestRateModel());
         result.isPaused = pool.paused();
+
+        address[] memory zappers = zapperRegister.zappers(address(pool));
+        len = zappers.length;
+        result.zappers = new ZapperInfo[](len);
+
+        unchecked {
+            for (uint256 i; i < len; ++i) {
+                address tokenFrom = IZapper(zappers[i]).unwrappedToken();
+                result.zappers[i] = ZapperInfo({tokenFrom: tokenFrom, zapper: zappers[i]});
+            }
+        }
 
         return result;
     }
