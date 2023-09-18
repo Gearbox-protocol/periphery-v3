@@ -12,6 +12,9 @@ import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits
 contract ZapperRegister is ACLNonReentrantTrait, ContractsRegisterTrait, IZapperRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    // Contract version
+    uint256 public constant version = 3_00;
+
     mapping(address => EnumerableSet.AddressSet) internal _zappersMap;
 
     constructor(address addressProvider)
