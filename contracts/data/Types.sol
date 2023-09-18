@@ -32,6 +32,11 @@ struct ContractAdapter {
     address adapter;
 }
 
+struct ZapperInfo {
+    address tokenFrom;
+    address zapper;
+}
+
 struct CreditAccountData {
     // if not successful, priceFeedsNeeded are filled with the data
     bool isSuccessful;
@@ -137,7 +142,10 @@ struct PoolData {
     uint256 cumulativeIndex_RAY;
     uint256 baseInterestIndexLU;
     uint256 version;
+    address poolQuotaKeeper;
+    address gauge;
     QuotaInfo[] quotas;
+    ZapperInfo[] zappers;
     LinearModel lirm;
     bool isPaused;
 }
