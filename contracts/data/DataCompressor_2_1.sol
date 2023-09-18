@@ -116,6 +116,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
 
         address pool = creditManagerV2.pool();
         result.baseBorrowRate = IPoolService(pool).borrowAPY_RAY();
+        result.aggregatedBorrowRate = result.baseBorrowRate;
 
         uint256 collateralTokenCount = creditManagerV2.collateralTokensCount();
 
