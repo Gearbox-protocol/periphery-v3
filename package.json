@@ -18,14 +18,13 @@
     "@commitlint/cli": "^17.6.3",
     "@commitlint/config-conventional": "17.6.0",
     "@gearbox-protocol/core-v2": "1.19.0-base.14",
-    "@gearbox-protocol/core-v3": "^1.39.0",
+    "@gearbox-protocol/core-v3": "^1.39.2",
+    "@gearbox-protocol/integrations-v3": "^1.16.0",
     "@gearbox-protocol/oracles-v3": "^1.7.2",
     "@gearbox-protocol/sdk-gov": "^1.5.10",
-   "@gearbox-protocol/integrations-v3": "^1.16.0",
     "@openzeppelin/contracts": "4.8.3"
   },
   "dependencies": {
-   
     "husky": "^8.0.3",
     "lint-staged": "^13.0.3",
     "prettier": "^3.0.3"
@@ -34,6 +33,5 @@
   "lint-staged": {
     "*.sol": "forge fmt",
     "*.{json,md}": "prettier --write"
-
   }
 }

@@ -415,7 +415,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.availableLiquidity = pool.availableLiquidity();
 
         result.dieselRate_RAY = pool.convertToAssets(RAY);
-        result.linearCumulativeIndex = pool.calcLinearCumulative_RAY();
+        result.linearCumulativeIndex = pool.baseInterestIndex();
         result.baseInterestRate = _getBaseInterestRate(address(pool));
         result.underlying = pool.underlyingToken();
         result.dieselToken = address(pool);
@@ -435,6 +435,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         unchecked {
             for (uint256 i; i < len; ++i) {
+                console.log("i: ", i);
                 address creditManager = creditManagers[i];
                 result.creditManagerDebtParams[i] = CreditManagerDebtParams({
                     creditManager: creditManager,

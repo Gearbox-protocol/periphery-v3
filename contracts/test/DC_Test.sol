@@ -14,7 +14,7 @@ import {NetworkDetector} from "@gearbox-protocol/sdk-gov/contracts/NetworkDetect
 
 import "forge-std/console.sol";
 
-address constant ap = 0x0Bf1626d4925F8A872801968be11c052862AC2D3;
+address constant ap = 0xfb78A83730aBd595A362645368D10fE5a20525a6;
 
 contract DCTest {
     DataCompressorV2_10 public dc2;
