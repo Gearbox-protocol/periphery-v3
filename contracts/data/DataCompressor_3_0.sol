@@ -62,6 +62,8 @@ import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
 import {IZapperRegister} from "../interfaces/IZapperRegister.sol";
 
+import "forge-std/console.sol";
+
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
@@ -137,10 +139,10 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                     uint256 caLen = creditAccounts.length;
                     for (uint256 j; j < caLen; ++j) {
                         if (
-                            (borrower == address(0) || _getBorrowerOrRevert(_cm, creditAccounts[i]) == borrower)
+                            (borrower == address(0) || _getBorrowerOrRevert(_cm, creditAccounts[j]) == borrower)
                                 && (
                                     !liquidatableOnly
-                                        || ICreditManagerV3(_cm).isLiquidatable(creditAccounts[i], PERCENTAGE_FACTOR)
+                                        || ICreditManagerV3(_cm).isLiquidatable(creditAccounts[j], PERCENTAGE_FACTOR)
                                 )
                         ) {
                             if (op == QUERY) {
@@ -232,7 +234,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             }
         }
 
-        result.aggregatedBorrowRate = result.baseBorrowRate + RAY * quotaRevenue / PERCENTAGE_FACTOR / result.debt;
+        result.aggregatedBorrowRate =
+            result.baseBorrowRate + (result.debt == 0 ? 0 : RAY * quotaRevenue / PERCENTAGE_FACTOR / result.debt);
 
         // uint256 debt;
         // uint256 cumulativeIndexNow;

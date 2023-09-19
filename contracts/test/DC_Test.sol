@@ -7,15 +7,16 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 
 import {DataCompressorV2_10} from "../data/DataCompressor_2_1.sol";
 import {DataCompressorV3_00} from "../data/DataCompressor_3_0.sol";
+import {IDataCompressorV3_00, PriceOnDemand} from "../interfaces/IDataCompressorV3_00.sol";
 import {CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter} from "../data/Types.sol";
 
 import {NetworkDetector} from "@gearbox-protocol/sdk-gov/contracts/NetworkDetector.sol";
 
 import "forge-std/console.sol";
 
-address constant ap = 0x5BcB06c56e8F28da0b038a373199240ca3F5a2f4;
+address constant ap = 0x0Bf1626d4925F8A872801968be11c052862AC2D3;
 
-contract DCPrinterTest {
+contract DCTest {
     DataCompressorV2_10 public dc2;
     DataCompressorV3_00 public dc3;
 
@@ -129,8 +130,11 @@ contract DCPrinterTest {
         _printCreditManagers(cms);
     }
 
-    function test_dc_03_credit_accounts() public view liveTestOnly {
+    function test_dc_03_credit_accounts() public liveTestOnly {
         CreditAccountData[] memory cas = dc2.getCreditAccountsByBorrower(address(this));
         console.log("V2 credit accounts", cas.length);
+
+        cas = dc3.getCreditAccountsByBorrower(address(this), new PriceOnDemand[](0));
+        console.log("V3 credit accounts", cas.length);
     }
 }

@@ -80,6 +80,7 @@ struct LinearModel {
     uint16 R_slope1;
     uint16 R_slope2;
     uint16 R_slope3;
+    bool isBorrowingMoreU2Forbidden;
 }
 
 struct CreditManagerData {

@@ -22,6 +22,8 @@ contract LinearInterestModelHelper {
         } else {
             (irm.U_1, irm.U_2, irm.R_base, irm.R_slope1, irm.R_slope2, irm.R_slope3) =
                 LinearInterestRateModelV3(_model).getModelParameters();
+
+            irm.isBorrowingMoreU2Forbidden = LinearInterestRateModelV3(_model).isBorrowingMoreU2Forbidden();
         }
     }
 }
