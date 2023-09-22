@@ -25,6 +25,8 @@ import {PoolService} from "@gearbox-protocol/core-v2/contracts/pool/PoolService.
 
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
+import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
+
 import {IAddressProvider} from "@gearbox-protocol/core-v2/contracts/interfaces/IAddressProvider.sol";
 import {IDataCompressorV2_10} from "../interfaces/IDataCompressorV2_10.sol";
 
@@ -39,11 +41,21 @@ import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
 /// @title Data compressor 2.1.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, LinearInterestModelHelper {
+contract DataCompressorV2_10 is
+    IDataCompressorV2_10,
+    ACLNonReentrantTrait,
+    ContractsRegisterTrait,
+    LinearInterestModelHelper
+{
     // Contract version
     uint256 public constant version = 2_10;
 
-    constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {}
+    mapping(address => string) public cmDescriptions;
+
+    constructor(address _addressProvider)
+        ACLNonReentrantTrait(_addressProvider)
+        ContractsRegisterTrait(_addressProvider)
+    {}
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
@@ -172,6 +184,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
 
         result.addr = _creditManager;
         result.cfVersion = ver;
+        result.description = cmDescriptions[_creditManager];
 
         result.underlying = creditManagerV2.underlying();
 
@@ -389,5 +402,9 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
                 }
             }
         }
+    }
+
+    function setCreditManagerDescription(address _cm, string calldata description) external controllerOnly {
+        cmDescriptions[_cm] = description;
     }
 }
