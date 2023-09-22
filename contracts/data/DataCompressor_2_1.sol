@@ -7,6 +7,8 @@ pragma experimental ABIEncoderV2;
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v2/contracts/libraries/PercentageMath.sol";
@@ -257,6 +259,10 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait, Li
         result.baseInterestRate = pool.borrowAPY_RAY();
         result.underlying = pool.underlyingToken();
         result.dieselToken = pool.dieselToken();
+
+        result.symbol = IERC20Metadata(result.dieselToken).symbol();
+        result.name = IERC20Metadata(result.dieselToken).name();
+
         result.dieselRate_RAY = pool.getDieselRate_RAY();
         result.withdrawFee = pool.withdrawFee();
         result.baseInterestIndexLU = pool._timestampLU();

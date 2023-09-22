@@ -6,6 +6,8 @@ pragma experimental ABIEncoderV2;
 
 import "@gearbox-protocol/core-v3/contracts/interfaces/IAddressProviderV3.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 import {PERCENTAGE_FACTOR, RAY} from "@gearbox-protocol/core-v2/contracts/libraries/Constants.sol";
 
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
@@ -54,7 +56,8 @@ import {
     GaugeQuotaParams,
     CreditManagerDebtParams,
     GaugeVote,
-    ZapperInfo
+    ZapperInfo,
+    LinearModel
 } from "./Types.sol";
 
 // EXCEPTIONS
@@ -165,22 +168,22 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
     {
         ICreditAccountV3 creditAccount = ICreditAccountV3(_creditAccount);
 
-        address _pool = creditAccount.creditManager();
-        _ensureRegisteredCreditManager(_pool);
+        address _cm = creditAccount.creditManager();
+        _ensureRegisteredCreditManager(_cm);
 
-        if (!_isContractV3(_pool)) revert CreditManagerIsNotV3Exception();
+        if (!_isContractV3(_cm)) revert CreditManagerIsNotV3Exception();
 
-        _updatePrices(_pool, priceUpdates);
+        _updatePrices(_cm, priceUpdates);
 
-        return _getCreditAccountData(_pool, _creditAccount);
+        return _getCreditAccountData(_cm, _creditAccount);
     }
 
-    function _getCreditAccountData(address _pool, address _creditAccount)
+    function _getCreditAccountData(address _cm, address _creditAccount)
         internal
         view
         returns (CreditAccountData memory result)
     {
-        ICreditManagerV3 creditManager = ICreditManagerV3(_pool);
+        ICreditManagerV3 creditManager = ICreditManagerV3(_cm);
         ICreditFacadeV3 creditFacade = _getCreditFacade(address(creditManager));
         // ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
 
@@ -189,15 +192,15 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         address borrower = _getBorrowerOrRevert(address(creditManager), _creditAccount);
 
         result.borrower = borrower;
-        result.creditManager = _pool;
+        result.creditManager = _cm;
         result.addr = _creditAccount;
 
         result.underlying = creditManager.underlying();
 
-        address pool = creditManager.pool();
+        address pool = _getPool(_cm);
         result.baseBorrowRate = _getBaseInterestRate(pool);
 
-        uint256 collateralTokenCount = creditManager.collateralTokensCount();
+        uint256 collateralTokenCount = _getCollateralTokensCount(address(creditManager));
 
         result.enabledTokensMask = creditManager.enabledTokensMaskOf(_creditAccount);
 
@@ -259,7 +262,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             result.totalValue = collateralDebtData.totalValue;
             result.isSuccessful = true;
         } catch {
-            _getPriceFeedFailedList(_pool, result.balances);
+            _getPriceFeedFailedList(_cm, result.balances);
             result.isSuccessful = false;
         }
 
@@ -276,13 +279,13 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         // address borrower;
 
         (result.debt, result.cumulativeIndexLastUpdate, result.cumulativeQuotaInterest,,,, result.since,) =
-            CreditManagerV3(_pool).creditAccountInfo(_creditAccount);
+            CreditManagerV3(_cm).creditAccountInfo(_creditAccount);
 
         result.expirationDate = creditFacade.expirationDate();
         result.maxApprovedBots = CreditFacadeV3(address(creditFacade)).maxApprovedBots();
 
         result.activeBots =
-            IBotListV3(CreditFacadeV3(address(creditFacade)).botList()).getActiveBots(_pool, _creditAccount);
+            IBotListV3(CreditFacadeV3(address(creditFacade)).botList()).getActiveBots(_cm, _creditAccount);
 
         // QuotaInfo[] quotas;
         result.schedultedWithdrawals = IWithdrawalManagerV3(CreditFacadeV3(address(creditFacade)).withdrawalManager())
@@ -303,10 +306,10 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                 }
 
                 for (uint256 i = 0; i < len; ++i) {
-                    address _pool = IContractsRegister(contractsRegister).creditManagers(i);
+                    address _cm = IContractsRegister(contractsRegister).creditManagers(i);
 
-                    if (_isContractV3(_pool)) {
-                        if (op == QUERY) result[index] = _pool;
+                    if (_isContractV3(_cm)) {
+                        if (op == QUERY) result[index] = _cm;
                         ++index;
                     }
                 }
@@ -314,8 +317,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         }
     }
 
-    function _isContractV3(address _pool) internal view returns (bool) {
-        uint256 cmVersion = _getVersion(_pool);
+    function _isContractV3(address _cm) internal view returns (bool) {
+        uint256 cmVersion = _getVersion(_cm);
         return cmVersion >= 3_00 && cmVersion < 3_99;
     }
 
@@ -341,22 +344,23 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         ICreditFacadeV3 creditFacade = _getCreditFacade(address(creditManager));
 
         result.addr = _cm;
+        result.description = _getDescription(_cm);
         result.cfVersion = _getVersion(address(creditFacade));
 
         result.underlying = creditManager.underlying();
 
         {
-            result.pool = creditManager.pool();
+            result.pool = _getPool(_cm);
             IPoolV3 pool = IPoolV3(result.pool);
             result.baseBorrowRate = _getBaseInterestRate(address(pool));
             result.availableToBorrow = pool.creditManagerBorrowable(_cm);
-            result.lirm = getLIRMData(pool.interestRateModel());
+            result.lirm = _getInterestRateModel(address(pool));
         }
 
         (result.minDebt, result.maxDebt) = creditFacade.debtLimits();
 
         {
-            uint256 collateralTokenCount = creditManager.collateralTokensCount();
+            uint256 collateralTokenCount = _getCollateralTokensCount(address(creditManager));
 
             result.collateralTokens = new address[](collateralTokenCount);
             result.liquidationThresholds = new uint256[](collateralTokenCount);
@@ -419,6 +423,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.baseInterestRate = _getBaseInterestRate(address(pool));
         result.underlying = pool.underlyingToken();
         result.dieselToken = address(pool);
+        (result.symbol, result.name) = _getSymbolAndName(_pool);
 
         result.dieselRate_RAY = pool.convertToAssets(RAY);
         result.withdrawFee = pool.withdrawFee();
@@ -435,7 +440,6 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         unchecked {
             for (uint256 i; i < len; ++i) {
-                console.log("i: ", i);
                 address creditManager = creditManagers[i];
                 result.creditManagerDebtParams[i] = CreditManagerDebtParams({
                     creditManager: creditManager,
@@ -454,7 +458,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.version = _getVersion(address(pool));
 
         result.quotas = _getQuotas(_pool);
-        result.lirm = getLIRMData(pool.interestRateModel());
+        result.lirm = _getInterestRateModel(_pool);
+
         result.isPaused = pool.paused();
 
         address[] memory zappers = zapperRegister.zappers(address(pool));
@@ -584,10 +589,35 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         return ICreditFacadeV3(ICreditManagerV3(cm).creditFacade());
     }
 
+    function _getSymbolAndName(address token) internal view returns (string memory symbol, string memory name) {
+        symbol = IERC20Metadata(token).symbol();
+        name = IERC20Metadata(token).name();
+    }
+
+    function _getInterestRateModel(address pool) internal view returns (LinearModel memory) {
+        return getLIRMData(IPoolV3(pool).interestRateModel());
+    }
+
+    function _getQuotedTokens(IPoolQuotaKeeperV3 pqk) internal view returns (address[] memory result) {
+        result = pqk.quotedTokens();
+    }
+
+    function _getPool(address cnt) internal view returns (address) {
+        return ICreditManagerV3(cnt).pool();
+    }
+
+    function _getDescription(address _cm) internal view returns (string memory) {
+        return ICreditManagerV3(_cm).description();
+    }
+
+    function _getCollateralTokensCount(address _cm) internal view returns (uint256) {
+        return ICreditManagerV3(_cm).collateralTokensCount();
+    }
+
     function _getQuotas(address _pool) internal view returns (QuotaInfo[] memory quotas) {
         IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(_pool);
 
-        address[] memory quotaTokens = pqk.quotedTokens();
+        address[] memory quotaTokens = _getQuotedTokens(pqk);
         uint256 len = quotaTokens.length;
         quotas = new QuotaInfo[](len);
         unchecked {
@@ -616,8 +646,10 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                 IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(poolsV3[i]);
                 address gauge = pqk.gauge();
                 gaugeInfo.addr = gauge;
+                gaugeInfo.pool = _getPool(gauge);
+                (gaugeInfo.symbol, gaugeInfo.name) = _getSymbolAndName(gaugeInfo.pool);
 
-                address[] memory quotaTokens = pqk.quotedTokens();
+                address[] memory quotaTokens = _getQuotedTokens(pqk);
                 uint256 quotaTokensLen = quotaTokens.length;
                 gaugeInfo.quotaParams = new GaugeQuotaParams[](quotaTokensLen);
 
@@ -666,7 +698,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                         IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(poolsV3[i]);
                         gauge = pqk.gauge();
 
-                        quotaTokens = pqk.quotedTokens();
+                        quotaTokens = _getQuotedTokens(pqk);
                     }
                     uint256 quotaTokensLen = quotaTokens.length;
 
