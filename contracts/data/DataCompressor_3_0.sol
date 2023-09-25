@@ -607,7 +607,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
     }
 
     function _getDescription(address _cm) internal view returns (string memory) {
-        return ICreditManagerV3(_cm).description();
+        return ICreditManagerV3(_cm).name();
     }
 
     function _getCollateralTokensCount(address _cm) internal view returns (uint256) {
