@@ -344,7 +344,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         ICreditFacadeV3 creditFacade = _getCreditFacade(address(creditManager));
 
         result.addr = _cm;
-        result.description = _getDescription(_cm);
+        result.description = _getName(_cm);
         result.cfVersion = _getVersion(address(creditFacade));
 
         result.underlying = creditManager.underlying();
@@ -591,7 +591,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
     function _getSymbolAndName(address token) internal view returns (string memory symbol, string memory name) {
         symbol = IERC20Metadata(token).symbol();
-        name = IERC20Metadata(token).name();
+        name = _getName(token);
     }
 
     function _getInterestRateModel(address pool) internal view returns (LinearModel memory) {
@@ -606,8 +606,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         return ICreditManagerV3(cnt).pool();
     }
 
-    function _getDescription(address _cm) internal view returns (string memory) {
-        return ICreditManagerV3(_cm).description();
+    function _getName(address _cm) internal view returns (string memory) {
+        return IERC20Metadata(_cm).name();
     }
 
     function _getCollateralTokensCount(address _cm) internal view returns (uint256) {

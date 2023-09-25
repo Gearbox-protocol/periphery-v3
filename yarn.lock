@@ -936,10 +936,10 @@
   resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.37.0.tgz#fdbc0a11f071d7d51c933966927657ccd8688483"
   integrity sha512-bR4QCT1lYh6JdTK9liXMGVW/jZl8a0ugScJ6H4pA3qXpzzrt0l3qGKzMur8kjiUopRB6Nmj0ht+HAy32bTT52A==
 
-"@gearbox-protocol/core-v3@^1.39.2":
-  version "1.39.2"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.39.2.tgz#2ca1fa656210ecd86fcf5534f8430e412b0ab4c7"
-  integrity sha512-uBGp+nYt9QR9bMMXpyL3EA1bV3hTzxH5tLqeDRxz1gnt9TUqQlXiGNhQf3/g2PZmJxjeVdzbfkwcGslJlzZKzQ==
+"@gearbox-protocol/core-v3@^1.40.0":
+  version "1.40.0"
+  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.40.0.tgz#4e3c23f6d4bfc1d2892cb6a224e6925f37512007"
+  integrity sha512-goyi6UyIiWvc+i2iZ9A0dxo8+6Xnm5VDJTNbuCc+4zgLC06rMo3rjHDQ3mfdmBLJCnOg5aTxS1MZXsl9q3Zi/g==
 
 "@gearbox-protocol/eslint-config@^1.6.1":
   version "1.6.1"
@@ -1113,10 +1113,10 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.8.2.tgz#d815ade0027b50beb9bcca67143c6bcc3e3923d6"
   integrity sha512-kEUOgPQszC0fSYWpbh2kT94ltOJwj1qfT2DWo+zVttmGmf97JZ99LspePNaeeaLhCImaHVeBbjaQFZQn7+Zc5g==
 
-"@openzeppelin/contracts@4.8.3":
-  version "4.8.3"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.8.3.tgz#cbef3146bfc570849405f59cba18235da95a252a"
-  integrity sha512-bQHV8R9Me8IaJoJ2vPG4rXcL7seB7YVuskr4f+f5RyOStSZetwzkWtoqDMl5erkBJy0lDRUnIR2WIkPiC0GJlg==
+"@openzeppelin/contracts@^4.9.3":
+  version "4.9.3"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.9.3.tgz#00d7a8cf35a475b160b3f0293a6403c511099364"
+  integrity sha512-He3LieZ1pP2TNt5JbkPA4PNT9WC3gOTOlDcFGJW4Le4QKqwmiNJCRt44APfxMxvq7OugU/cqYuPcSBzOw38DAg==
 
 "@scure/base@~1.1.0":
   version "1.1.1"
