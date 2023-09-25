@@ -22,7 +22,7 @@
     "@gearbox-protocol/integrations-v3": "^1.16.0",
     "@gearbox-protocol/oracles-v3": "^1.7.2",
     "@gearbox-protocol/sdk-gov": "^1.5.10",
-    "@openzeppelin/contracts": "4.8.3"
+    "@openzeppelin/contracts": "4.9.3"
   },
   "dependencies": {
     "husky": "^8.0.3",
