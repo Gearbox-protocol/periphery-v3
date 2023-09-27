@@ -462,7 +462,6 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.isPaused = _getPaused(_pool);
 
         // Adding zappers
-
         address[] memory zappers = zapperRegister.zappers(address(pool));
         len = zappers.length;
         result.zappers = new ZapperInfo[](len);
