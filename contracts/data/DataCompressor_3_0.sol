@@ -459,8 +459,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         result.quotas = _getQuotas(_pool);
         result.lirm = _getInterestRateModel(_pool);
-
         result.isPaused = _getPaused(_pool);
+
+        // Adding zappers
 
         address[] memory zappers = zapperRegister.zappers(address(pool));
         len = zappers.length;
