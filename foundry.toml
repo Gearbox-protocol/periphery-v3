@@ -2,7 +2,7 @@
 libs = ['lib']
 out = 'forge-out'
 
-optimizer_runs = 10000
+optimizer_runs = 5000
 solc_version = '0.8.17'
 src = 'contracts'
 

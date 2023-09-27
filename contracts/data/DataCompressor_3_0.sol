@@ -7,7 +7,7 @@ pragma experimental ABIEncoderV2;
 import "@gearbox-protocol/core-v3/contracts/interfaces/IAddressProviderV3.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {PERCENTAGE_FACTOR, RAY} from "@gearbox-protocol/core-v2/contracts/libraries/Constants.sol";
 
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
@@ -195,7 +195,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.creditManager = _cm;
         result.addr = _creditAccount;
 
-        result.underlying = creditManager.underlying();
+        result.underlying = _getUnderlying(creditManager);
 
         address pool = _getPool(_cm);
         result.baseBorrowRate = _getBaseInterestRate(pool);
@@ -347,7 +347,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.name = _getName(_cm);
         result.cfVersion = _getVersion(address(creditFacade));
 
-        result.underlying = creditManager.underlying();
+        result.underlying = _getUnderlying(creditManager);
 
         {
             result.pool = _getPool(_cm);
@@ -406,7 +406,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         result.quotas = _getQuotas(result.pool);
 
-        result.isPaused = CreditFacadeV3(address(creditFacade)).paused();
+        result.isPaused = _getPaused(address(creditFacade));
     }
 
     /// @dev Returns PoolData for a particular pool
@@ -460,7 +460,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.quotas = _getQuotas(_pool);
         result.lirm = _getInterestRateModel(_pool);
 
-        result.isPaused = pool.paused();
+        result.isPaused = _getPaused(_pool);
 
         address[] memory zappers = zapperRegister.zappers(address(pool));
         len = zappers.length;
@@ -468,13 +468,14 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         unchecked {
             for (uint256 i; i < len; ++i) {
-                address tokenFrom = IZapper(zappers[i]).unwrappedToken();
-                result.zappers[i] = ZapperInfo({tokenFrom: tokenFrom, zapper: zappers[i]});
+                address tokenIn = IZapper(zappers[i]).unwrappedToken();
+                address tokenOut = IZapper(zappers[i]).tokenOut();
+                result.zappers[i] = ZapperInfo({tokenIn: tokenIn, tokenOut: tokenOut, zapper: zappers[i]});
             }
         }
 
         result.poolQuotaKeeper = address(_getPoolQuotaKeeper(_pool));
-        result.gauge = IPoolQuotaKeeperV3(result.poolQuotaKeeper).gauge();
+        result.gauge = _getGauge(IPoolQuotaKeeperV3(result.poolQuotaKeeper));
 
         return result;
     }
@@ -614,6 +615,18 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         return ICreditManagerV3(_cm).collateralTokensCount();
     }
 
+    function _getGauge(IPoolQuotaKeeperV3 pqk) internal view returns (address) {
+        return pqk.gauge();
+    }
+
+    function _getPaused(address pausableContract) internal view returns (bool) {
+        return Pausable(pausableContract).paused();
+    }
+
+    function _getUnderlying(ICreditManagerV3 cm) internal view returns (address) {
+        return cm.underlying();
+    }
+
     function _getQuotas(address _pool) internal view returns (QuotaInfo[] memory quotas) {
         IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(_pool);
 
@@ -644,7 +657,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             for (uint256 i; i < len; ++i) {
                 GaugeInfo memory gaugeInfo = result[i];
                 IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(poolsV3[i]);
-                address gauge = pqk.gauge();
+                address gauge = _getGauge(pqk);
                 gaugeInfo.addr = gauge;
                 gaugeInfo.pool = _getPool(gauge);
                 (gaugeInfo.symbol, gaugeInfo.name) = _getSymbolAndName(gaugeInfo.pool);
@@ -696,26 +709,32 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                     address gauge;
                     {
                         IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(poolsV3[i]);
-                        gauge = pqk.gauge();
+                        gauge = _getGauge(pqk);
 
                         quotaTokens = _getQuotedTokens(pqk);
                     }
                     uint256 quotaTokensLen = quotaTokens.length;
 
                     for (uint256 j; j < quotaTokensLen; ++j) {
-                        address token = quotaTokens[j];
-
-                        (uint96 votesLpSide, uint96 votesCaSide) = IGaugeV3(gauge).userTokenVotes(staker, token);
-
                         if (op == QUERY) {
-                            gaugeVotes[index] = GaugeVote({
-                                gauge: gauge,
-                                token: token,
-                                currentEpoch: IGaugeV3(gauge).epochLastUpdate(),
-                                epochFrozen: IGaugeV3(gauge).epochFrozen(),
-                                totalVotesLpSide: votesLpSide,
-                                totalVotesCaSide: votesCaSide
-                            });
+                            address token = quotaTokens[j];
+                            GaugeVote memory gaugeVote = gaugeVotes[index];
+
+                            (gaugeVote.stakerVotesLpSide, gaugeVote.stakerVotesCaSide) =
+                                IGaugeV3(gauge).userTokenVotes(staker, token);
+
+                            (
+                                gaugeVote.minRate,
+                                gaugeVote.maxRate,
+                                gaugeVote.totalVotesLpSide,
+                                gaugeVote.totalVotesCaSide
+                            ) = IGaugeV3(gauge).quotaRateParams(token);
+
+                            gaugeVote.currentEpoch = IGaugeV3(gauge).epochLastUpdate();
+                            gaugeVote.epochFrozen = IGaugeV3(gauge).epochFrozen();
+
+                            gaugeVote.gauge = gauge;
+                            gaugeVote.token = token;
                         }
                         ++index;
                     }

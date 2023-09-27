@@ -33,8 +33,9 @@ struct ContractAdapter {
 }
 
 struct ZapperInfo {
-    address tokenFrom;
     address zapper;
+    address tokenIn;
+    address tokenOut;
 }
 
 struct CreditAccountData {
@@ -179,8 +180,12 @@ struct GaugeInfo {
 struct GaugeVote {
     address gauge;
     address token;
+    uint16 minRate;
+    uint16 maxRate;
     uint16 currentEpoch;
     bool epochFrozen;
     uint96 totalVotesLpSide;
     uint96 totalVotesCaSide;
+    uint96 stakerVotesLpSide;
+    uint96 stakerVotesCaSide;
 }
