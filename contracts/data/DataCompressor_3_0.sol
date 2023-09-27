@@ -258,7 +258,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         returns (CollateralDebtData memory collateralDebtData) {
             result.accruedInterest = collateralDebtData.accruedInterest;
             result.accruedFees = collateralDebtData.accruedFees;
-            result.healthFactor = collateralDebtData.twvUSD * PERCENTAGE_FACTOR / collateralDebtData.debt;
+            result.healthFactor = collateralDebtData.twvUSD * PERCENTAGE_FACTOR / collateralDebtData.totalDebtUSD;
             result.totalValue = collateralDebtData.totalValue;
             result.isSuccessful = true;
         } catch {
@@ -344,7 +344,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         ICreditFacadeV3 creditFacade = _getCreditFacade(address(creditManager));
 
         result.addr = _cm;
-        result.description = _getName(_cm);
+        result.name = _getName(_cm);
         result.cfVersion = _getVersion(address(creditFacade));
 
         result.underlying = creditManager.underlying();
@@ -707,17 +707,17 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
                         (uint96 votesLpSide, uint96 votesCaSide) = IGaugeV3(gauge).userTokenVotes(staker, token);
 
-                        if (votesLpSide > 0 || votesCaSide > 0) {
-                            if (op == QUERY) {
-                                gaugeVotes[index] = GaugeVote({
-                                    gauge: gauge,
-                                    token: token,
-                                    totalVotesLpSide: votesLpSide,
-                                    totalVotesCaSide: votesCaSide
-                                });
-                            }
-                            ++index;
+                        if (op == QUERY) {
+                            gaugeVotes[index] = GaugeVote({
+                                gauge: gauge,
+                                token: token,
+                                currentEpoch: IGaugeV3(gauge).epochLastUpdate(),
+                                epochFrozen: IGaugeV3(gauge).epochFrozen(),
+                                totalVotesLpSide: votesLpSide,
+                                totalVotesCaSide: votesCaSide
+                            });
                         }
+                        ++index;
                     }
                 }
             }

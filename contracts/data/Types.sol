@@ -86,7 +86,7 @@ struct LinearModel {
 
 struct CreditManagerData {
     address addr;
-    string description;
+    string name;
     uint256 cfVersion;
     address creditFacade; // V2 only: address of creditFacade
     address creditConfigurator; // V2 only: address of creditConfigurator
@@ -179,6 +179,8 @@ struct GaugeInfo {
 struct GaugeVote {
     address gauge;
     address token;
+    uint16 currentEpoch;
+    bool epochFrozen;
     uint96 totalVotesLpSide;
     uint96 totalVotesCaSide;
 }

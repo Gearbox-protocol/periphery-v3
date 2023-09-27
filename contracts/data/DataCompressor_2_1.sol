@@ -184,7 +184,7 @@ contract DataCompressorV2_10 is
 
         result.addr = _creditManager;
         result.cfVersion = ver;
-        result.description = cmDescriptions[_creditManager];
+        result.name = cmDescriptions[_creditManager];
 
         result.underlying = creditManagerV2.underlying();
 
