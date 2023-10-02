@@ -1,10 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Holdings, 2022
+// (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v2/contracts/libraries/PercentageMath.sol";
 
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
@@ -15,55 +21,65 @@ import {ICreditFacadeV2} from "@gearbox-protocol/core-v2/contracts/interfaces/IC
 import {ICreditConfiguratorV2} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditConfiguratorV2.sol";
 import {ICreditAccount} from "@gearbox-protocol/core-v2/contracts/interfaces/ICreditAccount.sol";
 import {IPoolService} from "@gearbox-protocol/core-v2/contracts/interfaces/IPoolService.sol";
+import {PoolService} from "@gearbox-protocol/core-v2/contracts/pool/PoolService.sol";
 
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
+
+import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
 
 import {IAddressProvider} from "@gearbox-protocol/core-v2/contracts/interfaces/IAddressProvider.sol";
 import {IDataCompressorV2_10} from "../interfaces/IDataCompressorV2_10.sol";
 
-import {CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter} from "./Types.sol";
+import {
+    COUNT, QUERY, CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter
+} from "./Types.sol";
 
 // EXCEPTIONS
 import {ZeroAddressException} from "@gearbox-protocol/core-v2/contracts/interfaces/IErrors.sol";
+import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
 
 /// @title Data compressor 2.1.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
+contract DataCompressorV2_10 is
+    IDataCompressorV2_10,
+    ACLNonReentrantTrait,
+    ContractsRegisterTrait,
+    LinearInterestModelHelper
+{
     // Contract version
     uint256 public constant version = 2_10;
 
-    constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {}
+    mapping(address => string) public cmDescriptions;
+
+    constructor(address _addressProvider)
+        ACLNonReentrantTrait(_addressProvider)
+        ContractsRegisterTrait(_addressProvider)
+    {}
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
-    function getCreditAccountList(address borrower) external view returns (CreditAccountData[] memory result) {
+    function getCreditAccountsByBorrower(address borrower) external view returns (CreditAccountData[] memory result) {
         // Counts how many opened accounts a borrower has
-        uint256 count;
-        uint256 creditManagersLength = IContractsRegister(contractsRegister).getCreditManagersCount();
+        address[] memory cms = _listCreditManagersV2();
+        uint256 creditManagersLength = cms.length;
+
+        uint256 index;
         unchecked {
-            for (uint256 i = 0; i < creditManagersLength; ++i) {
-                address creditManager = IContractsRegister(contractsRegister).creditManagers(i);
-                if (hasOpenedCreditAccount(creditManager, borrower)) {
-                    ++count;
+            for (uint256 op = COUNT; op <= QUERY; ++op) {
+                if (op == QUERY && index == 0) {
+                    break;
+                } else {
+                    result = new CreditAccountData[](index);
+                    index = 0;
                 }
-            }
-        }
-
-        result = new CreditAccountData[](count);
-
-        // Get data & fill the array
-        count = 0;
-        for (uint256 i = 0; i < creditManagersLength;) {
-            address creditManager = IContractsRegister(contractsRegister).creditManagers(i);
-            unchecked {
-                if (hasOpenedCreditAccount(creditManager, borrower)) {
-                    result[count] = getCreditAccountData(creditManager, borrower);
-
-                    count++;
+                for (uint256 i = 0; i < creditManagersLength; ++i) {
+                    address creditManager = cms[i];
+                    if (hasOpenedCreditAccount(creditManager, borrower)) {
+                        if (op == QUERY) result[index] = getCreditAccountData(creditManager, borrower);
+                        ++index;
+                    }
                 }
-
-                ++i;
             }
         }
     }
@@ -114,6 +130,7 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
 
         address pool = creditManagerV2.pool();
         result.baseBorrowRate = IPoolService(pool).borrowAPY_RAY();
+        result.aggregatedBorrowRate = result.baseBorrowRate;
 
         uint256 collateralTokenCount = creditManagerV2.collateralTokensCount();
 
@@ -142,15 +159,15 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
     }
 
     /// @dev Returns CreditManagerData for all Credit Managers
-    function getCreditManagersList() external view returns (CreditManagerData[] memory result) {
-        uint256 creditManagersCount = IContractsRegister(contractsRegister).getCreditManagersCount();
+    function getCreditManagersV2List() external view returns (CreditManagerData[] memory result) {
+        address[] memory cms = _listCreditManagersV2();
+        uint256 creditManagersLength = cms.length;
 
-        result = new CreditManagerData[](creditManagersCount);
+        result = new CreditManagerData[](creditManagersLength);
 
         unchecked {
-            for (uint256 i = 0; i < creditManagersCount; ++i) {
-                address creditManager = IContractsRegister(contractsRegister).creditManagers(i);
-                result[i] = getCreditManagerData(creditManager);
+            for (uint256 i = 0; i < creditManagersLength; ++i) {
+                result[i] = getCreditManagerData(cms[i]);
             }
         }
     }
@@ -166,16 +183,21 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         ) = getCreditContracts(_creditManager);
 
         result.addr = _creditManager;
-        result.version = ver;
+        result.cfVersion = ver;
+        result.name = cmDescriptions[_creditManager];
 
         result.underlying = creditManagerV2.underlying();
 
         {
             result.pool = creditManagerV2.pool();
-            IPoolService pool = IPoolService(result.pool);
-            // result.canBorrow =;
+            PoolService pool = PoolService(result.pool);
             result.baseBorrowRate = pool.borrowAPY_RAY();
-            result.availableToBorrow = pool.creditManagersCanBorrow(_creditManager) ? pool.availableLiquidity() : 0;
+
+            (uint128 currentTotalDebt, uint128 totalDebtLimit) = creditFacade.totalDebt();
+            result.availableToBorrow = pool.creditManagersCanBorrow(_creditManager)
+                ? Math.min(pool.availableLiquidity(), totalDebtLimit - currentTotalDebt)
+                : 0;
+            result.lirm = getLIRMData(address(pool.interestRateModel()));
         }
 
         (result.minDebt, result.maxDebt) = creditFacade.limits();
@@ -211,7 +233,15 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         result.creditFacade = address(creditFacade);
         result.creditConfigurator = creditManagerV2.creditConfigurator();
         result.degenNFT = creditFacade.degenNFT();
-        (, result.isIncreaseDebtForbidden,,) = creditFacade.params(); // V2 only: true if increasing debt is forbidden
+        {
+            bool isIncreaseDebtForbidden;
+            (, isIncreaseDebtForbidden,,) = creditFacade.params(); // V2 only: true if increasing debt is forbidden
+
+            (uint128 currentTotalDebt, uint128 totalDebtLimit) = creditFacade.totalDebt(); // V2 only: total debt and total debt limit
+
+            result.availableToBorrow = isIncreaseDebtForbidden ? 0 : totalDebtLimit - currentTotalDebt;
+        }
+
         result.forbiddenTokenMask = creditManagerV2.forbiddenTokenMask(); // V2 only: mask which forbids some particular tokens
         result.maxEnabledTokensLength = creditManagerV2.maxAllowedEnabledTokenLength(); // V2 only: a limit on enabled tokens imposed for security
         {
@@ -223,12 +253,15 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
                 result.liquidationDiscountExpired
             ) = creditManagerV2.fees();
         }
+
+        result.isPaused = Pausable(address(creditManagerV2)).paused();
     }
 
     /// @dev Returns PoolData for a particular pool
     /// @param _pool Pool address
+
     function getPoolData(address _pool) public view registeredPoolOnly(_pool) returns (PoolData memory result) {
-        IPoolService pool = IPoolService(_pool);
+        PoolService pool = PoolService(_pool);
 
         result.addr = _pool;
         result.expectedLiquidity = pool.expectedLiquidity();
@@ -239,6 +272,10 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         result.baseInterestRate = pool.borrowAPY_RAY();
         result.underlying = pool.underlyingToken();
         result.dieselToken = pool.dieselToken();
+
+        result.symbol = IERC20Metadata(result.dieselToken).symbol();
+        result.name = IERC20Metadata(result.dieselToken).name();
+
         result.dieselRate_RAY = pool.getDieselRate_RAY();
         result.withdrawFee = pool.withdrawFee();
         result.baseInterestIndexLU = pool._timestampLU();
@@ -252,19 +289,22 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
                 / PERCENTAGE_FACTOR;
 
         result.version = uint8(pool.version());
+        result.lirm = getLIRMData(address(pool.interestRateModel()));
+
+        result.isPaused = pool.paused();
 
         return result;
     }
 
     /// @dev Returns PoolData for all registered pools
-    function getPoolsList() external view returns (PoolData[] memory result) {
-        uint256 poolsLength = IContractsRegister(contractsRegister).getPoolsCount();
+    function getPoolsV1List() external view returns (PoolData[] memory result) {
+        address[] memory pools = _listPoolsV1();
+        uint256 poolsLength = pools.length;
 
         result = new PoolData[](poolsLength);
         unchecked {
             for (uint256 i = 0; i < poolsLength; ++i) {
-                address pool = IContractsRegister(contractsRegister).pools(i);
-                result[i] = getPoolData(pool);
+                result[i] = getPoolData(pools[i]);
             }
         }
     }
@@ -302,5 +342,69 @@ contract DataCompressorV2_10 is IDataCompressorV2_10, ContractsRegisterTrait {
         creditFacade = ICreditFacadeV2(creditManagerV2.creditFacade());
         creditConfigurator = ICreditConfiguratorV2(creditManagerV2.creditConfigurator());
         ver = ICreditFacadeV2(creditFacade).version();
+    }
+
+    function _isContractV2(address _cm) internal view returns (bool) {
+        uint256 cmVersion = IVersion(_cm).version();
+        return cmVersion >= 2 && cmVersion < 2_99;
+    }
+
+    function _isContractV1(address _pool) internal view returns (bool) {
+        uint256 cmVersion = IVersion(_pool).version();
+        return cmVersion == 1;
+    }
+
+    function _listPoolsV1() internal view returns (address[] memory result) {
+        uint256 len = IContractsRegister(contractsRegister).getPoolsCount();
+
+        uint256 index;
+        unchecked {
+            for (uint256 op = COUNT; op <= QUERY; ++op) {
+                if (op == QUERY && index == 0) {
+                    break;
+                } else {
+                    result = new address[](index);
+                    index = 0;
+                }
+
+                for (uint256 i = 0; i < len; ++i) {
+                    address _pool = IContractsRegister(contractsRegister).pools(i);
+
+                    if (_isContractV1(_pool)) {
+                        if (op == QUERY) result[index] = _pool;
+                        ++index;
+                    }
+                }
+            }
+        }
+    }
+
+    function _listCreditManagersV2() internal view returns (address[] memory result) {
+        uint256 len = IContractsRegister(contractsRegister).getCreditManagersCount();
+
+        uint256 index;
+        unchecked {
+            for (uint256 op = COUNT; op <= QUERY; ++op) {
+                if (op == QUERY && index == 0) {
+                    break;
+                } else {
+                    result = new address[](index);
+                    index = 0;
+                }
+
+                for (uint256 i = 0; i < len; ++i) {
+                    address _cm = IContractsRegister(contractsRegister).creditManagers(i);
+
+                    if (_isContractV2(_cm)) {
+                        if (op == QUERY) result[index] = _cm;
+                        ++index;
+                    }
+                }
+            }
+        }
+    }
+
+    function setCreditManagerDescription(address _cm, string calldata description) external controllerOnly {
+        cmDescriptions[_cm] = description;
     }
 }
