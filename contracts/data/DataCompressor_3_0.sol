@@ -240,7 +240,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
             result.totalValue = collateralDebtData.totalValue;
             result.isSuccessful = true;
         } catch {
-            _getPriceFeedFailedList(_pool, result.balances);
+            result.priceFeedsNeeded = _getPriceFeedFailedList(_pool, result.balances);
             result.isSuccessful = false;
         }
 
@@ -425,11 +425,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait {
 
         result.totalSupply = pool.totalSupply();
         result.totalAssets = pool.totalAssets();
-
         result.supplyRate = pool.supplyRate();
-
         result.version = uint8(pool.version());
-
         result.quotas = _getQuotas(_pool);
 
         return result;
