@@ -262,7 +262,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             result.totalValue = collateralDebtData.totalValue;
             result.isSuccessful = true;
         } catch {
-            result.priceFeedsNeeded = _getPriceFeedFailedList(_pool, result.balances);
+            result.priceFeedsNeeded = _getPriceFeedFailedList(pool, result.balances);
             result.isSuccessful = false;
         }
 
