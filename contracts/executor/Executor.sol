@@ -72,10 +72,10 @@ contract Executor {
 
         for (uint256 i = 0; i < txs.length; i++) {
             TimelockTx calldata tx_ = txs[i];
+
             bytes32 txHash = getTxHash(tx_);
             require(batchedTransactions[txHash] == uint256(_batchNum) << 16 + i, "Executor::incorrect tx order");
 
-            batchedTransactions[txHash] = _batchNum << 16 + i;
             ITimeLock(timeLock).executeTransaction(tx_.target, tx_.value, tx_.signature, tx_.data, tx_.eta);
         }
     }
