@@ -167,6 +167,8 @@ struct GaugeQuotaParams {
     uint96 totalQuoted;
     uint96 limit;
     bool isActive;
+    uint96 stakerVotesLpSide;
+    uint96 stakerVotesCaSide;
 }
 
 struct GaugeInfo {
@@ -174,18 +176,7 @@ struct GaugeInfo {
     address pool;
     string symbol;
     string name;
-    GaugeQuotaParams[] quotaParams;
-}
-
-struct GaugeVote {
-    address gauge;
-    address token;
-    uint16 minRate;
-    uint16 maxRate;
     uint16 currentEpoch;
     bool epochFrozen;
-    uint96 totalVotesLpSide;
-    uint96 totalVotesCaSide;
-    uint96 stakerVotesLpSide;
-    uint96 stakerVotesCaSide;
+    GaugeQuotaParams[] quotaParams;
 }

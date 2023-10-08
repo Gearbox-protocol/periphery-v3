@@ -55,7 +55,6 @@ import {
     GaugeInfo,
     GaugeQuotaParams,
     CreditManagerDebtParams,
-    GaugeVote,
     ZapperInfo,
     LinearModel
 } from "./Types.sol";
@@ -647,7 +646,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         }
     }
 
-    function getGaugesV3Data() external view returns (GaugeInfo[] memory result) {
+    function getGaugesV3Data(address staker) external view override returns (GaugeInfo[] memory result) {
         address[] memory poolsV3 = _listPoolsV3();
         uint256 len = poolsV3.length;
         result = new GaugeInfo[](len);
@@ -664,6 +663,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                 address[] memory quotaTokens = _getQuotedTokens(pqk);
                 uint256 quotaTokensLen = quotaTokens.length;
                 gaugeInfo.quotaParams = new GaugeQuotaParams[](quotaTokensLen);
+
+                gaugeInfo.currentEpoch = IGaugeV3(gauge).epochLastUpdate();
+                gaugeInfo.epochFrozen = IGaugeV3(gauge).epochFrozen();
 
                 for (uint256 j; j < quotaTokensLen; ++j) {
                     GaugeQuotaParams memory quotaParams = gaugeInfo.quotaParams[j];
@@ -685,58 +687,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                         quotaParams.totalVotesLpSide,
                         quotaParams.totalVotesCaSide
                     ) = IGaugeV3(gauge).quotaRateParams(token);
-                }
-            }
-        }
-    }
 
-    function getGaugeVotes(address staker) external view returns (GaugeVote[] memory gaugeVotes) {
-        address[] memory poolsV3 = _listPoolsV3();
-        uint256 len = poolsV3.length;
-        uint256 index;
-
-        unchecked {
-            for (uint256 op = COUNT; op <= QUERY; ++op) {
-                if (op == QUERY && index == 0) {
-                    break;
-                } else {
-                    gaugeVotes = new GaugeVote[](index);
-                    index = 0;
-                }
-                for (uint256 i; i < len; ++i) {
-                    address[] memory quotaTokens;
-                    address gauge;
-                    {
-                        IPoolQuotaKeeperV3 pqk = _getPoolQuotaKeeper(poolsV3[i]);
-                        gauge = _getGauge(pqk);
-
-                        quotaTokens = _getQuotedTokens(pqk);
-                    }
-                    uint256 quotaTokensLen = quotaTokens.length;
-
-                    for (uint256 j; j < quotaTokensLen; ++j) {
-                        if (op == QUERY) {
-                            address token = quotaTokens[j];
-                            GaugeVote memory gaugeVote = gaugeVotes[index];
-
-                            (gaugeVote.stakerVotesLpSide, gaugeVote.stakerVotesCaSide) =
-                                IGaugeV3(gauge).userTokenVotes(staker, token);
-
-                            (
-                                gaugeVote.minRate,
-                                gaugeVote.maxRate,
-                                gaugeVote.totalVotesLpSide,
-                                gaugeVote.totalVotesCaSide
-                            ) = IGaugeV3(gauge).quotaRateParams(token);
-
-                            gaugeVote.currentEpoch = IGaugeV3(gauge).epochLastUpdate();
-                            gaugeVote.epochFrozen = IGaugeV3(gauge).epochFrozen();
-
-                            gaugeVote.gauge = gauge;
-                            gaugeVote.token = token;
-                        }
-                        ++index;
-                    }
+                    (quotaParams.stakerVotesLpSide, quotaParams.stakerVotesCaSide) =
+                        IGaugeV3(gauge).userTokenVotes(staker, token);
                 }
             }
         }

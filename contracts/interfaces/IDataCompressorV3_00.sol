@@ -3,7 +3,7 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.10;
 
-import {CreditAccountData, CreditManagerData, PoolData} from "../data/Types.sol";
+import {CreditAccountData, CreditManagerData, PoolData, GaugeInfo} from "../data/Types.sol";
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
 struct PriceOnDemand {
@@ -46,4 +46,7 @@ interface IDataCompressorV3_00 is IVersion {
 
     /// @dev Returns PoolData for all registered pools
     function getPoolsV3List() external view returns (PoolData[] memory);
+
+    /// @dev Returns GaugeInfo for all registered gauges
+    function getGaugesV3Data(address staker) external view returns (GaugeInfo[] memory result);
 }
