@@ -351,6 +351,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         {
             result.pool = _getPool(_cm);
             IPoolV3 pool = IPoolV3(result.pool);
+            result.totalDebt = pool.creditManagerBorrowed(_cm);
+            result.totalDebtLimit = pool.creditManagerDebtLimit(_cm);
+
             result.baseBorrowRate = _getBaseInterestRate(address(pool));
             result.availableToBorrow = pool.creditManagerBorrowable(_cm);
             result.lirm = _getInterestRateModel(address(pool));
@@ -418,7 +421,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.availableLiquidity = pool.availableLiquidity();
 
         result.dieselRate_RAY = pool.convertToAssets(RAY);
-        result.linearCumulativeIndex = pool.baseInterestIndex();
+        result.baseInterestIndex = pool.baseInterestIndex();
         result.baseInterestRate = _getBaseInterestRate(address(pool));
         result.underlying = pool.underlyingToken();
         result.dieselToken = address(pool);
@@ -427,6 +430,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.dieselRate_RAY = pool.convertToAssets(RAY);
         result.withdrawFee = pool.withdrawFee();
         result.baseInterestIndexLU = pool.baseInterestIndexLU();
+        result.lastBaseInterestUpdate = pool.lastBaseInterestUpdate();
         // result.cumulativeIndex_RAY = pool.calcLinearCumulative_RAY();
 
         // Borrowing limits
