@@ -49,7 +49,7 @@ contract DCTest {
 
                 console.log("dieselToken: ", pool.dieselToken);
                 ///
-                console.log("linearCumulativeIndex: ", pool.linearCumulativeIndex);
+                console.log("baseInterestIndex: ", pool.baseInterestIndex);
                 console.log("availableLiquidity: ", pool.availableLiquidity);
                 console.log("expectedLiquidity: ", pool.expectedLiquidity);
                 //
@@ -62,7 +62,7 @@ contract DCTest {
                 console.log("baseInterestRate: ", pool.baseInterestRate);
                 console.log("dieselRate_RAY: ", pool.dieselRate_RAY);
                 console.log("withdrawFee", pool.withdrawFee);
-                console.log("cumulativeIndex_RAY:", pool.cumulativeIndex_RAY);
+                console.log("lastBaseInterestUpdate:", pool.lastBaseInterestUpdate);
                 console.log("baseInterestIndexLU:", pool.baseInterestIndexLU);
                 console.log("version: ", pool.version);
                 // QuotaInfo[] quotas;

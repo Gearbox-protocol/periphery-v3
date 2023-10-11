@@ -268,7 +268,7 @@ contract DataCompressorV2_10 is
         result.availableLiquidity = pool.availableLiquidity();
         result.totalBorrowed = pool.totalBorrowed();
         result.dieselRate_RAY = pool.getDieselRate_RAY();
-        result.linearCumulativeIndex = pool.calcLinearCumulative_RAY();
+        result.baseInterestIndex = pool.calcLinearCumulative_RAY();
         result.baseInterestRate = pool.borrowAPY_RAY();
         result.underlying = pool.underlyingToken();
         result.dieselToken = pool.dieselToken();
@@ -278,8 +278,8 @@ contract DataCompressorV2_10 is
 
         result.dieselRate_RAY = pool.getDieselRate_RAY();
         result.withdrawFee = pool.withdrawFee();
-        result.baseInterestIndexLU = pool._timestampLU();
-        result.cumulativeIndex_RAY = pool._cumulativeIndex_RAY();
+        result.lastBaseInterestUpdate = pool._timestampLU();
+        result.baseInterestIndexLU = pool._cumulativeIndex_RAY();
 
         uint256 dieselSupply = IERC20(result.dieselToken).totalSupply();
         uint256 totalLP = pool.fromDiesel(dieselSupply);

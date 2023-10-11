@@ -132,7 +132,7 @@ struct PoolData {
     string symbol;
     string name;
     ///
-    uint256 linearCumulativeIndex;
+    uint256 baseInterestIndex;
     uint256 availableLiquidity;
     uint256 expectedLiquidity;
     //
@@ -145,7 +145,7 @@ struct PoolData {
     uint256 baseInterestRate;
     uint256 dieselRate_RAY;
     uint256 withdrawFee;
-    uint256 cumulativeIndex_RAY;
+    uint256 lastBaseInterestUpdate;
     uint256 baseInterestIndexLU;
     uint256 version;
     address poolQuotaKeeper;
