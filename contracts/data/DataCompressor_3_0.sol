@@ -95,6 +95,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
     function getCreditAccountsByCreditManager(address creditManager, PriceOnDemand[] memory priceUpdates)
         external
+        override
         registeredCreditManagerOnly(creditManager)
         returns (CreditAccountData[] memory result)
     {
@@ -107,6 +108,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
     function getLiquidatableCreditAccounts(PriceOnDemand[] memory priceUpdates)
         external
+        override
         returns (CreditAccountData[] memory result)
     {
         return _queryCreditAccounts(_listCreditManagersV3(), address(0), true, priceUpdates);

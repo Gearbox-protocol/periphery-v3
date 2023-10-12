@@ -26,6 +26,12 @@ interface IDataCompressorV3_00 is IVersion {
         external
         returns (CreditAccountData[] memory);
 
+    /// @dev Returns CreditAccountData for all accounts with hf <1
+    /// @param priceUpdates Price updates for price on demand oracles
+    function getLiquidatableCreditAccounts(PriceOnDemand[] memory priceUpdates)
+        external
+        returns (CreditAccountData[] memory result);
+
     /// @dev Returns CreditAccountData for a particular Credit Account account, based on creditManager and borrower
     /// @param creditAccount Address of credit account
     /// @param priceUpdates Price updates for price on demand oracles
