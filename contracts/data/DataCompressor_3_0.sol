@@ -225,7 +225,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                     balance.isQuoted = tokenMask & quotedTokensMask == 0 ? false : true;
 
                     if (balance.isQuoted) {
-                        (balance.quota,) = pqk.getQuota(_creditAccount, balance.token);
+                        (balance.quota, balance.quotaCumulativeIndexLU) = pqk.getQuota(_creditAccount, balance.token);
                         balance.quotaRate = pqk.getQuotaRate(balance.token);
 
                         quotaRevenue += balance.quota * balance.quotaRate;

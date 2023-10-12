@@ -16,6 +16,7 @@ struct TokenBalance {
     bool isQuoted;
     uint256 quota;
     uint16 quotaRate;
+    uint256 quotaCumulativeIndexLU;
 }
 
 struct QuotaInfo {
