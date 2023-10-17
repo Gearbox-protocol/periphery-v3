@@ -113,6 +113,7 @@ contract DataCompressorV2_10 is
 
         result.borrower = borrower;
         result.creditManager = _creditManager;
+        result.creditFacade = address(creditFacade);
         result.addr = creditAccount;
 
         result.underlying = creditManagerV2.underlying();
