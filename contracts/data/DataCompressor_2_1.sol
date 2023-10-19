@@ -31,7 +31,14 @@ import {IAddressProvider} from "@gearbox-protocol/core-v2/contracts/interfaces/I
 import {IDataCompressorV2_10} from "../interfaces/IDataCompressorV2_10.sol";
 
 import {
-    COUNT, QUERY, CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter
+    COUNT,
+    QUERY,
+    CreditAccountData,
+    CreditManagerData,
+    PoolData,
+    TokenBalance,
+    ContractAdapter,
+    CreditManagerDebtParams
 } from "./Types.sol";
 
 // EXCEPTIONS
@@ -113,6 +120,7 @@ contract DataCompressorV2_10 is
 
         result.borrower = borrower;
         result.creditManager = _creditManager;
+        result.cmName = cmDescriptions[_creditManager];
         result.creditFacade = address(creditFacade);
         result.addr = creditAccount;
 
@@ -157,6 +165,8 @@ contract DataCompressorV2_10 is
         result.cumulativeIndexLastUpdate = ICreditAccount(creditAccount).cumulativeIndexAtOpen();
 
         result.since = uint64(ICreditAccount(creditAccount).since());
+        (,, uint40 ed,) = creditFacade.params();
+        result.expirationDate = ed;
     }
 
     /// @dev Returns CreditManagerData for all Credit Managers
@@ -186,6 +196,8 @@ contract DataCompressorV2_10 is
         result.addr = _creditManager;
         result.cfVersion = ver;
         result.name = cmDescriptions[_creditManager];
+        result.creditFacade = address(creditFacade);
+        result.creditConfigurator = creditManagerV2.creditConfigurator();
 
         result.underlying = creditManagerV2.underlying();
 
@@ -195,6 +207,9 @@ contract DataCompressorV2_10 is
             result.baseBorrowRate = pool.borrowAPY_RAY();
 
             (uint128 currentTotalDebt, uint128 totalDebtLimit) = creditFacade.totalDebt();
+
+            result.totalDebt = currentTotalDebt;
+            result.totalDebtLimit = totalDebtLimit;
             result.availableToBorrow = pool.creditManagersCanBorrow(_creditManager)
                 ? Math.min(pool.availableLiquidity(), totalDebtLimit - currentTotalDebt)
                 : 0;
@@ -231,9 +246,8 @@ contract DataCompressorV2_10 is
             }
         }
 
-        result.creditFacade = address(creditFacade);
-        result.creditConfigurator = creditManagerV2.creditConfigurator();
         result.degenNFT = creditFacade.degenNFT();
+        result.isDegenMode = result.degenNFT != address(0);
         {
             bool isIncreaseDebtForbidden;
             (, isIncreaseDebtForbidden,,) = creditFacade.params(); // V2 only: true if increasing debt is forbidden
@@ -265,29 +279,60 @@ contract DataCompressorV2_10 is
         PoolService pool = PoolService(_pool);
 
         result.addr = _pool;
-        result.expectedLiquidity = pool.expectedLiquidity();
-        result.availableLiquidity = pool.availableLiquidity();
-        result.totalBorrowed = pool.totalBorrowed();
-        result.dieselRate_RAY = pool.getDieselRate_RAY();
-        result.baseInterestIndex = pool.calcLinearCumulative_RAY();
-        result.baseInterestRate = pool.borrowAPY_RAY();
         result.underlying = pool.underlyingToken();
         result.dieselToken = pool.dieselToken();
 
         result.symbol = IERC20Metadata(result.dieselToken).symbol();
         result.name = IERC20Metadata(result.dieselToken).name();
 
+        result.baseInterestIndex = pool.calcLinearCumulative_RAY();
+        result.availableLiquidity = pool.availableLiquidity();
+        result.expectedLiquidity = pool.expectedLiquidity();
+
+        result.totalBorrowed = pool.totalBorrowed();
+
+        result.totalSupply = IERC20(result.dieselToken).totalSupply();
+        result.totalAssets = pool.fromDiesel(result.totalSupply);
+
         result.dieselRate_RAY = pool.getDieselRate_RAY();
+
+        result.baseInterestRate = pool.borrowAPY_RAY();
+
+        result.dieselRate_RAY = pool.getDieselRate_RAY();
+
         result.withdrawFee = pool.withdrawFee();
         result.lastBaseInterestUpdate = pool._timestampLU();
         result.baseInterestIndexLU = pool._cumulativeIndex_RAY();
 
-        uint256 dieselSupply = IERC20(result.dieselToken).totalSupply();
-        uint256 totalLP = pool.fromDiesel(dieselSupply);
-        result.supplyRate = totalLP == 0
+        result.supplyRate = result.totalAssets == 0
             ? result.baseInterestRate
-            : (result.baseInterestRate * result.totalBorrowed) * (PERCENTAGE_FACTOR - result.withdrawFee) / totalLP
-                / PERCENTAGE_FACTOR;
+            : (result.baseInterestRate * result.totalBorrowed) * (PERCENTAGE_FACTOR - result.withdrawFee)
+                / result.totalAssets / PERCENTAGE_FACTOR;
+
+        uint256 len = pool.creditManagersCount();
+        result.creditManagerDebtParams = new CreditManagerDebtParams[](len);
+
+        unchecked {
+            for (uint256 i; i < len; ++i) {
+                address creditManager = pool.creditManagers(i);
+
+                (uint256 ver,, ICreditFacadeV2 creditFacade,) = getCreditContracts(creditManager);
+
+                uint128 currentTotalDebt;
+                uint128 totalDebtLimit;
+                if (ver >= 2) {
+                    (currentTotalDebt, totalDebtLimit) = creditFacade.totalDebt();
+                }
+                ICreditFacadeV2(ICreditManagerV2(creditManager).creditFacade()).totalDebt();
+
+                result.creditManagerDebtParams[i] = CreditManagerDebtParams({
+                    creditManager: creditManager,
+                    borrowed: currentTotalDebt,
+                    limit: pool.creditManagersCanBorrow(creditManager) ? totalDebtLimit : 0,
+                    availableToBorrow: pool.creditManagersCanBorrow(creditManager) ? result.availableLiquidity : 0
+                });
+            }
+        }
 
         result.version = uint8(pool.version());
         result.lirm = getLIRMData(address(pool.interestRateModel()));

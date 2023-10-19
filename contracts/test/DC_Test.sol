@@ -14,7 +14,7 @@ import {NetworkDetector} from "@gearbox-protocol/sdk-gov/contracts/NetworkDetect
 
 import "forge-std/console.sol";
 
-address constant ap = 0xfb78A83730aBd595A362645368D10fE5a20525a6;
+address constant ap = 0x9ea7b04Da02a5373317D745c1571c84aaD03321D;
 
 contract DCTest {
     DataCompressorV2_10 public dc2;
@@ -118,6 +118,8 @@ contract DCTest {
         pools = dc3.getPoolsV3List();
         console.log("\nV3 pools");
         _printPools(pools);
+
+        dc3.getPoolData(0xf8f76920cEb145bf7dff2343951864D066885cd4);
     }
 
     function test_dc_02_credit_managers() public view liveTestOnly {

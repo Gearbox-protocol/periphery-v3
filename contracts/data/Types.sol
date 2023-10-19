@@ -46,11 +46,10 @@ struct CreditAccountData {
     address addr;
     address borrower;
     address creditManager;
-    string cmDescription;
+    string cmName;
     address creditFacade;
     address underlying;
     uint256 debt;
-    uint256 cumulativeIndexNow;
     uint256 cumulativeIndexLastUpdate;
     uint128 cumulativeQuotaInterest;
     uint256 accruedInterest;
@@ -177,6 +176,7 @@ struct GaugeInfo {
     address pool;
     string symbol;
     string name;
+    address underlying;
     uint16 currentEpoch;
     bool epochFrozen;
     GaugeQuotaParams[] quotaParams;
