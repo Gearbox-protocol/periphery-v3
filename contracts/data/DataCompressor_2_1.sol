@@ -316,14 +316,12 @@ contract DataCompressorV2_10 is
             for (uint256 i; i < len; ++i) {
                 address creditManager = pool.creditManagers(i);
 
-                (uint256 ver,, ICreditFacadeV2 creditFacade,) = getCreditContracts(creditManager);
-
                 uint128 currentTotalDebt;
                 uint128 totalDebtLimit;
-                if (ver >= 2) {
+                if (_isContractV2(creditManager)) {
+                    (,, ICreditFacadeV2 creditFacade,) = getCreditContracts(creditManager);
                     (currentTotalDebt, totalDebtLimit) = creditFacade.totalDebt();
                 }
-                ICreditFacadeV2(ICreditManagerV2(creditManager).creditFacade()).totalDebt();
 
                 result.creditManagerDebtParams[i] = CreditManagerDebtParams({
                     creditManager: creditManager,

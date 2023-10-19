@@ -118,8 +118,6 @@ contract DCTest {
         pools = dc3.getPoolsV3List();
         console.log("\nV3 pools");
         _printPools(pools);
-
-        dc3.getPoolData(0xf8f76920cEb145bf7dff2343951864D066885cd4);
     }
 
     function test_dc_02_credit_managers() public view liveTestOnly {
