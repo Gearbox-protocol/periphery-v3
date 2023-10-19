@@ -472,7 +472,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
 
         unchecked {
             for (uint256 i; i < len; ++i) {
-                address tokenIn = IZapper(zappers[i]).unwrappedToken();
+                address tokenIn = IZapper(zappers[i]).tokenIn();
                 address tokenOut = IZapper(zappers[i]).tokenOut();
                 result.zappers[i] = ZapperInfo({tokenIn: tokenIn, tokenOut: tokenOut, zapper: zappers[i]});
             }
