@@ -187,7 +187,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         ICreditManagerV3 creditManager = ICreditManagerV3(_cm);
         ICreditFacadeV3 creditFacade = _getCreditFacade(address(creditManager));
         // ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
-
+        result.creditFacade = address(creditFacade);
         result.cfVersion = _getVersion(address(creditFacade));
 
         address borrower = _getBorrowerOrRevert(address(creditManager), _creditAccount);
@@ -197,6 +197,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.addr = _creditAccount;
 
         result.underlying = _getUnderlying(creditManager);
+        result.cmName = _getName(_cm);
 
         address pool = _getPool(_cm);
         result.baseBorrowRate = _getBaseInterestRate(pool);
@@ -259,6 +260,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         returns (CollateralDebtData memory collateralDebtData) {
             result.accruedInterest = collateralDebtData.accruedInterest;
             result.accruedFees = collateralDebtData.accruedFees;
+            result.totalDebtUSD = collateralDebtData.totalDebtUSD;
+            result.totalValueUSD = collateralDebtData.totalValueUSD;
+            result.twvUSD = collateralDebtData.twvUSD;
             result.healthFactor = collateralDebtData.twvUSD * PERCENTAGE_FACTOR / collateralDebtData.totalDebtUSD;
             result.totalValue = collateralDebtData.totalValue;
             result.isSuccessful = true;
@@ -348,6 +352,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.name = _getName(_cm);
         result.cfVersion = _getVersion(address(creditFacade));
 
+        result.creditFacade = address(creditFacade);
+        result.creditConfigurator = address(creditConfigurator);
+
         result.underlying = _getUnderlying(creditManager);
 
         {
@@ -392,9 +399,8 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             }
         }
 
-        result.creditFacade = address(creditFacade);
-        result.creditConfigurator = address(creditConfigurator);
         result.degenNFT = creditFacade.degenNFT();
+        result.isDegenMode = result.degenNFT != address(0);
         // (, result.isIncreaseDebtForbidden,,) = creditFacade.params(); // V2 only: true if increasing debt is forbidden
         result.forbiddenTokenMask = creditFacade.forbiddenTokenMask(); // V2 only: mask which forbids some particular tokens
         result.maxEnabledTokensLength = creditManager.maxEnabledTokens(); // V2 only: a limit on enabled tokens imposed for security
@@ -665,6 +671,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
                 gaugeInfo.addr = gauge;
                 gaugeInfo.pool = _getPool(gauge);
                 (gaugeInfo.symbol, gaugeInfo.name) = _getSymbolAndName(gaugeInfo.pool);
+                gaugeInfo.underlying = IPoolV3(gaugeInfo.pool).asset();
 
                 address[] memory quotaTokens = _getQuotedTokens(pqk);
                 uint256 quotaTokensLen = quotaTokens.length;
