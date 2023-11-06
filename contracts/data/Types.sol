@@ -3,8 +3,6 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {ScheduledWithdrawal} from "@gearbox-protocol/core-v3/contracts/interfaces/IWithdrawalManagerV3.sol";
-
 uint256 constant COUNT = 0;
 uint256 constant QUERY = 1;
 
@@ -70,7 +68,6 @@ struct CreditAccountData {
     uint40 expirationDate;
     address[] activeBots;
     uint256 maxApprovedBots;
-    ScheduledWithdrawal[2] schedultedWithdrawals;
 }
 
 struct LinearModel {

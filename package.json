@@ -18,10 +18,10 @@
     "@commitlint/cli": "^17.6.3",
     "@commitlint/config-conventional": "17.6.0",
     "@gearbox-protocol/core-v2": "1.19.0-base.16",
-    "@gearbox-protocol/core-v3": "^1.40.2",
-    "@gearbox-protocol/integrations-v3": "^1.20.0",
-    "@gearbox-protocol/oracles-v3": "^1.7.6",
-    "@gearbox-protocol/sdk-gov": "^1.5.10",
+    "@gearbox-protocol/core-v3": "^1.44.0",
+    "@gearbox-protocol/integrations-v3": "^1.23.1",
+    "@gearbox-protocol/oracles-v3": "^1.8.1",
+    "@gearbox-protocol/sdk-gov": "^1.14.0",
     "@openzeppelin/contracts": "^4.9.3"
   },
   "dependencies": {

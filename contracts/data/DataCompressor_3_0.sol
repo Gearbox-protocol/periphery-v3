@@ -31,7 +31,6 @@ import {CreditManagerV3} from "@gearbox-protocol/core-v3/contracts/credit/Credit
 
 import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 import {IBotListV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IBotListV3.sol";
-import {IWithdrawalManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IWithdrawalManagerV3.sol";
 import {IGaugeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IGaugeV3.sol";
 
 import {IPriceFeed} from "@gearbox-protocol/core-v2/contracts/interfaces/IPriceFeed.sol";
@@ -256,8 +255,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         // uint256 quotedTokensMask;
         // address[] quotedTokens;
 
-        try creditManager.calcDebtAndCollateral(_creditAccount, CollateralCalcTask.DEBT_COLLATERAL_WITHOUT_WITHDRAWALS)
-        returns (CollateralDebtData memory collateralDebtData) {
+        try creditManager.calcDebtAndCollateral(_creditAccount, CollateralCalcTask.DEBT_COLLATERAL) returns (
+            CollateralDebtData memory collateralDebtData
+        ) {
             result.accruedInterest = collateralDebtData.accruedInterest;
             result.accruedFees = collateralDebtData.accruedFees;
             result.totalDebtUSD = collateralDebtData.totalDebtUSD;
@@ -289,12 +289,7 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
         result.expirationDate = creditFacade.expirationDate();
         result.maxApprovedBots = CreditFacadeV3(address(creditFacade)).maxApprovedBots();
 
-        result.activeBots =
-            IBotListV3(CreditFacadeV3(address(creditFacade)).botList()).getActiveBots(_cm, _creditAccount);
-
-        // QuotaInfo[] quotas;
-        result.schedultedWithdrawals = IWithdrawalManagerV3(CreditFacadeV3(address(creditFacade)).withdrawalManager())
-            .scheduledWithdrawals(_creditAccount);
+        result.activeBots = IBotListV3(CreditFacadeV3(address(creditFacade)).botList()).activeBots(_cm, _creditAccount);
     }
 
     function _listCreditManagersV3() internal view returns (address[] memory result) {
