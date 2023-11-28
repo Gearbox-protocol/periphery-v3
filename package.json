@@ -18,7 +18,7 @@
     "@commitlint/cli": "^17.6.3",
     "@commitlint/config-conventional": "17.6.0",
     "@gearbox-protocol/core-v2": "1.19.0-base.16",
-    "@gearbox-protocol/core-v3": "^1.44.0",
+    "@gearbox-protocol/core-v3": "^1.45.3",
     "@gearbox-protocol/integrations-v3": "^1.23.1",
     "@gearbox-protocol/oracles-v3": "^1.8.1",
     "@gearbox-protocol/sdk-gov": "^1.14.0",

@@ -67,7 +67,6 @@ struct CreditAccountData {
     // V3 features
     uint40 expirationDate;
     address[] activeBots;
-    uint256 maxApprovedBots;
 }
 
 struct LinearModel {

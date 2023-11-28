@@ -287,7 +287,6 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             CreditManagerV3(_cm).creditAccountInfo(_creditAccount);
 
         result.expirationDate = creditFacade.expirationDate();
-        result.maxApprovedBots = CreditFacadeV3(address(creditFacade)).maxApprovedBots();
 
         result.activeBots = IBotListV3(CreditFacadeV3(address(creditFacade)).botList()).activeBots(_cm, _creditAccount);
     }

@@ -907,10 +907,10 @@
   resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v2/-/core-v2-1.19.0-base.16.tgz#6bfd3c2d7981541a987cec3dfaf53919ff4a52ec"
   integrity sha512-NPV/TPhZPsq03Ke2Fb3v1DsRZS4y1mAtvR/B1z6VNfEhs0fqk/UigvgCpHFkZUxwQxljpOCe2cxlf8EPYXnVrA==
 
-"@gearbox-protocol/core-v3@^1.44.0":
-  version "1.44.0"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.44.0.tgz#751ba99ef7f92de5126038b52e114350c377ebc4"
-  integrity sha512-dJSdsCvu67ZM8hs4OrSCwAyqxDzg/BxMjBC/EIozlKR7IIZ0hK0/mtNy02yo3WEpr2qF9FZjLMsL4AW6BVpPKg==
+"@gearbox-protocol/core-v3@^1.45.3":
+  version "1.45.3"
+  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.45.3.tgz#65c872b0af21e2be8ec56046e09db9738cf03027"
+  integrity sha512-pfcenBy93d8s9Onlxh56rJwzIQibfjcv8gE8guj1w/xNN89kOUjaRfq7XnU+FJiEMkCrT93in7xz3s6ldPxXyg==
 
 "@gearbox-protocol/integrations-v3@^1.23.1":
   version "1.23.1"
