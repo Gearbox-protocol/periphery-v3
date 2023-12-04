@@ -263,7 +263,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             result.totalDebtUSD = collateralDebtData.totalDebtUSD;
             result.totalValueUSD = collateralDebtData.totalValueUSD;
             result.twvUSD = collateralDebtData.twvUSD;
-            result.healthFactor = collateralDebtData.twvUSD * PERCENTAGE_FACTOR / collateralDebtData.totalDebtUSD;
+            result.healthFactor = collateralDebtData.totalDebtUSD != 0
+                ? collateralDebtData.twvUSD * PERCENTAGE_FACTOR / collateralDebtData.totalDebtUSD
+                : type(uint16).max;
             result.totalValue = collateralDebtData.totalValue;
             result.isSuccessful = true;
         } catch {

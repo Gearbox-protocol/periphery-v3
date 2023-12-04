@@ -137,4 +137,8 @@ contract DCTest {
         cas = dc3.getCreditAccountsByBorrower(address(this), new PriceOnDemand[](0));
         console.log("V3 credit accounts", cas.length);
     }
+
+    // function test_dc_04_borrower() public liveTestOnly {
+    //     dc3.getCreditAccountsByBorrower(0xffDb339065c91c88e8a3cC6857359B6c2FB78cf5, new PriceOnDemand[](0));
+    // }
 }
