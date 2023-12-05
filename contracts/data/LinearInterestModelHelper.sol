@@ -13,8 +13,6 @@ contract LinearInterestModelHelper {
         irm.interestModel = _model;
         irm.version = LinearInterestRateModel(_model).version();
 
-        console.log(irm.version);
-
         (irm.U_1, irm.U_2, irm.R_base, irm.R_slope1, irm.R_slope2, irm.R_slope3) =
             LinearInterestRateModelV3(_model).getModelParameters();
 
