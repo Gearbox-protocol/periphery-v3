@@ -10,6 +10,8 @@ import {
 import {IDegenNFTV2} from "@gearbox-protocol/core-v2/contracts/interfaces/IDegenNFTV2.sol";
 import {IDegenDistributorV3} from "../interfaces/IDegenDistributorV3.sol";
 
+bytes32 constant AP_DEGEN_NFT = "DEGEN_NFT";
+
 contract DegenDistributorV3 is IDegenDistributorV3 {
     uint256 version = 3_00;
 
@@ -33,9 +35,9 @@ contract DegenDistributorV3 is IDegenDistributorV3 {
         _;
     }
 
-    constructor(address addressProvider, address _degenNFT) {
-        degenNFT = _degenNFT;
+    constructor(address addressProvider) {
         treasury = IAddressProviderV3(addressProvider).getAddressOrRevert(AP_TREASURY, NO_VERSION_CONTROL);
+        degenNFT = IAddressProviderV3(addressProvider).getAddressOrRevert(AP_DEGEN_NFT, 2);
     }
 
     function updateMerkleRoot(bytes32 newRoot) external treasuryOnly {
