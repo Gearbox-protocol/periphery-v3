@@ -22,7 +22,9 @@
     "@gearbox-protocol/integrations-v3": "^1.23.1",
     "@gearbox-protocol/oracles-v3": "^1.8.1",
     "@gearbox-protocol/sdk-gov": "^1.14.0",
-    "@openzeppelin/contracts": "^4.9.3"
+    "@openzeppelin/contracts": "^4.9.3",
+    "ds-test": "dapphub/ds-test",
+    "forge-std": "foundry-rs/forge-std"
   },
   "dependencies": {
     "husky": "^8.0.3",

@@ -1,10 +1,10 @@
 [profile.default]
-libs = ['lib']
+src = 'contracts'
+libs = ['node_modules']
 out = 'forge-out'
 
 optimizer_runs = 5000
 solc_version = '0.8.17'
-src = 'contracts'
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
 block_base_fee_per_gas = 100000000 
