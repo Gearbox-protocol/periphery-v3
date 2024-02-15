@@ -1,2 +1,1 @@
-## Gearbox PeripheryV3
-
+# Gearbox V3 Periphery

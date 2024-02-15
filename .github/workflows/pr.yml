@@ -7,6 +7,8 @@ on:
 env:
   HUSKY: 0
   CI: true
+  FORK_RPC_URL: ${{ secrets.MAINNET_TESTS_FORK }}
+  FORK_ADDRESS_PROVIDER: 0x9ea7b04Da02a5373317D745c1571c84aaD03321D
 
 jobs:
   checks:
