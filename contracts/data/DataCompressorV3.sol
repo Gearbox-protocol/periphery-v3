@@ -127,13 +127,10 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         uint256 len = creditManagers.length;
         unchecked {
             for (uint256 op = COUNT; op <= QUERY; ++op) {
-                if (op == QUERY && index == 0) {
-                    break;
-                } else {
-                    result = new CreditAccountData[](index);
-                    index = 0;
-                }
+                if (op == QUERY && index == 0) break;
 
+                result = new CreditAccountData[](index);
+                index = 0;
                 for (uint256 i = 0; i < len; ++i) {
                     address _cm = creditManagers[i];
 
@@ -141,18 +138,20 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
                     address[] memory creditAccounts = ICreditManagerV3(_cm).creditAccounts();
                     uint256 caLen = creditAccounts.length;
                     for (uint256 j; j < caLen; ++j) {
-                        if (
-                            (borrower == address(0) || _getBorrowerOrRevert(_cm, creditAccounts[j]) == borrower)
-                                && (
-                                    !liquidatableOnly
-                                        || ICreditManagerV3(_cm).isLiquidatable(creditAccounts[j], PERCENTAGE_FACTOR)
-                                )
-                        ) {
-                            if (op == QUERY) {
-                                result[index] = _getCreditAccountData(_cm, creditAccounts[j]);
-                            }
-                            ++index;
+                        if (borrower != address(0) && borrower != _getBorrowerOrRevert(_cm, creditAccounts[j])) {
+                            continue;
                         }
+
+                        if (liquidatableOnly) {
+                            try ICreditManagerV3(_cm).isLiquidatable(creditAccounts[j], PERCENTAGE_FACTOR) returns (
+                                bool isLiquidatable
+                            ) {
+                                if (!isLiquidatable) continue;
+                            } catch {}
+                        }
+
+                        if (op == QUERY) result[index] = _getCreditAccountData(_cm, creditAccounts[j]);
+                        ++index;
                     }
                 }
             }
