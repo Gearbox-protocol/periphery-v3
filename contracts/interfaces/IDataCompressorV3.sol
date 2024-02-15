@@ -11,7 +11,7 @@ struct PriceOnDemand {
     bytes callData;
 }
 
-interface IDataCompressorV3_00 is IVersion {
+interface IDataCompressorV3 is IVersion {
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
     /// @param priceUpdates Price updates for price on demand oracles

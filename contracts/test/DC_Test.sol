@@ -5,9 +5,9 @@ pragma solidity ^0.8.17;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {DataCompressorV2_10} from "../data/DataCompressor_2_1.sol";
-import {DataCompressorV3_00} from "../data/DataCompressor_3_0.sol";
-import {IDataCompressorV3_00, PriceOnDemand} from "../interfaces/IDataCompressorV3_00.sol";
+import {DataCompressorV2_1} from "../data/DataCompressorV2_1.sol";
+import {DataCompressorV3} from "../data/DataCompressorV3.sol";
+import {IDataCompressorV3, PriceOnDemand} from "../interfaces/IDataCompressorV3.sol";
 import {CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter} from "../data/Types.sol";
 
 import {NetworkDetector} from "@gearbox-protocol/sdk-gov/contracts/NetworkDetector.sol";
@@ -17,8 +17,8 @@ import "forge-std/console.sol";
 address constant ap = 0x9ea7b04Da02a5373317D745c1571c84aaD03321D;
 
 contract DCTest {
-    DataCompressorV2_10 public dc2;
-    DataCompressorV3_00 public dc3;
+    DataCompressorV2_1 public dc2;
+    DataCompressorV3 public dc3;
 
     uint256 chainId;
 
@@ -34,8 +34,8 @@ contract DCTest {
     }
 
     function setUp() public liveTestOnly {
-        dc2 = new DataCompressorV2_10(ap);
-        dc3 = new DataCompressorV3_00(ap);
+        dc2 = new DataCompressorV2_1(ap);
+        dc3 = new DataCompressorV3(ap);
     }
 
     function _printPools(PoolData[] memory pools) internal view {
@@ -139,6 +139,6 @@ contract DCTest {
     }
 
     // function test_dc_04_borrower() public liveTestOnly {
-    //     dc3.getCreditAccountsByBorrower(0xffDb339065c91c88e8a3cC6857359B6c2FB78cf5, new PriceOnDemand[](0));
+    //     dc3.getCreditAccountsByBorrower(0xf13df765f3047850Cede5aA9fDF20a12A75f7F70, new PriceOnDemand[](0));
     // }
 }

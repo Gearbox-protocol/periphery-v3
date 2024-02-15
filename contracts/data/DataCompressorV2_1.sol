@@ -28,7 +28,7 @@ import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.
 import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
 
 import {IAddressProvider} from "@gearbox-protocol/core-v2/contracts/interfaces/IAddressProvider.sol";
-import {IDataCompressorV2_10} from "../interfaces/IDataCompressorV2_10.sol";
+import {IDataCompressorV2_1} from "../interfaces/IDataCompressorV2_1.sol";
 
 import {
     COUNT,
@@ -48,8 +48,8 @@ import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
 /// @title Data compressor 2.1.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV2_10 is
-    IDataCompressorV2_10,
+contract DataCompressorV2_1 is
+    IDataCompressorV2_1,
     ACLNonReentrantTrait,
     ContractsRegisterTrait,
     LinearInterestModelHelper

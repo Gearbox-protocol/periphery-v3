@@ -39,7 +39,7 @@ import {IUpdatablePriceFeed} from "@gearbox-protocol/core-v2/contracts/interface
 import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
 
 import {AddressProvider} from "@gearbox-protocol/core-v2/contracts/core/AddressProvider.sol";
-import {IDataCompressorV3_00, PriceOnDemand} from "../interfaces/IDataCompressorV3_00.sol";
+import {IDataCompressorV3, PriceOnDemand} from "../interfaces/IDataCompressorV3.sol";
 import {IZapper} from "@gearbox-protocol/integrations-v3/contracts/interfaces/zappers/IZapper.sol";
 
 import {
@@ -68,9 +68,9 @@ import "forge-std/console.sol";
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, LinearInterestModelHelper {
+contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearInterestModelHelper {
     // Contract version
-    uint256 public constant version = 3_00;
+    uint256 public constant version = 3_01;
 
     IZapperRegister public zapperRegister;
 
@@ -269,21 +269,9 @@ contract DataCompressorV3_00 is IDataCompressorV3_00, ContractsRegisterTrait, Li
             result.totalValue = collateralDebtData.totalValue;
             result.isSuccessful = true;
         } catch {
-            result.priceFeedsNeeded = _getPriceFeedFailedList(pool, result.balances);
+            result.priceFeedsNeeded = _getPriceFeedFailedList(_cm, result.balances);
             result.isSuccessful = false;
         }
-
-        // (result.totalValue,) = creditFacade.calcTotalValue(creditAccount);
-        //  = ICreditAccountV3(creditAccount).cumulativeIndexAtOpen();
-
-        // uint256 debt;
-        // uint256 cumulativeIndexLastUpdate;
-        // uint128 cumulativeQuotaInterest;
-        // uint128 quotaFees;
-        // uint256 enabledTokensMask;
-        // uint16 flags;
-        // uint64 since;
-        // address borrower;
 
         (result.debt, result.cumulativeIndexLastUpdate, result.cumulativeQuotaInterest,,,, result.since,) =
             CreditManagerV3(_cm).creditAccountInfo(_creditAccount);
