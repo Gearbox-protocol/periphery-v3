@@ -70,7 +70,7 @@ import "forge-std/console.sol";
 /// Do not use for data from data compressor for state-changing functions
 contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearInterestModelHelper {
     // Contract version
-    uint256 public constant version = 3_01;
+    uint256 public constant version = 3_00;
 
     IZapperRegister public zapperRegister;
 
