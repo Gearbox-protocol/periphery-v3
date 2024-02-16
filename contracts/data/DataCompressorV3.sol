@@ -547,9 +547,8 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
                     TokenBalance memory balance = balances[i];
 
                     if (balance.balance > 1 && balance.isEnabled) {
-                        try IPriceFeed(priceOracle.priceFeeds(balance.token)).latestRoundData() returns (
-                            uint80, int256, uint256, uint256, uint80
-                        ) {} catch {
+                        try priceOracle.getPrice(balance.token) returns (uint256) {}
+                        catch {
                             if (op == QUERY) priceFeedFailed[index] = balance.token;
                             ++index;
                         }
