@@ -7,7 +7,7 @@ import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 import {CallerNotPausableAdminException} from "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
 
-import {MultiPause} from "../utils/MultiPause.sol";
+import {MultiPause} from "../emergency/MultiPause.sol";
 
 import {ForkTest} from "./ForkTest.sol";
 
