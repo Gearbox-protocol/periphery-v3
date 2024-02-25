@@ -37,7 +37,7 @@ contract DegenDistributorV3 is IDegenDistributorV3 {
 
     constructor(address addressProvider) {
         treasury = IAddressProviderV3(addressProvider).getAddressOrRevert(AP_TREASURY, NO_VERSION_CONTROL);
-        degenNFT = IAddressProviderV3(addressProvider).getAddressOrRevert(AP_DEGEN_NFT, NO_VERSION_CONTROL);
+        degenNFT = IAddressProviderV3(addressProvider).getAddressOrRevert(AP_DEGEN_NFT, 1);
     }
 
     function updateMerkleRoot(bytes32 newRoot) external treasuryOnly {
