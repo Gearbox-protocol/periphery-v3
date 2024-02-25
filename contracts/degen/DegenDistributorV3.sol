@@ -13,7 +13,7 @@ import {IDegenDistributorV3} from "../interfaces/IDegenDistributorV3.sol";
 bytes32 constant AP_DEGEN_NFT = "DEGEN_NFT";
 
 contract DegenDistributorV3 is IDegenDistributorV3 {
-    uint256 version = 3_00;
+    uint256 public constant version = 3_00;
 
     /// @dev Emits each time when call not by treasury
     error TreasuryOnlyException();
