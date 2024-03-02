@@ -254,22 +254,29 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         // uint256 quotedTokensMask;
         // address[] quotedTokens;
 
-        try creditManager.calcDebtAndCollateral(_creditAccount, CollateralCalcTask.DEBT_COLLATERAL) returns (
-            CollateralDebtData memory collateralDebtData
-        ) {
-            result.accruedInterest = collateralDebtData.accruedInterest;
-            result.accruedFees = collateralDebtData.accruedFees;
-            result.totalDebtUSD = collateralDebtData.totalDebtUSD;
-            result.totalValueUSD = collateralDebtData.totalValueUSD;
-            result.twvUSD = collateralDebtData.twvUSD;
-            result.healthFactor = collateralDebtData.totalDebtUSD != 0
-                ? collateralDebtData.twvUSD * PERCENTAGE_FACTOR / collateralDebtData.totalDebtUSD
-                : type(uint16).max;
-            result.totalValue = collateralDebtData.totalValue;
-            result.isSuccessful = true;
-        } catch {
-            result.priceFeedsNeeded = _getPriceFeedFailedList(_cm, result.balances);
-            result.isSuccessful = false;
+        for (uint256 i = 0; i < 2;) {
+            try creditManager.calcDebtAndCollateral(
+                _creditAccount, i == 0 ? CollateralCalcTask.DEBT_ONLY : CollateralCalcTask.DEBT_COLLATERAL
+            ) returns (CollateralDebtData memory collateralDebtData) {
+                result.accruedInterest = collateralDebtData.accruedInterest;
+                result.accruedFees = collateralDebtData.accruedFees;
+
+                result.totalDebtUSD = collateralDebtData.totalDebtUSD;
+                result.totalValueUSD = collateralDebtData.totalValueUSD;
+                result.twvUSD = collateralDebtData.twvUSD;
+                result.healthFactor = collateralDebtData.totalDebtUSD != 0
+                    ? collateralDebtData.twvUSD * PERCENTAGE_FACTOR / collateralDebtData.totalDebtUSD
+                    : type(uint16).max;
+                result.totalValue = collateralDebtData.totalValue;
+                result.isSuccessful = true;
+            } catch {
+                result.priceFeedsNeeded = _getPriceFeedFailedList(_cm, result.balances);
+                result.isSuccessful = false;
+            }
+
+            unchecked {
+                ++i;
+            }
         }
 
         (result.debt, result.cumulativeIndexLastUpdate, result.cumulativeQuotaInterest,,,, result.since,) =
