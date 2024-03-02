@@ -254,12 +254,13 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         // uint256 quotedTokensMask;
         // address[] quotedTokens;
 
-        for (uint256 i = 0; i < 1;) {
+        for (uint256 i = 0; i < 2;) {
             try creditManager.calcDebtAndCollateral(
                 _creditAccount, i == 0 ? CollateralCalcTask.DEBT_ONLY : CollateralCalcTask.DEBT_COLLATERAL
             ) returns (CollateralDebtData memory collateralDebtData) {
                 result.accruedInterest = collateralDebtData.accruedInterest;
                 result.accruedFees = collateralDebtData.accruedFees;
+
                 result.totalDebtUSD = collateralDebtData.totalDebtUSD;
                 result.totalValueUSD = collateralDebtData.totalValueUSD;
                 result.twvUSD = collateralDebtData.twvUSD;
