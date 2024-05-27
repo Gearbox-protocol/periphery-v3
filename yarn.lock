@@ -566,10 +566,10 @@
     "@ethersproject/properties" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
-"@gearbox-protocol/core-v3@^1.50.0-next.14":
-  version "1.50.0-next.14"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.50.0-next.14.tgz#d9974c001f16dfc721df13e2f85ae4ef41d489f7"
-  integrity sha512-LMofI5Dg7edLZGXS/ErKeVfUcJ5Rbl6lLJS/5PKrfeuUX4KmPK2YBY4A3LCut8EVL/HASvXg/mVZ0K4kdiNuyg==
+"@gearbox-protocol/core-v3@^1.50.0-next.15":
+  version "1.50.0-next.15"
+  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.50.0-next.15.tgz#d4822950643e816b84d27101bdb2161340fb80ea"
+  integrity sha512-5MDJSvDt+iUg5qi9dxw9fawfwKB0swdeOnZXEC8B6XHGLSU4AZTWk0tId15ubaFr5lL5cioQN283IZQWMVRJdw==
 
 "@gearbox-protocol/integrations-v3@^1.23.1":
   version "1.23.1"
