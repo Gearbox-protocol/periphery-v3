@@ -18,7 +18,7 @@ contract MultiPauseTest is ForkTest {
     function setUp() public {
         _createFork();
 
-        multiPause = new MultiPause(address(addressProvider));
+        multiPause = new MultiPause(address(acl), address(register));
         admin = makeAddr("ADMIN");
 
         vm.startPrank(configurator);

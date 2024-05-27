@@ -4,38 +4,35 @@
 pragma solidity ^0.8.10;
 
 import {CreditAccountData, CreditManagerData, PoolData, GaugeInfo} from "../data/Types.sol";
-import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
-struct PriceOnDemand {
-    address token;
-    bytes callData;
-}
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
 
 interface IDataCompressorV3 is IVersion {
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
     /// @param priceUpdates Price updates for price on demand oracles
-    function getCreditAccountsByBorrower(address borrower, PriceOnDemand[] memory priceUpdates)
+    function getCreditAccountsByBorrower(address borrower, PriceUpdate[] memory priceUpdates)
         external
         returns (CreditAccountData[] memory);
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param creditManager Address
     /// @param priceUpdates Price updates for price on demand oracles
-    function getCreditAccountsByCreditManager(address creditManager, PriceOnDemand[] memory priceUpdates)
+    function getCreditAccountsByCreditManager(address creditManager, PriceUpdate[] memory priceUpdates)
         external
         returns (CreditAccountData[] memory);
 
     /// @dev Returns CreditAccountData for all accounts with hf <1
     /// @param priceUpdates Price updates for price on demand oracles
-    function getLiquidatableCreditAccounts(PriceOnDemand[] memory priceUpdates)
+    function getLiquidatableCreditAccounts(PriceUpdate[] memory priceUpdates)
         external
         returns (CreditAccountData[] memory result);
 
     /// @dev Returns CreditAccountData for a particular Credit Account account, based on creditManager and borrower
     /// @param creditAccount Address of credit account
     /// @param priceUpdates Price updates for price on demand oracles
-    function getCreditAccountData(address creditAccount, PriceOnDemand[] memory priceUpdates)
+    function getCreditAccountData(address creditAccount, PriceUpdate[] memory priceUpdates)
         external
         returns (CreditAccountData memory);
 

@@ -3,9 +3,8 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
-import {IContractsRegister} from "@gearbox-protocol/core-v2/contracts/interfaces/IContractsRegister.sol";
-
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
+import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/IContractsRegister.sol";
 import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
 
@@ -19,9 +18,9 @@ enum PausableAction {
 /// @notice Allows pausable admins to pause multiple contracts in a single transaction
 /// @dev This contract is expected to be one of pausable admins in the ACL contract
 contract MultiPause is ACLNonReentrantTrait, ContractsRegisterTrait {
-    constructor(address addressProvider)
-        ACLNonReentrantTrait(addressProvider)
-        ContractsRegisterTrait(addressProvider)
+    constructor(address acl_, address contractsRegister_)
+        ACLNonReentrantTrait(acl_)
+        ContractsRegisterTrait(contractsRegister_)
     {}
 
     /// @notice Pauses contracts from the given list

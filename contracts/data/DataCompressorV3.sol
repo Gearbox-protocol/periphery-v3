@@ -4,14 +4,13 @@
 pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
-import "@gearbox-protocol/core-v3/contracts/interfaces/IAddressProviderV3.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
-import {PERCENTAGE_FACTOR, RAY} from "@gearbox-protocol/core-v2/contracts/libraries/Constants.sol";
+import {PERCENTAGE_FACTOR, RAY} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
-import {IContractsRegister} from "@gearbox-protocol/core-v2/contracts/interfaces/IContractsRegister.sol";
+import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/IContractsRegister.sol";
 import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 
 import {
@@ -21,7 +20,7 @@ import {
 } from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {ICreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
-import {IPriceOracleV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
+import {IPriceOracleV3, PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
@@ -33,13 +32,9 @@ import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditF
 import {IBotListV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IBotListV3.sol";
 import {IGaugeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IGaugeV3.sol";
 
-import {IPriceFeed} from "@gearbox-protocol/core-v2/contracts/interfaces/IPriceFeed.sol";
-import {IUpdatablePriceFeed} from "@gearbox-protocol/core-v2/contracts/interfaces/IPriceFeed.sol";
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
-import {IVersion} from "@gearbox-protocol/core-v2/contracts/interfaces/IVersion.sol";
-
-import {AddressProvider} from "@gearbox-protocol/core-v2/contracts/core/AddressProvider.sol";
-import {IDataCompressorV3, PriceOnDemand} from "../interfaces/IDataCompressorV3.sol";
+import {IDataCompressorV3} from "../interfaces/IDataCompressorV3.sol";
 import {IZapper} from "@gearbox-protocol/integrations-v3/contracts/interfaces/zappers/IZapper.sol";
 
 import {
@@ -63,8 +58,6 @@ import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
 import {IZapperRegister} from "../interfaces/IZapperRegister.sol";
 
-import "forge-std/console.sol";
-
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
@@ -77,14 +70,13 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
     error CreditManagerIsNotV3Exception();
 
     constructor(address _addressProvider) ContractsRegisterTrait(_addressProvider) {
-        zapperRegister =
-            IZapperRegister(IAddressProviderV3(_addressProvider).getAddressOrRevert("ZAPPER_REGISTER", 3_00));
+        // zapperRegister = IZapperRegister(IAddressProviderV3(_addressProvider).getAddressOrRevert("ZAPPER_REGISTER", 3_00));
     }
 
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower
     /// @param borrower Borrower address
     /// @param priceUpdates Price updates for priceFeedsOnDemand
-    function getCreditAccountsByBorrower(address borrower, PriceOnDemand[] memory priceUpdates)
+    function getCreditAccountsByBorrower(address borrower, PriceUpdate[] memory priceUpdates)
         external
         override
         returns (CreditAccountData[] memory result)
@@ -92,7 +84,7 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         return _queryCreditAccounts(_listCreditManagersV3(), borrower, false, priceUpdates);
     }
 
-    function getCreditAccountsByCreditManager(address creditManager, PriceOnDemand[] memory priceUpdates)
+    function getCreditAccountsByCreditManager(address creditManager, PriceUpdate[] memory priceUpdates)
         external
         override
         registeredCreditManagerOnly(creditManager)
@@ -105,7 +97,7 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         return _queryCreditAccounts(creditManagers, address(0), false, priceUpdates);
     }
 
-    function getLiquidatableCreditAccounts(PriceOnDemand[] memory priceUpdates)
+    function getLiquidatableCreditAccounts(PriceUpdate[] memory priceUpdates)
         external
         override
         returns (CreditAccountData[] memory result)
@@ -121,47 +113,37 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         address[] memory creditManagers,
         address borrower,
         bool liquidatableOnly,
-        PriceOnDemand[] memory priceUpdates
+        PriceUpdate[] memory priceUpdates
     ) internal returns (CreditAccountData[] memory result) {
-        uint256 index;
-        uint256 len = creditManagers.length;
-        unchecked {
-            for (uint256 op = COUNT; op <= QUERY; ++op) {
-                if (op == QUERY && index == 0) break;
+        uint256 maxAccounts;
+        for (uint256 i; i < creditManagers.length; ++i) {
+            maxAccounts += ICreditManagerV3(creditManagers[i]).creditAccountsLen();
+        }
+        result = new CreditAccountData[](maxAccounts);
 
-                result = new CreditAccountData[](index);
-                index = 0;
-                for (uint256 i = 0; i < len; ++i) {
-                    address _cm = creditManagers[i];
+        uint256 numAccounts;
+        for (uint256 i; i < creditManagers.length; ++i) {
+            address creditManager = creditManagers[i];
+            _updatePrices(creditManager, priceUpdates);
 
-                    _updatePrices(_cm, priceUpdates);
-                    address[] memory creditAccounts = ICreditManagerV3(_cm).creditAccounts();
-                    uint256 caLen = creditAccounts.length;
-                    for (uint256 j; j < caLen; ++j) {
-                        if (borrower != address(0) && borrower != _getBorrowerOrRevert(_cm, creditAccounts[j])) {
-                            continue;
-                        }
-
-                        if (liquidatableOnly) {
-                            try ICreditManagerV3(_cm).isLiquidatable(creditAccounts[j], PERCENTAGE_FACTOR) returns (
-                                bool isLiquidatable
-                            ) {
-                                if (!isLiquidatable) continue;
-                            } catch {}
-                        }
-
-                        if (op == QUERY) result[index] = _getCreditAccountData(_cm, creditAccounts[j]);
-                        ++index;
-                    }
-                }
+            address[] memory creditAccounts = ICreditManagerV3(creditManager).creditAccounts();
+            for (uint256 j; j < creditAccounts.length; ++j) {
+                address creditAccount = creditAccounts[j];
+                if (borrower != address(0) && _getAccountOwner(creditManager, creditAccount) != borrower) continue;
+                if (liquidatableOnly && !_isLiquidatable(creditManager, creditAccount)) continue;
+                result[numAccounts++] = _getCreditAccountData(creditManager, creditAccount);
             }
+        }
+
+        assembly {
+            mstore(result, numAccounts)
         }
     }
 
     /// @dev Returns CreditAccountData for a particular Credit Account account, based on creditManager and borrower
     /// @param _creditAccount Credit account address
     /// @param priceUpdates Price updates for priceFeedsOnDemand
-    function getCreditAccountData(address _creditAccount, PriceOnDemand[] memory priceUpdates)
+    function getCreditAccountData(address _creditAccount, PriceUpdate[] memory priceUpdates)
         public
         returns (CreditAccountData memory result)
     {
@@ -188,7 +170,7 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         result.creditFacade = address(creditFacade);
         result.cfVersion = _getVersion(address(creditFacade));
 
-        address borrower = _getBorrowerOrRevert(address(creditManager), _creditAccount);
+        address borrower = _getAccountOwner(address(creditManager), _creditAccount);
 
         result.borrower = borrower;
         result.creditManager = _cm;
@@ -284,31 +266,22 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
 
         result.expirationDate = creditFacade.expirationDate();
 
-        result.activeBots = IBotListV3(CreditFacadeV3(address(creditFacade)).botList()).activeBots(_cm, _creditAccount);
+        result.activeBots = IBotListV3(CreditFacadeV3(address(creditFacade)).botList()).activeBots(_creditAccount);
     }
 
     function _listCreditManagersV3() internal view returns (address[] memory result) {
-        uint256 len = IContractsRegister(contractsRegister).getCreditManagersCount();
+        address[] memory creditManagers = IContractsRegister(contractsRegister).getCreditManagers();
+        uint256 maxManagers = creditManagers.length;
 
-        uint256 index;
-        unchecked {
-            for (uint256 op = COUNT; op <= QUERY; ++op) {
-                if (op == QUERY && index == 0) {
-                    break;
-                } else {
-                    result = new address[](index);
-                    index = 0;
-                }
-
-                for (uint256 i = 0; i < len; ++i) {
-                    address _cm = IContractsRegister(contractsRegister).creditManagers(i);
-
-                    if (_isContractV3(_cm)) {
-                        if (op == QUERY) result[index] = _cm;
-                        ++index;
-                    }
-                }
-            }
+        result = new address[](maxManagers);
+        uint256 numManagers;
+        for (uint256 i; i < maxManagers; ++i) {
+            address creditManager = creditManagers[i];
+            if (!_isContractV3(creditManager)) continue;
+            result[numManagers++] = creditManager;
+        }
+        assembly {
+            mstore(result, numManagers)
         }
     }
 
@@ -494,40 +467,24 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
     }
 
     function _listPoolsV3() internal view returns (address[] memory result) {
-        uint256 len = IContractsRegister(contractsRegister).getPoolsCount();
+        address[] memory pools = IContractsRegister(contractsRegister).getPools();
+        uint256 maxPools = pools.length;
 
-        uint256 index;
-        unchecked {
-            for (uint256 op = COUNT; op <= QUERY; ++op) {
-                if (op == QUERY && index == 0) {
-                    break;
-                } else {
-                    result = new address[](index);
-                    index = 0;
-                }
+        result = new address[](maxPools);
+        uint256 numPools;
 
-                for (uint256 i = 0; i < len; ++i) {
-                    address _pool = IContractsRegister(contractsRegister).pools(i);
-
-                    if (_isContractV3(_pool)) {
-                        if (op == QUERY) result[index] = _pool;
-                        ++index;
-                    }
-                }
-            }
+        for (uint256 i; i < maxPools; ++i) {
+            address pool = pools[i];
+            if (!_isContractV3(pool)) continue;
+            result[numPools++] = pool;
+        }
+        assembly {
+            mstore(result, numPools)
         }
     }
 
-    function _updatePrices(address creditManager, PriceOnDemand[] memory priceUpdates) internal {
-        uint256 len = priceUpdates.length;
-        unchecked {
-            for (uint256 i; i < len; ++i) {
-                address priceFeed = _getPriceOracle(creditManager).priceFeeds(priceUpdates[i].token);
-                if (priceFeed == address(0)) revert PriceFeedDoesNotExistException();
-
-                IUpdatablePriceFeed(priceFeed).updatePrice(priceUpdates[i].callData);
-            }
-        }
+    function _updatePrices(address creditManager, PriceUpdate[] memory priceUpdates) internal {
+        _getPriceOracle(creditManager).updatePrices(priceUpdates);
     }
 
     function _getPriceFeedFailedList(address _cm, TokenBalance[] memory balances)
@@ -577,8 +534,16 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         return IPoolV3(pool).baseInterestRate();
     }
 
-    function _getBorrowerOrRevert(address cm, address creditAccount) internal view returns (address) {
+    function _getAccountOwner(address cm, address creditAccount) internal view returns (address) {
         return ICreditManagerV3(cm).getBorrowerOrRevert(creditAccount);
+    }
+
+    function _isLiquidatable(address cm, address creditAccount) internal view returns (bool) {
+        try ICreditManagerV3(cm).isLiquidatable(creditAccount, PERCENTAGE_FACTOR) returns (bool value) {
+            return value;
+        } catch {
+            return true;
+        }
     }
 
     function _getVersion(address versionedContract) internal view returns (uint256) {
