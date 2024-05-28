@@ -15,13 +15,15 @@
   },
   "devDependencies": {
     "@1inch/solidity-utils": "^2.2.27",
+    "@chainlink/contracts": "^0.4.0",
     "@commitlint/cli": "^17.6.3",
     "@commitlint/config-conventional": "17.6.0",
     "@gearbox-protocol/core-v3": "^1.50.0-next.15",
     "@gearbox-protocol/integrations-v3": "^1.23.1",
-    "@gearbox-protocol/oracles-v3": "^1.11.0-next.2",
+    "@gearbox-protocol/oracles-v3": "^1.11.0-next.3",
     "@gearbox-protocol/sdk-gov": "^2.3.1",
     "@openzeppelin/contracts": "^4.9.3",
+    "@redstone-finance/evm-connector": "0.2.5",
     "ds-test": "dapphub/ds-test",
     "forge-std": "foundry-rs/forge-std"
   },
