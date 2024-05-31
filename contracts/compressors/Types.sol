@@ -11,6 +11,7 @@ struct PriceFeedAnswer {
 }
 
 /// @notice Represents an entry in the price feed map of a price oracle
+/// @dev `stalenessPeriod` is always 0 if price oracle's version is below `3_10`
 struct PriceFeedMapEntry {
     address token;
     bool reserve;

@@ -15,11 +15,20 @@ import {PriceFeedType} from "@gearbox-protocol/sdk-gov/contracts/PriceFeedType.s
 import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
 import {IStateSerializerTrait} from "../interfaces/IStateSerializerTrait.sol";
 import {NestedPriceFeeds} from "../libraries/NestedPriceFeeds.sol";
+import {BoundedPriceFeedSerializer} from "../serializers/oracles/BoundedPriceFeedSerializer.sol";
+import {BPTWeightedPriceFeedSerializer} from "../serializers/oracles/BPTWeightedPriceFeedSerializer.sol";
+import {LPPriceFeedSerializer} from "../serializers/oracles/LPPriceFeedSerializer.sol";
+import {PythPriceFeedSerializer} from "../serializers/oracles/PythPriceFeedSerializer.sol";
+import {RedstonePriceFeedSerializer} from "../serializers/oracles/RedstonePriceFeedSerializer.sol";
 import {PriceFeedAnswer, PriceFeedMapEntry, PriceFeedTreeNode} from "./Types.sol";
 
 interface ImplementsPriceFeedType {
     /// @dev Annotates `priceFeedType` as `uint8` instead of `PriceFeedType` enum to support future types
     function priceFeedType() external view returns (uint8);
+}
+
+interface IPriceOracleV3Legacy {
+    function priceFeedsRaw(address token, bool reserve) external view returns (address);
 }
 
 /// @title Price feed compressor
@@ -41,17 +50,36 @@ contract PriceFeedCompressor is IVersion, Ownable {
 
     /// @notice Constructor
     /// @param  owner Contract owner
+    /// @dev    Sets serializers for existing price feed types.
+    ///         It is recommended to implement `IStateSerializerTrait` in new price feeds.
     constructor(address owner) {
         transferOwnership(owner);
+
+        address lpSerializer = address(new LPPriceFeedSerializer());
+        // these types can be serialized as generic LP price feeds
+        _setSerializer(uint8(PriceFeedType.BALANCER_STABLE_LP_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.COMPOUND_V2_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.CURVE_2LP_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.CURVE_3LP_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.CURVE_4LP_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.CURVE_CRYPTO_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.CURVE_USD_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.ERC4626_VAULT_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.WRAPPED_AAVE_V2_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.WSTETH_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.YEARN_ORACLE), lpSerializer);
+
+        // these types need special serialization
+        _setSerializer(uint8(PriceFeedType.BALANCER_WEIGHTED_LP_ORACLE), address(new BPTWeightedPriceFeedSerializer()));
+        _setSerializer(uint8(PriceFeedType.BOUNDED_ORACLE), address(new BoundedPriceFeedSerializer()));
+        _setSerializer(uint8(PriceFeedType.PYTH_ORACLE), address(new PythPriceFeedSerializer()));
+        _setSerializer(uint8(PriceFeedType.REDSTONE_ORACLE), address(new RedstonePriceFeedSerializer()));
     }
 
     /// @notice Sets state serializer for a given price feed type (unsets if `serializer` is `address(0)`)
     function setSerializer(uint8 priceFeedType, address serializer) external onlyOwner {
         if (serializer != address(0) && !serializer.isContract()) revert AddressIsNotContractException(serializer);
-        if (serializers[priceFeedType] != serializer) {
-            serializers[priceFeedType] = serializer;
-            emit SetSerializer(priceFeedType, serializer);
-        }
+        _setSerializer(priceFeedType, serializer);
     }
 
     /// @notice Returns all potentially useful price feeds data for a given price oracle in the form of two arrays:
@@ -69,6 +97,15 @@ contract PriceFeedCompressor is IVersion, Ownable {
         returns (PriceFeedMapEntry[] memory priceFeedMap, PriceFeedTreeNode[] memory priceFeedTree)
     {
         address[] memory tokens = IPriceOracleV3(priceOracle).getTokens();
+        return getPriceFeeds(priceOracle, tokens);
+    }
+
+    /// @dev Same as the above but takes the list of tokens explicitly as legacy oracle doesn't implement `getTokens`
+    function getPriceFeeds(address priceOracle, address[] memory tokens)
+        public
+        view
+        returns (PriceFeedMapEntry[] memory priceFeedMap, PriceFeedTreeNode[] memory priceFeedTree)
+    {
         uint256 numTokens = tokens.length;
 
         priceFeedMap = new PriceFeedMapEntry[](2 * numTokens);
@@ -79,20 +116,18 @@ contract PriceFeedCompressor is IVersion, Ownable {
             address token = tokens[i % numTokens];
             bool reserve = i >= numTokens;
 
-            PriceFeedParams memory params = reserve
-                ? IPriceOracleV3(priceOracle).reservePriceFeedParams(token)
-                : IPriceOracleV3(priceOracle).priceFeedParams(token);
+            (address priceFeed, uint32 stalenessPeriod) = _getPriceFeed(priceOracle, token, reserve);
 
             // can only happen to reserve price feeds
-            if (params.priceFeed == address(0)) continue;
+            if (priceFeed == address(0)) continue;
 
             priceFeedMap[priceFeedMapSize++] = PriceFeedMapEntry({
                 token: token,
                 reserve: reserve,
-                priceFeed: params.priceFeed,
-                stalenessPeriod: params.stalenessPeriod
+                priceFeed: priceFeed,
+                stalenessPeriod: stalenessPeriod
             });
-            priceFeedTreeSize += _getPriceFeedTreeSize(params.priceFeed);
+            priceFeedTreeSize += _getPriceFeedTreeSize(priceFeed);
         }
         assembly {
             mstore(priceFeedMap, priceFeedMapSize)
@@ -103,6 +138,30 @@ contract PriceFeedCompressor is IVersion, Ownable {
         for (uint256 i; i < priceFeedMapSize; ++i) {
             offset = _loadPriceFeedTree(priceFeedMap[i].priceFeed, priceFeedTree, offset);
         }
+    }
+
+    // --------- //
+    // INTERNALS //
+    // --------- //
+
+    /// @dev Sets `serializer` for `priceFeedType`
+    function _setSerializer(uint8 priceFeedType, address serializer) internal {
+        if (serializers[priceFeedType] != serializer) {
+            serializers[priceFeedType] = serializer;
+            emit SetSerializer(priceFeedType, serializer);
+        }
+    }
+
+    /// @dev Returns `token`'s price feed in the price oracle, handling different versions
+    function _getPriceFeed(address priceOracle, address token, bool reserve) internal view returns (address, uint32) {
+        if (IPriceOracleV3(priceOracle).version() < 3_10) {
+            address priceFeed = IPriceOracleV3Legacy(priceOracle).priceFeedsRaw(token, reserve);
+            return (priceFeed, 0);
+        }
+        PriceFeedParams memory params = reserve
+            ? IPriceOracleV3(priceOracle).reservePriceFeedParams(token)
+            : IPriceOracleV3(priceOracle).priceFeedParams(token);
+        return (params.priceFeed, params.stalenessPeriod);
     }
 
     /// @dev Computes the size of the `priceFeed`'s subtree (recursively)
