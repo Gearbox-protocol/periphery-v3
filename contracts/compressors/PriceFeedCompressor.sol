@@ -27,7 +27,11 @@ interface ImplementsPriceFeedType {
     function priceFeedType() external view returns (uint8);
 }
 
+/// @dev Price oracle with version below `3_10` has some important interface differences:
+///      - it does not implement `getTokens`
+///      - it only allows to fetch staleness period of a currently active price feed
 interface IPriceOracleV3Legacy {
+    /// @dev Older signature for fetching main and reserve feeds
     function priceFeedsRaw(address token, bool reserve) external view returns (address);
 }
 
@@ -100,7 +104,7 @@ contract PriceFeedCompressor is IVersion, Ownable {
         return getPriceFeeds(priceOracle, tokens);
     }
 
-    /// @dev Same as the above but takes the list of tokens explicitly as legacy oracle doesn't implement `getTokens`
+    /// @dev Same as the above but takes the list of tokens as argument as legacy oracle doesn't implement `getTokens`
     function getPriceFeeds(address priceOracle, address[] memory tokens)
         public
         view
@@ -117,8 +121,6 @@ contract PriceFeedCompressor is IVersion, Ownable {
             bool reserve = i >= numTokens;
 
             (address priceFeed, uint32 stalenessPeriod) = _getPriceFeed(priceOracle, token, reserve);
-
-            // can only happen to reserve price feeds
             if (priceFeed == address(0)) continue;
 
             priceFeedMap[priceFeedMapSize++] = PriceFeedMapEntry({
@@ -152,10 +154,11 @@ contract PriceFeedCompressor is IVersion, Ownable {
         }
     }
 
-    /// @dev Returns `token`'s price feed in the price oracle, handling different versions
+    /// @dev Returns `token`'s price feed in the price oracle
     function _getPriceFeed(address priceOracle, address token, bool reserve) internal view returns (address, uint32) {
         if (IPriceOracleV3(priceOracle).version() < 3_10) {
             address priceFeed = IPriceOracleV3Legacy(priceOracle).priceFeedsRaw(token, reserve);
+            // legacy oracle does not allow to fetch staleness period of a non-active feed
             return (priceFeed, 0);
         }
         PriceFeedParams memory params = reserve
