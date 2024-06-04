@@ -4,7 +4,6 @@
 pragma solidity ^0.8.17;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {AddressIsNotContractException} from "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {IPriceOracleV3, PriceFeedParams} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
@@ -35,11 +34,10 @@ interface IPriceOracleV3Legacy {
     function priceFeedsRaw(address token, bool reserve) external view returns (address);
 }
 
-/// @title Price feed compressor
+/// @title  Price feed compressor
 /// @notice Allows to fetch all useful data from price oracle in a single call
-/// @dev The contract is not gas optimized and is thus not recommended for on-chain use
+/// @dev    The contract is not gas optimized and is thus not recommended for on-chain use
 contract PriceFeedCompressor is IVersion, Ownable {
-    using Address for address;
     using NestedPriceFeeds for IPriceFeed;
 
     /// @notice Contract version
@@ -82,7 +80,7 @@ contract PriceFeedCompressor is IVersion, Ownable {
 
     /// @notice Sets state serializer for a given price feed type (unsets if `serializer` is `address(0)`)
     function setSerializer(uint8 priceFeedType, address serializer) external onlyOwner {
-        if (serializer != address(0) && !serializer.isContract()) revert AddressIsNotContractException(serializer);
+        if (serializer != address(0) && serializer.code.length == 0) revert AddressIsNotContractException(serializer);
         _setSerializer(priceFeedType, serializer);
     }
 
