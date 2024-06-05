@@ -30,7 +30,7 @@ interface ImplementsPriceFeedType {
 ///      - it does not implement `getTokens`
 ///      - it only allows to fetch staleness period of a currently active price feed
 interface IPriceOracleV3Legacy {
-    /// @dev Older signature for fetching main and reserve feeds
+    /// @dev Older signature for fetching main and reserve feeds, reverts if price feed is not set
     function priceFeedsRaw(address token, bool reserve) external view returns (address);
 }
 
@@ -90,9 +90,6 @@ contract PriceFeedCompressor is IVersion, Ownable {
     ///         - `priceFeedTree` is a set of nodes in a tree-like structure that contains detailed info of both feeds
     ///         from `priceFeedMap` and their underlying feeds, in case former are nested, which can help to determine
     ///         what underlying feeds should be updated to query the nested one.
-    /// @dev    `priceFeedTree` can have duplicate entries since a price feed can both be in `priceFeedMap` for one or
-    ///         more (token, reserve) pairs, and serve as an underlying feed in one or more nested feeds.
-    ///         If there are two identical nodes in the tree, then subtrees of these nodes are also identical.
     function getPriceFeeds(address priceOracle)
         external
         view
@@ -138,6 +135,10 @@ contract PriceFeedCompressor is IVersion, Ownable {
         for (uint256 i; i < priceFeedMapSize; ++i) {
             offset = _loadPriceFeedTree(priceFeedMap[i].priceFeed, priceFeedTree, offset);
         }
+        // trim array to its actual size in case there were duplicates
+        assembly {
+            mstore(priceFeedTree, offset)
+        }
     }
 
     // --------- //
@@ -155,9 +156,12 @@ contract PriceFeedCompressor is IVersion, Ownable {
     /// @dev Returns `token`'s price feed in the price oracle
     function _getPriceFeed(address priceOracle, address token, bool reserve) internal view returns (address, uint32) {
         if (IPriceOracleV3(priceOracle).version() < 3_10) {
-            address priceFeed = IPriceOracleV3Legacy(priceOracle).priceFeedsRaw(token, reserve);
-            // legacy oracle does not allow to fetch staleness period of a non-active feed
-            return (priceFeed, 0);
+            try IPriceOracleV3Legacy(priceOracle).priceFeedsRaw(token, reserve) returns (address priceFeed) {
+                // legacy oracle does not allow to fetch staleness period of a non-active feed
+                return (priceFeed, 0);
+            } catch {
+                return (address(0), 0);
+            }
         }
         PriceFeedParams memory params = reserve
             ? IPriceOracleV3(priceOracle).reservePriceFeedParams(token)
@@ -180,6 +184,12 @@ contract PriceFeedCompressor is IVersion, Ownable {
         view
         returns (uint256)
     {
+        // duplicates are possible since price feed can be in `priceFeedMap` for more than one (token, reserve) pair
+        // or serve as an underlying in more than one nested feed, and the whole subtree can be skipped in this case
+        for (uint256 i; i < offset; ++i) {
+            if (priceFeedTree[i].priceFeed == priceFeed) return offset;
+        }
+
         PriceFeedTreeNode memory node = _getPriceFeedTreeNode(priceFeed);
         priceFeedTree[offset++] = node;
         for (uint256 i; i < node.underlyingFeeds.length; ++i) {
