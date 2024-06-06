@@ -17,7 +17,7 @@ pragma solidity ^0.8.17;
 /// @param  totalValueUSD Account's total value in USD
 /// @param  twvUSD Account's threshold-weighted value in USD
 /// @param  totalValue Account's total value in underlying
-/// @param  healthFactor Account's health factor, i.e. ratio of `twvUSD` to `totalDebtUSD` with 18 decimals precision
+/// @param  healthFactor Account's health factor, i.e. ratio of `twvUSD` to `totalDebtUSD`, in bps
 /// @param  success Whether collateral calculation was successful
 /// @param  tokens Info on all collateral tokens in account's credit manager ordered by their mask, see `TokenInfo`
 /// @dev    Fields from `totalDebtUSD` through `healthFactor` are not filled if `success` is `false`
@@ -36,7 +36,7 @@ struct CreditAccountData {
     uint256 totalValueUSD;
     uint256 twvUSD;
     uint256 totalValue;
-    uint256 healthFactor;
+    uint16 healthFactor;
     bool success;
     TokenInfo[] tokens;
 }
@@ -50,8 +50,8 @@ struct CreditAccountData {
 struct CreditAccountFilter {
     address owner;
     bool includeZeroDebt;
-    uint256 minHealthFactor;
-    uint256 maxHealthFactor;
+    uint16 minHealthFactor;
+    uint16 maxHealthFactor;
     bool reverting;
 }
 
@@ -63,6 +63,18 @@ struct CreditManagerFilter {
     address curator;
     address pool;
     address underlying;
+}
+
+/// @notice Pagination options
+/// @param  offset Position to start scanning from in the list of all credit accounts open in given credit managers
+/// @param  scanLimit If set, specifies maximum number of accounts to scan, which can be helpful to parallelize querying
+/// @param  returnLimit If set, specifies maximum number of accounts to return, which can be helpful to optimize querying
+///         as at some point allocating memory for returned data leaves almost no room for actual data preparation
+/// @dev    `offset` and `scanLimit` apply to both querying and counting, while `returnLimit` only applies to querying
+struct Pagination {
+    uint256 offset;
+    uint256 scanLimit;
+    uint256 returnLimit;
 }
 
 /// @notice Price feed answer packed in a struct
@@ -107,11 +119,13 @@ struct PriceFeedTreeNode {
 
 /// @notice Info on credit account's holdings of a token
 /// @param  token Token address
+/// @param  mask Token mask in the credit manager
 /// @param  balance Account's balance of token
 /// @param  quota Account's quota of token
 /// @param  success Whether balance call was successful
 struct TokenInfo {
     address token;
+    uint256 mask;
     uint256 balance;
     uint256 quota;
     bool success;
