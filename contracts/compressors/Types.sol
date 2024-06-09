@@ -8,7 +8,7 @@ pragma solidity ^0.8.17;
 /// @param  creditManager Credit manager account is opened in
 /// @param  creditFacade Facade connected to account's credit manager
 /// @param  underlying Credit manager's underlying token
-/// @param  owner Credit account owner
+/// @param  owner Credit account's owner
 /// @param  enabledTokensMask Bitmask of tokens enabled on credit account as collateral
 /// @param  debt Credit account's debt principal in underlying
 /// @param  accruedInterest Base and quota interest accrued on the credit account
@@ -19,7 +19,7 @@ pragma solidity ^0.8.17;
 /// @param  totalValue Account's total value in underlying
 /// @param  healthFactor Account's health factor, i.e. ratio of `twvUSD` to `totalDebtUSD`, in bps
 /// @param  success Whether collateral calculation was successful
-/// @param  tokens Info on all collateral tokens in account's credit manager ordered by their mask, see `TokenInfo`
+/// @param  tokens Info on credit account's enabled tokens and tokens with non-zero balance, see `TokenInfo`
 /// @dev    Fields from `totalDebtUSD` through `healthFactor` are not filled if `success` is `false`
 /// @dev    `debt`, `accruedInterest` and `accruedFees` don't account for transfer fees
 struct CreditAccountData {
@@ -63,18 +63,6 @@ struct CreditManagerFilter {
     address curator;
     address pool;
     address underlying;
-}
-
-/// @notice Pagination options
-/// @param  offset Position to start scanning from in the list of all credit accounts open in given credit managers
-/// @param  scanLimit If set, specifies maximum number of accounts to scan, which can be helpful to parallelize querying
-/// @param  returnLimit If set, specifies maximum number of accounts to return, which can be helpful to optimize querying
-///         as at some point allocating memory for returned data leaves almost no room for actual data preparation
-/// @dev    `offset` and `scanLimit` apply to both querying and counting, while `returnLimit` only applies to querying
-struct Pagination {
-    uint256 offset;
-    uint256 scanLimit;
-    uint256 returnLimit;
 }
 
 /// @notice Price feed answer packed in a struct

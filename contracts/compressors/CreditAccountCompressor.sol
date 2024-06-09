@@ -21,24 +21,18 @@ import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/Sanit
 import {IAddressProviderV3} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3.sol";
 import {IMarketConfiguratorV3} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorV3.sol";
 
-import {CreditAccountData, CreditAccountFilter, CreditManagerFilter, Pagination, TokenInfo} from "./Types.sol";
+import {CreditAccountData, CreditAccountFilter, CreditManagerFilter, TokenInfo} from "./Types.sol";
 
 /// @title  Credit account compressor
 /// @notice Allows to fetch data on all credit accounts matching certain criteria in an efficient manner
 /// @dev    The contract is not gas optimized and is thus not recommended for on-chain use
-/// @dev    Querying functions try to process as many accounts as possible and stop when they get close to gas limit,
-///         but additional pagination options are available, see `Pagination`
+/// @dev    Querying functions try to process as many accounts as possible and stop when they get close to gas limit
 contract CreditAccountCompressor is IVersion, SanityCheckTrait {
     /// @notice Contract version
     uint256 public constant override version = 3_10;
 
     /// @notice Address provider contract address
     address public immutable ADDRESS_PROVIDER;
-
-    /// @dev Amount of gas that covers filter matching and data preparation for a single account
-    /// @dev After processing a large number of accounts, gas costs might eventually exceed this number due to
-    ///      quadratic memory expansion cost and memory always growing in Solidity
-    uint256 internal constant GAS_THRESHOLD = 2e6;
 
     /// @notice Thrown when address provider is not a contract or does not implement `marketConfigurators()`
     error InvalidAddressProviderException();
@@ -65,114 +59,51 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
     }
 
     /// @notice Returns data for credit accounts that match `caFilter` in credit managers matching `cmFilter`
-    /// @dev    The `false` value of `finished` return variable indicates either that return limit was reached or
-    ///         that gas supplied with a call was insufficient to process all the accounts and next iteration is
-    ///         needed which should start from the `nextOffset` position
-    function getCreditAccounts(
-        CreditManagerFilter memory cmFilter,
-        CreditAccountFilter memory caFilter,
-        Pagination memory pagination
-    ) external view returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset) {
-        uint256 num = countCreditAccounts(cmFilter, caFilter, pagination);
-        if (num == 0) return (data, true, 0);
-
-        // create a second object to avoid modifying `pagination` which can have side-effects in the calling code
-        Pagination memory _p = Pagination({
-            offset: pagination.offset,
-            scanLimit: pagination.scanLimit == 0 ? type(uint256).max : pagination.scanLimit,
-            returnLimit: pagination.returnLimit == 0 ? type(uint256).max : pagination.returnLimit
-        });
-
-        data = new CreditAccountData[](Math.min(_p.returnLimit, num));
-        uint256 dataOffset;
-
-        nextOffset = _p.offset;
-        address[] memory creditManagers = _getCreditManagers(cmFilter);
-        for (uint256 i; i < creditManagers.length; ++i) {
-            uint256 len = ICreditManagerV3(creditManagers[i]).creditAccountsLen();
-
-            // first, we need to get to the `offset` position
-            if (len <= _p.offset) {
-                _p.offset -= len;
-                continue;
-            }
-
-            uint256 limit = Math.min(len - _p.offset, _p.scanLimit);
-
-            uint256 scanned;
-            (dataOffset, scanned) = _getCreditAccounts({
-                creditManager: creditManagers[i],
-                filter: caFilter,
-                data: data,
-                dataOffset: dataOffset,
-                offset: _p.offset,
-                limit: limit
-            });
-            nextOffset += scanned;
-
-            // either finished or reached one of return size or gas limits
-            if (dataOffset == data.length || scanned < limit) break;
-
-            _p.scanLimit -= limit;
-            if (_p.scanLimit == 0) break;
-            _p.offset = 0;
-        }
-
-        if (dataOffset < data.length) {
-            // trim the array to its actual size
-            assembly {
-                mstore(data, dataOffset)
-            }
-        }
-
-        return (data, dataOffset == num, nextOffset);
-    }
-
-    /// @notice Returns data for credit accounts that match `caFilter` in a given `creditManager`
-    /// @dev    The `false` value of `finished` return variable indicates either that return limit was reached or
-    ///         that gas supplied with a call was insufficient to process all the accounts and next iteration is
-    ///         needed which should start from the `nextOffset` position
-    function getCreditAccounts(address creditManager, CreditAccountFilter memory caFilter, Pagination memory pagination)
+    /// @dev    The `false` value of `finished` return variable indicates either that gas supplied with a call was
+    ///         insufficient to process all the accounts and next iteration starting from `nextOffset` is needed
+    function getCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter, uint256 offset)
         external
         view
         returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset)
     {
-        uint256 num = countCreditAccounts(creditManager, caFilter, pagination);
-        if (num == 0) return (data, true, 0);
+        address[] memory creditManagers = _getCreditManagers(cmFilter);
+        return _getCreditAccounts(creditManagers, caFilter, offset, type(uint256).max);
+    }
 
-        // create a second object to avoid modifying `pagination` which can have side-effects in the calling code
-        Pagination memory _p = Pagination({
-            offset: pagination.offset,
-            scanLimit: pagination.scanLimit == 0 ? type(uint256).max : pagination.scanLimit,
-            returnLimit: pagination.returnLimit == 0 ? type(uint256).max : pagination.returnLimit
-        });
+    /// @dev Same as above but with `limit` parameter that specifies the number of accounts to process
+    function getCreditAccounts(
+        CreditManagerFilter memory cmFilter,
+        CreditAccountFilter memory caFilter,
+        uint256 offset,
+        uint256 limit
+    ) public view returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset) {
+        address[] memory creditManagers = _getCreditManagers(cmFilter);
+        return _getCreditAccounts(creditManagers, caFilter, offset, limit);
+    }
 
-        data = new CreditAccountData[](Math.min(_p.returnLimit, num));
-        uint256 dataOffset;
+    /// @notice Returns data for credit accounts that match `caFilter` in a given `creditManager`
+    /// @dev    The `false` value of `finished` return variable indicates either that gas supplied with a call was
+    ///         insufficient to process all the accounts and next iteration starting from `nextOffset` is needed
+    function getCreditAccounts(address creditManager, CreditAccountFilter memory caFilter, uint256 offset)
+        external
+        view
+        returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset)
+    {
+        address[] memory creditManagers = new address[](1);
+        creditManagers[0] = creditManager;
+        return _getCreditAccounts(creditManagers, caFilter, offset, type(uint256).max);
+    }
 
-        uint256 len = ICreditManagerV3(creditManager).creditAccountsLen();
-        // since `num != 0`, we can be sure that `len > offset`
-        uint256 limit = Math.min(_p.scanLimit, len - _p.offset);
-
-        uint256 scanned;
-        (dataOffset, scanned) = _getCreditAccounts({
-            creditManager: creditManager,
-            filter: caFilter,
-            data: data,
-            dataOffset: 0,
-            offset: _p.offset,
-            limit: limit
-        });
-        nextOffset = _p.offset + scanned;
-
-        if (dataOffset < data.length) {
-            // trim the array to its actual size
-            assembly {
-                mstore(data, dataOffset)
-            }
-        }
-
-        return (data, dataOffset == num, nextOffset);
+    /// @dev Same as above but with `limit` parameter that specifies the number of accounts to process
+    function getCreditAccounts(
+        address creditManager,
+        CreditAccountFilter memory caFilter,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset) {
+        address[] memory creditManagers = new address[](1);
+        creditManagers[0] = creditManager;
+        return _getCreditAccounts(creditManagers, caFilter, offset, limit);
     }
 
     // -------- //
@@ -180,47 +111,24 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
     // -------- //
 
     /// @notice Counts credit accounts that match `caFilter` in credit managers matching `cmFilter`
-    function countCreditAccounts(
-        CreditManagerFilter memory cmFilter,
-        CreditAccountFilter memory caFilter,
-        Pagination memory pagination
-    ) public view returns (uint256 num) {
-        uint256 offset = pagination.offset;
-        uint256 scanLimit = pagination.scanLimit == 0 ? type(uint256).max : pagination.scanLimit;
-
+    function countCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter)
+        external
+        view
+        returns (uint256)
+    {
         address[] memory creditManagers = _getCreditManagers(cmFilter);
-        for (uint256 i; i < creditManagers.length; ++i) {
-            uint256 len = ICreditManagerV3(creditManagers[i]).creditAccountsLen();
-
-            // first, we need to get to the `offset` position
-            if (len <= offset) {
-                offset -= len;
-                continue;
-            }
-
-            uint256 limit = Math.min(len - offset, scanLimit);
-            num += _countCreditAccounts(creditManagers[i], caFilter, offset, limit);
-
-            scanLimit -= limit;
-            if (scanLimit == 0) break;
-            offset = 0;
-        }
+        return _countCreditAccounts(creditManagers, caFilter, 0, type(uint256).max);
     }
 
     /// @notice Counts credit accounts that match `caFilter` in a given `creditManager`
-    function countCreditAccounts(
-        address creditManager,
-        CreditAccountFilter memory caFilter,
-        Pagination memory pagination
-    ) public view returns (uint256) {
-        uint256 offset = pagination.offset;
-        uint256 scanLimit = pagination.scanLimit == 0 ? type(uint256).max : pagination.scanLimit;
-
-        uint256 len = ICreditManagerV3(creditManager).creditAccountsLen();
-        if (len <= offset) return 0;
-        uint256 limit = Math.min(len - offset, scanLimit);
-
-        return _countCreditAccounts(creditManager, caFilter, offset, limit);
+    function countCreditAccounts(address creditManager, CreditAccountFilter memory caFilter)
+        external
+        view
+        returns (uint256)
+    {
+        address[] memory creditManagers = new address[](1);
+        creditManagers[0] = creditManager;
+        return _countCreditAccounts(creditManagers, caFilter, 0, type(uint256).max);
     }
 
     // --------- //
@@ -229,37 +137,107 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
 
     /// @dev Querying implementation
     function _getCreditAccounts(
-        address creditManager,
+        address[] memory creditManagers,
         CreditAccountFilter memory filter,
-        CreditAccountData[] memory data,
-        uint256 dataOffset,
         uint256 offset,
         uint256 limit
-    ) internal view returns (uint256 nextDataOffset, uint256 scanned) {
-        address[] memory creditAccounts = ICreditManagerV3(creditManager).creditAccounts(offset, limit);
-        for (uint256 i; i < creditAccounts.length; ++i) {
-            if (_checkFilterMatch(creditAccounts[i], creditManager, filter)) {
-                data[dataOffset++] = _getCreditAccountData(creditAccounts[i], creditManager);
+    ) internal view returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset) {
+        uint256 num = _countCreditAccounts(creditManagers, filter, offset, limit);
+        if (num == 0) return (data, true, 0);
+
+        // allocating the `CreditAccountData` array might consume most of the gas leaving no room for computations,
+        // so we instead allocate and gradually fill the array of pointers to structs which takes much less space
+        bytes32[] memory dataPointers = new bytes32[](num);
+        uint256 dataOffset;
+
+        // to adjust to RPC provider's call gas limit, the function stops when gas left gets below gas reserve, which
+        // starts at this number that should be enough to cover a single account processing, and increases with each
+        // new data struct to accommodate the cost of memory expansion that happens upon ABI-encoding returned data
+        uint256 gasReserve = 2e6;
+
+        nextOffset = offset;
+        for (uint256 i; i < creditManagers.length; ++i) {
+            address creditManager = creditManagers[i];
+            uint256 len = ICreditManagerV3(creditManager).creditAccountsLen();
+
+            // first, we need to get to the `offset` position
+            if (len <= offset) {
+                offset -= len;
+                continue;
             }
 
-            // either finished or reached one of return size or gas limits
-            if (dataOffset == data.length || gasleft() < GAS_THRESHOLD) return (dataOffset, i + 1);
+            uint256 count = Math.min(len - offset, limit);
+            address[] memory creditAccounts = ICreditManagerV3(creditManager).creditAccounts(offset, count);
+
+            // circumvent the "Stack too deep." error
+            CreditAccountFilter memory filter_ = filter;
+
+            for (uint256 j; j < creditAccounts.length; ++j) {
+                address creditAccount = creditAccounts[j];
+                if (_checkFilterMatch(creditAccount, creditManager, filter_)) {
+                    uint256 gasBefore = gasleft();
+
+                    CreditAccountData memory d = _getCreditAccountData(creditAccount, creditManager);
+                    ++dataOffset;
+                    assembly {
+                        // save the pointer to created struct
+                        mstore(add(dataPointers, mul(0x20, dataOffset)), d)
+                    }
+
+                    // rough approximation of gas that will be needed to accommodate additional memory expansion cost
+                    gasReserve += gasBefore - gasleft();
+                }
+                --count;
+
+                if (dataOffset == dataPointers.length || gasleft() < gasReserve) break;
+            }
+
+            nextOffset += creditAccounts.length - count;
+            if (dataOffset == dataPointers.length || count != 0) break;
+
+            limit -= creditAccounts.length;
+            if (limit == 0) break;
+            offset = 0;
         }
-        return (dataOffset, creditAccounts.length);
+
+        assembly {
+            // cast array of pointers to structs to array of structs
+            data := dataPointers
+            // trim array to its actual size
+            mstore(data, dataOffset)
+        }
+
+        return (data, dataOffset == num, nextOffset);
     }
 
     /// @dev Counting implementation
     function _countCreditAccounts(
-        address creditManager,
+        address[] memory creditManagers,
         CreditAccountFilter memory filter,
         uint256 offset,
         uint256 limit
     ) internal view returns (uint256 num) {
-        address[] memory creditAccounts = ICreditManagerV3(creditManager).creditAccounts(offset, limit);
-        for (uint256 i; i < creditAccounts.length; ++i) {
-            if (_checkFilterMatch(creditAccounts[i], creditManager, filter)) {
-                ++num;
+        for (uint256 i; i < creditManagers.length; ++i) {
+            address creditManager = creditManagers[i];
+            uint256 len = ICreditManagerV3(creditManager).creditAccountsLen();
+
+            // first, we need to get to the `offset` position
+            if (len <= offset) {
+                offset -= len;
+                continue;
             }
+
+            address[] memory creditAccounts =
+                ICreditManagerV3(creditManager).creditAccounts(offset, Math.min(len - offset, limit));
+            for (uint256 j; j < creditAccounts.length; ++j) {
+                if (_checkFilterMatch(creditAccounts[j], creditManager, filter)) {
+                    ++num;
+                }
+            }
+
+            limit -= creditAccounts.length;
+            if (limit == 0) break;
+            offset = 0;
         }
     }
 
@@ -296,10 +274,30 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
             data.success = true;
         } catch {}
 
-        uint256 numTokens = ICreditManagerV3(creditManager).collateralTokensCount();
+        uint256 maxTokens = ICreditManagerV3(creditManager).collateralTokensCount();
+
+        // the function is called for every account, so allocating an array of size `maxTokens` and trimming it
+        // might cause issues with memory expansion and we must count the precise number of tokens in advance
+        uint256 numTokens;
+        uint256 returnedTokensMask;
+        for (uint256 k; k < maxTokens; ++k) {
+            uint256 mask = 1 << k;
+            if (cdd.enabledTokensMask & mask == 0) {
+                address token = ICreditManagerV3(creditManager).getTokenByMask(mask);
+                try IERC20(token).balanceOf(creditAccount) returns (uint256 balance) {
+                    if (balance <= 1) continue;
+                } catch {
+                    continue;
+                }
+            }
+            ++numTokens;
+            returnedTokensMask |= mask;
+        }
+
         data.tokens = new TokenInfo[](numTokens);
-        for (uint256 i; i < numTokens; ++i) {
-            uint256 mask = 1 << i;
+        uint256 i;
+        while (returnedTokensMask != 0) {
+            uint256 mask = returnedTokensMask & uint256(-int256(returnedTokensMask));
             address token = ICreditManagerV3(creditManager).getTokenByMask(mask);
             data.tokens[i].token = token;
             data.tokens[i].mask = mask;
@@ -313,6 +311,9 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
                 (data.tokens[i].quota,) =
                     IPoolQuotaKeeperV3(cdd._poolQuotaKeeper).getQuotaAndOutstandingInterest(creditAccount, token);
             }
+
+            returnedTokensMask ^= mask;
+            ++i;
         }
     }
 
@@ -364,8 +365,8 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
             max += IContractsRegister(cr).getCreditManagers().length;
         }
 
-        // allocate the array with maximum potentially needed size (total number of credit managers
-        // can be assumed to be relatively small, so memary expansion cost is not an issue here)
+        // allocate the array with maximum potentially needed size (total number of credit managers can be assumed
+        // to be relatively small and the function is only called once, so memary expansion cost is not an issue)
         creditManagers = new address[](max);
         uint256 num;
         for (uint256 i; i < configurators.length; ++i) {
