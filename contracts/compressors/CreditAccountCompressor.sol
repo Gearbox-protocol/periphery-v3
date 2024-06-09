@@ -263,14 +263,14 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
         // collateral is computed separately since it might revert on `balanceOf` and `latestRoundData` calls
         try ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL)
         returns (CollateralDebtData memory cdd_) {
-            data.totalDebtUSD = cdd.totalDebtUSD;
+            data.totalDebtUSD = cdd_.totalDebtUSD;
             data.totalValueUSD = cdd_.totalValueUSD;
             data.twvUSD = cdd_.twvUSD;
-            data.totalValue = cdd.totalValue;
+            data.totalValue = cdd_.totalValue;
 
-            data.healthFactor = cdd.twvUSD * PERCENTAGE_FACTOR >= type(uint16).max * cdd.totalDebtUSD
+            data.healthFactor = cdd_.twvUSD * PERCENTAGE_FACTOR >= type(uint16).max * cdd_.totalDebtUSD
                 ? type(uint16).max
-                : uint16(cdd.twvUSD * PERCENTAGE_FACTOR / cdd.totalDebtUSD);
+                : uint16(cdd_.twvUSD * PERCENTAGE_FACTOR / cdd_.totalDebtUSD);
             data.success = true;
         } catch {}
 
