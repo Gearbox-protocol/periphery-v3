@@ -59,12 +59,12 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
     }
 
     /// @notice Returns data for credit accounts that match `caFilter` in credit managers matching `cmFilter`
-    /// @dev    The `false` value of `finished` return variable indicates either that gas supplied with a call was
-    ///         insufficient to process all the accounts and next iteration starting from `nextOffset` is needed
+    /// @dev    The non-zero value of `nextOffset` return variable indicates that gas supplied with a call was
+    ///         insufficient to process all the accounts and next iteration starting from this value is needed
     function getCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter, uint256 offset)
         external
         view
-        returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset)
+        returns (CreditAccountData[] memory data, uint256 nextOffset)
     {
         address[] memory creditManagers = _getCreditManagers(cmFilter);
         return _getCreditAccounts(creditManagers, caFilter, offset, type(uint256).max);
@@ -76,18 +76,18 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
         CreditAccountFilter memory caFilter,
         uint256 offset,
         uint256 limit
-    ) public view returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset) {
+    ) public view returns (CreditAccountData[] memory data, uint256 nextOffset) {
         address[] memory creditManagers = _getCreditManagers(cmFilter);
         return _getCreditAccounts(creditManagers, caFilter, offset, limit);
     }
 
     /// @notice Returns data for credit accounts that match `caFilter` in a given `creditManager`
-    /// @dev    The `false` value of `finished` return variable indicates either that gas supplied with a call was
-    ///         insufficient to process all the accounts and next iteration starting from `nextOffset` is needed
+    /// @dev    The non-zero value of `nextOffset` return variable indicates that gas supplied with a call was
+    ///         insufficient to process all the accounts and next iteration starting from this value is needed
     function getCreditAccounts(address creditManager, CreditAccountFilter memory caFilter, uint256 offset)
         external
         view
-        returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset)
+        returns (CreditAccountData[] memory data, uint256 nextOffset)
     {
         address[] memory creditManagers = new address[](1);
         creditManagers[0] = creditManager;
@@ -100,7 +100,7 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
         CreditAccountFilter memory caFilter,
         uint256 offset,
         uint256 limit
-    ) external view returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset) {
+    ) external view returns (CreditAccountData[] memory data, uint256 nextOffset) {
         address[] memory creditManagers = new address[](1);
         creditManagers[0] = creditManager;
         return _getCreditAccounts(creditManagers, caFilter, offset, limit);
@@ -141,9 +141,9 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
         CreditAccountFilter memory filter,
         uint256 offset,
         uint256 limit
-    ) internal view returns (CreditAccountData[] memory data, bool finished, uint256 nextOffset) {
+    ) internal view returns (CreditAccountData[] memory data, uint256 nextOffset) {
         uint256 num = _countCreditAccounts(creditManagers, filter, offset, limit);
-        if (num == 0) return (data, true, 0);
+        if (num == 0) return (data, 0);
 
         // allocating the `CreditAccountData` array might consume most of the gas leaving no room for computations,
         // so we instead allocate and gradually fill the array of pointers to structs which takes much less space
@@ -185,15 +185,15 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
                     }
 
                     // rough approximation of gas that will be needed to accommodate additional memory expansion cost
-                    gasReserve += gasBefore - gasleft();
+                    gasReserve += (gasBefore - gasleft()) / 2;
                 }
                 --count;
 
-                if (dataOffset == dataPointers.length || gasleft() < gasReserve) break;
+                if (dataOffset == num || gasleft() < gasReserve) break;
             }
 
             nextOffset += creditAccounts.length - count;
-            if (dataOffset == dataPointers.length || count != 0) break;
+            if (dataOffset == num || count != 0) break;
 
             limit -= creditAccounts.length;
             if (limit == 0) break;
@@ -207,7 +207,8 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
             mstore(data, dataOffset)
         }
 
-        return (data, dataOffset == num, nextOffset);
+        // set `nextOffset` to zero to indicate that scanning is finished
+        if (dataOffset == num) nextOffset = 0;
     }
 
     /// @dev Counting implementation
