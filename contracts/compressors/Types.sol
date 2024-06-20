@@ -89,7 +89,7 @@ struct PriceFeedMapEntry {
 /// @param  skipCheck Whether price feed implements its own staleness and sanity check, defaults to `false`
 /// @param  updatable Whether it is an on-demand updatable (aka pull) price feed, defaults to `false`
 /// @param  specificParams ABI-encoded params specific to this price feed type, filled if price feed implements
-///         `IStateSerializerTrait` or there is a state serializer set for this type
+///         `IStateSerializer` or there is a state serializer set for this type
 /// @param  underlyingFeeds Array of underlying feeds, filled when `priceFeed` is nested
 /// @param  underlyingStalenessPeriods Staleness periods of underlying feeds, filled when `priceFeed` is nested
 /// @param  answer Price feed answer packed in a struct

@@ -4,9 +4,9 @@
 pragma solidity ^0.8.17;
 
 import {BoundedPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/BoundedPriceFeed.sol";
-import {IStateSerializer} from "../../interfaces/IStateSerializer.sol";
+import {IStateSerializerLegacy} from "../../interfaces/IStateSerializerLegacy.sol";
 
-contract BoundedPriceFeedSerializer is IStateSerializer {
+contract BoundedPriceFeedSerializer is IStateSerializerLegacy {
     function serialize(address priceFeed) external view override returns (bytes memory) {
         BoundedPriceFeed pf = BoundedPriceFeed(priceFeed);
 

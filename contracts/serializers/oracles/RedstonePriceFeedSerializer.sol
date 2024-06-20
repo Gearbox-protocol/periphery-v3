@@ -4,9 +4,9 @@
 pragma solidity ^0.8.17;
 
 import {RedstonePriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/updatable/RedstonePriceFeed.sol";
-import {IStateSerializer} from "../../interfaces/IStateSerializer.sol";
+import {IStateSerializerLegacy} from "../../interfaces/IStateSerializerLegacy.sol";
 
-contract RedstonePriceFeedSerializer is IStateSerializer {
+contract RedstonePriceFeedSerializer is IStateSerializerLegacy {
     function serialize(address priceFeed) external view override returns (bytes memory) {
         RedstonePriceFeed pf = RedstonePriceFeed(priceFeed);
 

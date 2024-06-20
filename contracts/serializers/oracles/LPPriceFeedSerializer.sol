@@ -4,9 +4,9 @@
 pragma solidity ^0.8.17;
 
 import {ILPPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/interfaces/ILPPriceFeed.sol";
-import {IStateSerializer} from "../../interfaces/IStateSerializer.sol";
+import {IStateSerializerLegacy} from "../../interfaces/IStateSerializerLegacy.sol";
 
-contract LPPriceFeedSerializer is IStateSerializer {
+contract LPPriceFeedSerializer is IStateSerializerLegacy {
     struct PriceData {
         uint256 exchangeRate;
         int256 aggregatePrice;

@@ -11,8 +11,8 @@ import {IPriceFeed, IUpdatablePriceFeed} from "@gearbox-protocol/core-v3/contrac
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {PriceFeedType} from "@gearbox-protocol/sdk-gov/contracts/PriceFeedType.sol";
 
+import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
 import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
-import {IStateSerializerTrait} from "../interfaces/IStateSerializerTrait.sol";
 import {NestedPriceFeeds} from "../libraries/NestedPriceFeeds.sol";
 import {BoundedPriceFeedSerializer} from "../serializers/oracles/BoundedPriceFeedSerializer.sol";
 import {BPTWeightedPriceFeedSerializer} from "../serializers/oracles/BPTWeightedPriceFeedSerializer.sol";
@@ -44,7 +44,7 @@ contract PriceFeedCompressor is IVersion, Ownable {
     uint256 public constant override version = 3_10;
 
     /// @notice Map of state serializers for different price feed types
-    /// @dev    Serializers only apply to feeds that don't implement `IStateSerializerTrait` themselves
+    /// @dev    Serializers only apply to feeds that don't implement `IStateSerializer` themselves
     mapping(uint8 => address) public serializers;
 
     /// @notice Emitted when new state serializer is set for a given price feed type
@@ -53,7 +53,7 @@ contract PriceFeedCompressor is IVersion, Ownable {
     /// @notice Constructor
     /// @param  owner Contract owner
     /// @dev    Sets serializers for existing price feed types.
-    ///         It is recommended to implement `IStateSerializerTrait` in new price feeds.
+    ///         It is recommended to implement `IStateSerializer` in new price feeds.
     constructor(address owner) {
         transferOwnership(owner);
 
@@ -217,12 +217,12 @@ contract PriceFeedCompressor is IVersion, Ownable {
             data.updatable = updatable;
         } catch {}
 
-        try IStateSerializerTrait(priceFeed).serialize() returns (bytes memory specificParams) {
+        try IStateSerializer(priceFeed).serialize() returns (bytes memory specificParams) {
             data.specificParams = specificParams;
         } catch {
             address serializer = serializers[data.priceFeedType];
             if (serializer != address(0)) {
-                data.specificParams = IStateSerializer(serializer).serialize(priceFeed);
+                data.specificParams = IStateSerializerLegacy(serializer).serialize(priceFeed);
             }
         }
 

@@ -3,8 +3,8 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
-/// @title State serializer
-/// @notice Generic interface of a contract that is able to serialize state of other contracts
+/// @title State serializer trait
+/// @notice Generic interface of a contract that is able to serialize its own state
 interface IStateSerializer {
-    function serialize(address) external view returns (bytes memory);
+    function serialize() external view returns (bytes memory);
 }

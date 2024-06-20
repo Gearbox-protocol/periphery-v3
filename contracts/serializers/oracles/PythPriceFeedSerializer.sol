@@ -4,9 +4,9 @@
 pragma solidity ^0.8.17;
 
 import {PythPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/updatable/PythPriceFeed.sol";
-import {IStateSerializer} from "../../interfaces/IStateSerializer.sol";
+import {IStateSerializerLegacy} from "../../interfaces/IStateSerializerLegacy.sol";
 
-contract PythPriceFeedSerializer is IStateSerializer {
+contract PythPriceFeedSerializer is IStateSerializerLegacy {
     function serialize(address priceFeed) external view override returns (bytes memory) {
         PythPriceFeed pf = PythPriceFeed(payable(priceFeed));
 
