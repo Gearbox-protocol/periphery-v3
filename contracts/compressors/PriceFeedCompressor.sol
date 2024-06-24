@@ -3,8 +3,6 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-
 import {AddressIsNotContractException} from "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {IPriceOracleV3, PriceFeedParams} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
 import {IPriceFeed, IUpdatablePriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
@@ -37,7 +35,7 @@ interface IPriceOracleV3Legacy {
 /// @title  Price feed compressor
 /// @notice Allows to fetch all useful data from price oracle in a single call
 /// @dev    The contract is not gas optimized and is thus not recommended for on-chain use
-contract PriceFeedCompressor is IVersion, Ownable {
+contract PriceFeedCompressor is IVersion {
     using NestedPriceFeeds for IPriceFeed;
 
     /// @notice Contract version
@@ -51,12 +49,9 @@ contract PriceFeedCompressor is IVersion, Ownable {
     event SetSerializer(uint8 indexed priceFeedType, address indexed serializer);
 
     /// @notice Constructor
-    /// @param  owner Contract owner
     /// @dev    Sets serializers for existing price feed types.
     ///         It is recommended to implement `IStateSerializer` in new price feeds.
-    constructor(address owner) {
-        transferOwnership(owner);
-
+    constructor() {
         address lpSerializer = address(new LPPriceFeedSerializer());
         // these types can be serialized as generic LP price feeds
         _setSerializer(uint8(PriceFeedType.BALANCER_STABLE_LP_ORACLE), lpSerializer);
@@ -76,12 +71,6 @@ contract PriceFeedCompressor is IVersion, Ownable {
         _setSerializer(uint8(PriceFeedType.BOUNDED_ORACLE), address(new BoundedPriceFeedSerializer()));
         _setSerializer(uint8(PriceFeedType.PYTH_ORACLE), address(new PythPriceFeedSerializer()));
         _setSerializer(uint8(PriceFeedType.REDSTONE_ORACLE), address(new RedstonePriceFeedSerializer()));
-    }
-
-    /// @notice Sets state serializer for a given price feed type (unsets if `serializer` is `address(0)`)
-    function setSerializer(uint8 priceFeedType, address serializer) external onlyOwner {
-        if (serializer != address(0) && serializer.code.length == 0) revert AddressIsNotContractException(serializer);
-        _setSerializer(priceFeedType, serializer);
     }
 
     /// @notice Returns all potentially useful price feeds data for a given price oracle in the form of two arrays:
