@@ -86,6 +86,7 @@ struct PriceFeedMapEntry {
 /// @param  decimals Price feed's decimals (might not be equal to 8 for lower-level)
 /// @param  priceFeedType Price feed type (same as `PriceFeedType` but annotated as `uint8` to support future types),
 ///         defaults to `PriceFeedType.CHAINLINK_ORACLE`
+/// @param  version Price feed version
 /// @param  skipCheck Whether price feed implements its own staleness and sanity check, defaults to `false`
 /// @param  updatable Whether it is an on-demand updatable (aka pull) price feed, defaults to `false`
 /// @param  specificParams ABI-encoded params specific to this price feed type, filled if price feed implements
@@ -97,6 +98,7 @@ struct PriceFeedTreeNode {
     address priceFeed;
     uint8 decimals;
     uint8 priceFeedType;
+    uint256 version;
     bool skipCheck;
     bool updatable;
     bytes specificParams;

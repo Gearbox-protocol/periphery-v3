@@ -6,7 +6,7 @@ pragma solidity ^0.8.17;
 import {AddressIsNotContractException} from "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {IPriceOracleV3, PriceFeedParams} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
 import {IPriceFeed, IUpdatablePriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
-import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
+import {IPriceFeedCompressor} from "../interfaces/IPriceFeedCompressor.sol";
 import {PriceFeedType} from "@gearbox-protocol/sdk-gov/contracts/PriceFeedType.sol";
 
 import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
@@ -35,7 +35,7 @@ interface IPriceOracleV3Legacy {
 /// @title  Price feed compressor
 /// @notice Allows to fetch all useful data from price oracle in a single call
 /// @dev    The contract is not gas optimized and is thus not recommended for on-chain use
-contract PriceFeedCompressor is IVersion {
+contract PriceFeedCompressor is IPriceFeedCompressor {
     using NestedPriceFeeds for IPriceFeed;
 
     /// @notice Contract version
@@ -44,9 +44,6 @@ contract PriceFeedCompressor is IVersion {
     /// @notice Map of state serializers for different price feed types
     /// @dev    Serializers only apply to feeds that don't implement `IStateSerializer` themselves
     mapping(uint8 => address) public serializers;
-
-    /// @notice Emitted when new state serializer is set for a given price feed type
-    event SetSerializer(uint8 indexed priceFeedType, address indexed serializer);
 
     /// @notice Constructor
     /// @dev    Sets serializers for existing price feed types.
@@ -82,6 +79,7 @@ contract PriceFeedCompressor is IVersion {
     function getPriceFeeds(address priceOracle)
         external
         view
+        override
         returns (PriceFeedMapEntry[] memory priceFeedMap, PriceFeedTreeNode[] memory priceFeedTree)
     {
         address[] memory tokens = IPriceOracleV3(priceOracle).getTokens();
@@ -92,6 +90,7 @@ contract PriceFeedCompressor is IVersion {
     function getPriceFeeds(address priceOracle, address[] memory tokens)
         public
         view
+        override
         returns (PriceFeedMapEntry[] memory priceFeedMap, PriceFeedTreeNode[] memory priceFeedTree)
     {
         uint256 numTokens = tokens.length;
@@ -191,6 +190,7 @@ contract PriceFeedCompressor is IVersion {
     function _getPriceFeedTreeNode(address priceFeed) internal view returns (PriceFeedTreeNode memory data) {
         data.priceFeed = priceFeed;
         data.decimals = IPriceFeed(priceFeed).decimals();
+        data.version = IPriceFeed(priceFeed).version();
 
         try ImplementsPriceFeedType(priceFeed).priceFeedType() returns (uint8 priceFeedType) {
             data.priceFeedType = priceFeedType;
