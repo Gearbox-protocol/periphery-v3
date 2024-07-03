@@ -17,7 +17,7 @@ import {BPTWeightedPriceFeedSerializer} from "../serializers/oracles/BPTWeighted
 import {LPPriceFeedSerializer} from "../serializers/oracles/LPPriceFeedSerializer.sol";
 import {PythPriceFeedSerializer} from "../serializers/oracles/PythPriceFeedSerializer.sol";
 import {RedstonePriceFeedSerializer} from "../serializers/oracles/RedstonePriceFeedSerializer.sol";
-import {PriceFeedAnswer, PriceFeedMapEntry, PriceFeedTreeNode} from "./Types.sol";
+import {PriceFeedAnswer, PriceFeedMapEntry, PriceFeedTreeNode} from "../types/PriceOracleState.sol";
 
 interface ImplementsPriceFeedType {
     /// @dev Annotates `priceFeedType` as `uint8` instead of `PriceFeedType` enum to support future types
@@ -122,6 +122,30 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
         uint256 offset;
         for (uint256 i; i < priceFeedMapSize; ++i) {
             offset = _loadPriceFeedTree(priceFeedMap[i].priceFeed, priceFeedTree, offset);
+        }
+        // trim array to its actual size in case there were duplicates
+        assembly {
+            mstore(priceFeedTree, offset)
+        }
+    }
+
+    function loadPriceFeedTree(address[] memory priceFeeds)
+        external
+        view
+        override
+        returns (PriceFeedTreeNode[] memory priceFeedTree)
+    {
+        uint256 len = priceFeeds.length;
+        uint256 priceFeedTreeSize;
+
+        for (uint256 i; i < len; ++i) {
+            priceFeedTreeSize += _getPriceFeedTreeSize(priceFeeds[i]);
+        }
+
+        priceFeedTree = new PriceFeedTreeNode[](priceFeedTreeSize);
+        uint256 offset;
+        for (uint256 i; i < len; ++i) {
+            offset = _loadPriceFeedTree(priceFeeds[i], priceFeedTree, offset);
         }
         // trim array to its actual size in case there were duplicates
         assembly {

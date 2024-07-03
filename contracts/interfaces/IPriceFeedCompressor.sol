@@ -3,7 +3,7 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.10;
 
-import {PriceFeedAnswer, PriceFeedMapEntry, PriceFeedTreeNode} from "../compressors/Types.sol";
+import {PriceFeedAnswer, PriceFeedMapEntry, PriceFeedTreeNode} from "../types/PriceOracleState.sol";
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
@@ -20,4 +20,9 @@ interface IPriceFeedCompressor is IVersion {
         external
         view
         returns (PriceFeedMapEntry[] memory priceFeedMap, PriceFeedTreeNode[] memory priceFeedTree);
+
+    function loadPriceFeedTree(address[] memory priceFeeds)
+        external
+        view
+        returns (PriceFeedTreeNode[] memory priceFeedTree);
 }

@@ -55,13 +55,13 @@ import {
 
 // EXCEPTIONS
 import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
-import {LinearInterestModelHelper} from "./LinearInterestModelHelper.sol";
+
 import {IZapperRegister} from "../interfaces/IZapperRegister.sol";
 
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearInterestModelHelper {
+contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait {
     // Contract version
     uint256 public constant version = 3_00;
 
@@ -328,7 +328,7 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
 
             result.baseBorrowRate = _getBaseInterestRate(address(pool));
             result.availableToBorrow = pool.creditManagerBorrowable(_cm);
-            result.lirm = _getInterestRateModel(address(pool));
+            // result.lirm = _getInterestRateModel(address(pool));
         }
 
         (result.minDebt, result.maxDebt) = creditFacade.debtLimits();
@@ -431,7 +431,7 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         result.version = _getVersion(address(pool));
 
         result.quotas = _getQuotas(_pool);
-        result.lirm = _getInterestRateModel(_pool);
+        // result.lirm = _getInterestRateModel(_pool);
         result.isPaused = _getPaused(_pool);
 
         // Adding zappers
@@ -559,9 +559,9 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait, LinearIn
         name = _getName(token);
     }
 
-    function _getInterestRateModel(address pool) internal view returns (LinearModel memory) {
-        return getLIRMData(IPoolV3(pool).interestRateModel());
-    }
+    // function _getInterestRateModel(address pool) internal view returns (LinearModel memory) {
+    //     return address(0); //getLIRMData(IPoolV3(pool).interestRateModel());
+    // }
 
     function _getQuotedTokens(IPoolQuotaKeeperV3 pqk) internal view returns (address[] memory result) {
         result = pqk.quotedTokens();
