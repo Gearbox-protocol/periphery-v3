@@ -6,8 +6,8 @@ pragma solidity ^0.8.17;
 struct PoolState {
     // contract properties
     address addr;
-    uint16 poolType;
     uint256 version;
+    bytes32 contractType;
     //
     // ERC20 Properties
     string symbol;

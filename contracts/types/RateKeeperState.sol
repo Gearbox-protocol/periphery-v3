@@ -5,8 +5,8 @@ pragma solidity ^0.8.17;
 
 struct RateKeeperState {
     address addr;
-    uint16 rateKeeperType;
     uint256 version;
+    bytes32 contractType;
     Rate[] rates;
     bytes serialisedData;
 }

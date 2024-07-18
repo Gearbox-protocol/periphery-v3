@@ -5,7 +5,7 @@ pragma solidity ^0.8.17;
 
 struct InterestRateModelState {
     address addr;
-    uint16 modelType;
     uint256 version;
+    bytes32 contractType;
     bytes serializedParams;
 }

@@ -153,10 +153,11 @@ contract PoolCompressorV3 {
 
         result.version = _rateKeeper.version();
         if (result.version == 3_00) {
-            result.rateKeeperType = uint16(RateKeeperType.Gauge);
+            result.contractType = "RK_GAUGE";
             _pqk = IPoolQuotaKeeperV3(PoolV3(IGaugeV3(rateKeeper).pool()).poolQuotaKeeper());
             result.serialisedData = GaugeSerializer(gaugeSerializer).serialize(rateKeeper);
         } else {
+            // TODO: add querying data for 3.1
             // resuilt.rateKeeperType = uint16(_rateKeeper.rateKeeperType());
             // _pqk = IPoolQuotaKeeperV3(IGaugeV3(rateKeeper).quotaKeeper());
         }

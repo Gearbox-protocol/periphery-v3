@@ -5,8 +5,8 @@ pragma solidity ^0.8.17;
 
 struct CreditManagerState {
     address addr;
-    uint16 creditManagerType;
     uint256 version;
+    bytes32 contractType;
     string name;
     address creditFacade; // V2 only: address of creditFacade
     address creditConfigurator; // V2 only: address of creditConfigurator

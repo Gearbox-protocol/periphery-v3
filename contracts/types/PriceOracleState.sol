@@ -6,6 +6,7 @@ pragma solidity ^0.8.17;
 struct PriceOracleState {
     address addr;
     uint256 version;
+    bytes32 contractType;
     PriceFeedMapEntry priceFeedMapping;
     PriceFeedTreeNode priceFeedStructure;
 }

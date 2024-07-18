@@ -5,8 +5,8 @@ pragma solidity ^0.8.17;
 
 struct CreditFacadeState {
     address addr;
-    uint16 creditFacadeType;
     uint256 version;
+    bytes32 contractType;
     address creditManager;
     address creditConfigurator;
     uint256 minDebt;

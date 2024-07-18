@@ -5,7 +5,7 @@ pragma solidity ^0.8.17;
 
 struct LossLiquidatorState {
     address addr;
-    uint16 lossLiquidatorType;
     uint256 version;
+    bytes32 contractType;
     bytes serialisedData;
 }

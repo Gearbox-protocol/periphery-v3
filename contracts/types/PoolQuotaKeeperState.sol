@@ -6,6 +6,7 @@ pragma solidity ^0.8.17;
 struct PoolQuotaKeeperState {
     address addr;
     uint256 version;
+    bytes32 contractType;
     address rateKeeper;
     QuotaTokenParams[] quotas;
     address[] creditManagers;
