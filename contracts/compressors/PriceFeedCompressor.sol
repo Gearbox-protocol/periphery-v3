@@ -62,6 +62,7 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
         _setSerializer(uint8(PriceFeedType.WRAPPED_AAVE_V2_ORACLE), lpSerializer);
         _setSerializer(uint8(PriceFeedType.WSTETH_ORACLE), lpSerializer);
         _setSerializer(uint8(PriceFeedType.YEARN_ORACLE), lpSerializer);
+        _setSerializer(uint8(PriceFeedType.MELLOW_LRT_ORACLE), lpSerializer);
 
         // these types need special serialization
         _setSerializer(uint8(PriceFeedType.BALANCER_WEIGHTED_LP_ORACLE), address(new BPTWeightedPriceFeedSerializer()));
