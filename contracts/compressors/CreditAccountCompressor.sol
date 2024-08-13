@@ -367,12 +367,12 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
         }
 
         // allocate the array with maximum potentially needed size (total number of credit managers can be assumed
-        // to be relatively small and the function is only called once, so memary expansion cost is not an issue)
+        // to be relatively small and the function is only called once, so memory expansion cost is not an issue)
         creditManagers = new address[](max);
         uint256 num;
         for (uint256 i; i < configurators.length; ++i) {
-            if (filter.curator != address(0)) {
-                if (IMarketConfiguratorV3(configurators[i]).owner() != filter.curator) continue;
+            if (filter.curators.length != 0) {
+                if (!_contains(filter.curators, IMarketConfiguratorV3(configurators[i]).owner())) continue;
             }
 
             address cr = IMarketConfiguratorV3(configurators[i]).contractsRegister();
@@ -382,8 +382,8 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
                 uint256 ver = IVersion(managers[j]).version();
                 if (ver < 3_00 || ver > 3_99) continue;
 
-                if (filter.pool != address(0)) {
-                    if (ICreditManagerV3(managers[j]).pool() != filter.pool) continue;
+                if (filter.pools.length != 0) {
+                    if (!_contains(filter.pools, ICreditManagerV3(managers[j]).pool())) continue;
                 }
 
                 if (filter.underlying != address(0)) {
@@ -398,5 +398,13 @@ contract CreditAccountCompressor is IVersion, SanityCheckTrait {
         assembly {
             mstore(creditManagers, num)
         }
+    }
+
+    /// @dev Checks whether `arr` contains `value`
+    function _contains(address[] memory arr, address value) internal pure returns (bool) {
+        for (uint256 i; i < arr.length; ++i) {
+            if (value == arr[i]) return true;
+        }
+        return false;
     }
 }

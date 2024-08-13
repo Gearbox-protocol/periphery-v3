@@ -55,13 +55,13 @@ struct CreditAccountFilter {
     bool reverting;
 }
 
-// @notice Credit manager filters
-/// @param  curator If set, match credit managers managed by given curator
-/// @param  pool If set, match credit managers connected to a given pool
+/// @notice Credit manager filters
+/// @param  curators If set, match credit managers managed by given curators
+/// @param  pools If set, match credit managers connected to given pools
 /// @param  underlying If set, match credit managers with given underlying
 struct CreditManagerFilter {
-    address curator;
-    address pool;
+    address[] curators;
+    address[] pools;
     address underlying;
 }
 
