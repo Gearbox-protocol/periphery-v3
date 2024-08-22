@@ -8,6 +8,7 @@ import {IPriceOracleV3, PriceFeedParams} from "@gearbox-protocol/core-v3/contrac
 import {IPriceFeed, IUpdatablePriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
 import {IPriceFeedCompressor} from "../interfaces/IPriceFeedCompressor.sol";
 import {PriceFeedType} from "@gearbox-protocol/sdk-gov/contracts/PriceFeedType.sol";
+import {IVersion} from "../interfaces/IVersion.sol";
 
 import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
 import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
@@ -17,7 +18,7 @@ import {BPTWeightedPriceFeedSerializer} from "../serializers/oracles/BPTWeighted
 import {LPPriceFeedSerializer} from "../serializers/oracles/LPPriceFeedSerializer.sol";
 import {PythPriceFeedSerializer} from "../serializers/oracles/PythPriceFeedSerializer.sol";
 import {RedstonePriceFeedSerializer} from "../serializers/oracles/RedstonePriceFeedSerializer.sol";
-import {PriceFeedAnswer, PriceFeedMapEntry, PriceFeedTreeNode} from "../types/PriceOracleState.sol";
+import {PriceFeedAnswer, PriceFeedMapEntry, PriceFeedTreeNode, PriceOracleState} from "../types/PriceOracleState.sol";
 
 interface ImplementsPriceFeedType {
     /// @dev Annotates `priceFeedType` as `uint8` instead of `PriceFeedType` enum to support future types
@@ -78,13 +79,25 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
     ///         from `priceFeedMap` and their underlying feeds, in case former are nested, which can help to determine
     ///         what underlying feeds should be updated to query the nested one.
     function getPriceFeeds(address priceOracle)
-        external
+        public
         view
         override
         returns (PriceFeedMapEntry[] memory priceFeedMap, PriceFeedTreeNode[] memory priceFeedTree)
     {
         address[] memory tokens = IPriceOracleV3(priceOracle).getTokens();
         return getPriceFeeds(priceOracle, tokens);
+    }
+
+    function getPriceOracleState(address priceOracle, address[] memory tokens)
+        external
+        view
+        returns (PriceOracleState memory result)
+    {
+        result.addr = priceOracle;
+        result.version = IPriceOracleV3(priceOracle).version();
+        result.contractType = IVersion(priceOracle).contractType();
+
+        (result.priceFeedMapping, result.priceFeedStructure) = getPriceFeeds(priceOracle, tokens);
     }
 
     /// @dev Same as the above but takes the list of tokens as argument as legacy oracle doesn't implement `getTokens`

@@ -7,8 +7,8 @@ struct PriceOracleState {
     address addr;
     uint256 version;
     bytes32 contractType;
-    PriceFeedMapEntry priceFeedMapping;
-    PriceFeedTreeNode priceFeedStructure;
+    PriceFeedMapEntry[] priceFeedMapping;
+    PriceFeedTreeNode[] priceFeedStructure;
 }
 
 /// @notice Price feed answer packed in a struct

@@ -638,10 +638,10 @@
     axios "^1.6.8"
     redstone-protocol "^1.0.5"
 
-"@gearbox-protocol/sdk-gov@^2.14.1":
-  version "2.14.1"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/sdk-gov/-/sdk-gov-2.14.1.tgz#82a9ca01bd7167c9774231f6af80efe92c6984a1"
-  integrity sha512-3dyN8uWqb6YZNYmbHbQ+8acH3HD6kEurjnSd8g07Bgfk9kRzHkzlzTuAP3fY7An3kiZA9t27jpqgxgbc0nejag==
+"@gearbox-protocol/sdk-gov@^2.17.0":
+  version "2.17.0"
+  resolved "https://registry.yarnpkg.com/@gearbox-protocol/sdk-gov/-/sdk-gov-2.17.0.tgz#f28d194a57f99b33fbaa9e2674068f5e31ae4749"
+  integrity sha512-yECuKhZVtFtixu5EJlPtIZtn9atm2EyVD9Dz/+pnDooOZ8Q/c9qk9BaANDisesa99Y1d9Efb7qcutrG+wyrNtQ==
   dependencies:
     ethers "6.12.1"
     humanize-duration-ts "^2.1.1"

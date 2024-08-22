@@ -25,7 +25,7 @@ struct PoolState {
     uint256 expectedLiquidity;
     uint256 baseInterestIndex;
     uint256 baseInterestRate;
-    uint256 dieselRate_RAY;
+    uint256 dieselRate;
     uint256 totalBorrowed;
     uint256 totalAssets;
     uint256 supplyRate;
