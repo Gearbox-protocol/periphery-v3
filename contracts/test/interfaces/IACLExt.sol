@@ -3,7 +3,7 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
-import {IACL} from "@gearbox-protocol/core-v3/contracts/interfaces/IACL.sol";
+import {IACL} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IACL.sol";
 
 interface IACLExt is IACL {
     function addPausableAdmin(address addr) external;

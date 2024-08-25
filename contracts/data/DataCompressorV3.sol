@@ -10,7 +10,7 @@ import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {PERCENTAGE_FACTOR, RAY} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
-import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/IContractsRegister.sol";
+import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
 import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 
 import {
@@ -64,6 +64,7 @@ import {IZapperRegister} from "../interfaces/IZapperRegister.sol";
 contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait {
     // Contract version
     uint256 public constant version = 3_00;
+    bytes32 public constant contractType = "DATA_COMPRESSOR";
 
     IZapperRegister public zapperRegister;
 

@@ -6,7 +6,7 @@ pragma solidity ^0.8.17;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/IContractsRegister.sol";
+import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {
     CollateralCalcTask,
@@ -30,6 +30,7 @@ import {CreditAccountData, CreditAccountFilter, CreditManagerFilter, TokenInfo} 
 contract CreditAccountCompressor is IVersion, SanityCheckTrait {
     /// @notice Contract version
     uint256 public constant override version = 3_10;
+    bytes32 public constant override contractType = "CREDIT_ACCOUNT_COMPRESSOR";
 
     /// @notice Address provider contract address
     address public immutable ADDRESS_PROVIDER;

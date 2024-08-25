@@ -463,7 +463,7 @@
   dependencies:
     "@ethersproject/logger" "^5.7.0"
 
-"@ethersproject/providers@5.7.2", "@ethersproject/providers@^5.0.10", "@ethersproject/providers@^5.7.0":
+"@ethersproject/providers@5.7.2", "@ethersproject/providers@^5.7.0":
   version "5.7.2"
   resolved "https://registry.yarnpkg.com/@ethersproject/providers/-/providers-5.7.2.tgz#f8b1a4f275d7ce58cf0a2eec222269a08beb18cb"
   integrity sha512-g34EWZ1WWAVgr4aptGlVBF8mhl3VWjv+8hoAnzStu8Ah22VHBsuGzP17eb6xDVRzw895G4W7vvx60lFFur/1Rg==
@@ -614,34 +614,10 @@
     "@ethersproject/properties" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
-"@gearbox-protocol/core-v3@^1.50.0-next.15":
-  version "1.50.0-next.15"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.50.0-next.15.tgz#d4822950643e816b84d27101bdb2161340fb80ea"
-  integrity sha512-5MDJSvDt+iUg5qi9dxw9fawfwKB0swdeOnZXEC8B6XHGLSU4AZTWk0tId15ubaFr5lL5cioQN283IZQWMVRJdw==
-
-"@gearbox-protocol/governance@^1.4.0-next.5":
-  version "1.4.0-next.5"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/governance/-/governance-1.4.0-next.5.tgz#496b4e476fc75659ade3700a7ce51b3441c2c8a2"
-  integrity sha512-WAVOv9fOJ0HJ4S3TsvbIricTXm95ohLYfDzsgPTXrMtY+WphClw2MndBMPOxmescDZIOrXr1QxLiib4MTV/KWA==
-
-"@gearbox-protocol/integrations-v3@^1.23.1":
-  version "1.23.1"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/integrations-v3/-/integrations-v3-1.23.1.tgz#883c61e74ad3734bbe06f0700752821ed75bce1d"
-  integrity sha512-l220eYoQRADuDPNaE+oXVTp1MseLdfnhT2Fp1QJ3ZY3zZQ+S1xqVNRcbs8OOwzwaI3H4xMnF/g2cvyjD7qq7jQ==
-
-"@gearbox-protocol/oracles-v3@^1.11.0-next.3":
-  version "1.11.0-next.3"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/oracles-v3/-/oracles-v3-1.11.0-next.3.tgz#1f9e58cce2c1b3996ceb40a3dc6da9027d74bfdb"
-  integrity sha512-cTgavGf7Vl/qUL3XDMSmvUbmK/vKZWYZ2ZI7NpkNGb/sawQR7wBwtFQDSXfvmTnmb1Fb+tPjg6OvDHsAs7JG1Q==
-  dependencies:
-    "@pythnetwork/pyth-sdk-solidity" "^3.1.0"
-    axios "^1.6.8"
-    redstone-protocol "^1.0.5"
-
-"@gearbox-protocol/sdk-gov@^2.17.0":
-  version "2.17.0"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/sdk-gov/-/sdk-gov-2.17.0.tgz#f28d194a57f99b33fbaa9e2674068f5e31ae4749"
-  integrity sha512-yECuKhZVtFtixu5EJlPtIZtn9atm2EyVD9Dz/+pnDooOZ8Q/c9qk9BaANDisesa99Y1d9Efb7qcutrG+wyrNtQ==
+"@gearbox-protocol/sdk-gov@^2.18.2":
+  version "2.18.2"
+  resolved "https://registry.yarnpkg.com/@gearbox-protocol/sdk-gov/-/sdk-gov-2.18.2.tgz#0be92c2c36dc3824ebe748fb4c2ce74114099ac4"
+  integrity sha512-THIMyeHl7V9K8GPCGFHoC12NMjq+/A1IWKj0uNn/KT6KIQeaA8AvfSANLj21CaKeLWVVmSrecT5yXTixydoZNg==
   dependencies:
     ethers "6.12.1"
     humanize-duration-ts "^2.1.1"
@@ -738,7 +714,7 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.8.2.tgz#d815ade0027b50beb9bcca67143c6bcc3e3923d6"
   integrity sha512-kEUOgPQszC0fSYWpbh2kT94ltOJwj1qfT2DWo+zVttmGmf97JZ99LspePNaeeaLhCImaHVeBbjaQFZQn7+Zc5g==
 
-"@openzeppelin/contracts@^4.7.3":
+"@openzeppelin/contracts@^4.8.1":
   version "4.9.6"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.9.6.tgz#2a880a24eb19b4f8b25adc2a5095f2aa27f39677"
   integrity sha512-xSmezSupL+y9VkHZJGDoCBpmnB2ogM13ccaYDWqJTfS3dbuHkgjuwDFUmaFauBCboQMGB/S5UqUl2y54X99BmA==
@@ -753,22 +729,54 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.3.3.tgz#ff6ee919fc2a1abaf72b22814bfb72ed129ec137"
   integrity sha512-tDBopO1c98Yk7Cv/PZlHqrvtVjlgK5R4J6jxLwoO7qxK4xqOiZG+zSkIvGFpPZ0ikc3QOED3plgdqjgNTnBc7g==
 
-"@pythnetwork/pyth-sdk-solidity@^3.1.0":
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/@pythnetwork/pyth-sdk-solidity/-/pyth-sdk-solidity-3.1.0.tgz#2de5bc2bbaadd5c5c2702f31116378fb7c9da3ec"
-  integrity sha512-NgtEPUTL9r0qqMpIOEtSdUVjrF08fHK6wa7eM8hdjhjzMOti4o053B9oFqpm4lkzJW6eELXuP4sRJOABGmNTUg==
-
-"@redstone-finance/evm-connector@0.2.5":
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/@redstone-finance/evm-connector/-/evm-connector-0.2.5.tgz#8d3b64cd068dea73a9f2287c91672dfb652a4725"
-  integrity sha512-JjMJVXbgmvmbKleIwzMOKu10mDXTABVoYmmfErF2M7M6pftPiKFIVH16gycU93aQVZeRQ74rieQ55Q691xPS8Q==
+"@redstone-finance/evm-connector@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@redstone-finance/evm-connector/-/evm-connector-0.6.1.tgz#e8747505106691ff310663a2d3b4b3247a11cdef"
+  integrity sha512-9b0aTzwE8kmMnqiiDqnPA3EHwFnloJcfUvw7SCHyWb3nAOEqgI6gZo889mjyk+bGyS2dmmWRYpEELntv/uURJw==
   dependencies:
     "@chainlink/contracts" "^0.6.1"
-    "@openzeppelin/contracts" "^4.7.3"
-    axios "^1.1.3"
-    ethers "^5.6.8"
-    redstone-protocol "^1.0.5"
-    redstone-sdk "^1.6.1"
+    "@openzeppelin/contracts" "^4.8.1"
+    "@redstone-finance/protocol" "0.6.1"
+    "@redstone-finance/sdk" "0.6.1"
+    axios "^1.6.2"
+    ethers "^5.7.2"
+
+"@redstone-finance/oracles-smartweave-contracts@0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@redstone-finance/oracles-smartweave-contracts/-/oracles-smartweave-contracts-0.6.1.tgz#e37fc2c6531a725531e252eb2beacc5c3b055d2f"
+  integrity sha512-AmSLrG9dUHJXSNgD+PLkDU+S/Dd3PW6LVmBvAQNRtLjpwfSCluwRmWLTzrDIm4YknnVr1A6NxnAhZ8vKOXgjmw==
+
+"@redstone-finance/protocol@0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@redstone-finance/protocol/-/protocol-0.6.1.tgz#1d64b75a79be60753cf8260807ef8cbae2f4ddec"
+  integrity sha512-WRA8h3B+BecTrrlPxQETRVCE+JSUovrGUwjpvIb8qFHunraw7LvHl6ENlMHzP27FEefChg8sagy0S+MUo41JdA==
+  dependencies:
+    decimal.js "^10.4.3"
+    ethers "^5.7.2"
+
+"@redstone-finance/sdk@0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@redstone-finance/sdk/-/sdk-0.6.1.tgz#293d507fe38b7b611b1e2c2202454adcc8ba716c"
+  integrity sha512-E5rrZsvlxafjJ82ORnZdYovMfLrduSwI6j5OArYTmYgt3DYLbEX6GlNVcHkC+VLB2z69u1vqFyCvzTbuCLPxSA==
+  dependencies:
+    "@redstone-finance/oracles-smartweave-contracts" "0.6.1"
+    "@redstone-finance/protocol" "0.6.1"
+    "@redstone-finance/utils" "0.6.1"
+    "@types/lodash" "^4.14.195"
+    axios "^1.6.2"
+    ethers "^5.7.2"
+    lodash "^4.17.21"
+
+"@redstone-finance/utils@0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@redstone-finance/utils/-/utils-0.6.1.tgz#b05d6c2355cc6a5d4e366d1d005520f5ec29ccc8"
+  integrity sha512-zTilKAE4WE4ULEcny2bu/7NtQv+s9o7I7MDRvwtBJl+dqEntzSYhSXTAlC171gYrHII2/UTFFY/arTwD3MMzbA==
+  dependencies:
+    axios "^1.6.2"
+    consola "^2.15.3"
+    decimal.js "^10.4.3"
+    ethers "^5.7.2"
+    zod "^3.22.4"
 
 "@scure/base@~1.1.0":
   version "1.1.1"
@@ -835,6 +843,11 @@
   integrity sha512-qNrYbZqMx0uJAfKnKclPh+dTwK33KfLHYqtyODwd5HnXOjnkhc4qgn3BrK6RWyGZm5+sIFE7Q7Vz6QQtJB7w7g==
   dependencies:
     "@types/node" "*"
+
+"@types/lodash@^4.14.195":
+  version "4.17.7"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.17.7.tgz#2f776bcb53adc9e13b2c0dfd493dfcbd7de43612"
+  integrity sha512-8wTvZawATi/lsmNu10/j2hk1KEP0IvjubqPE3cu1Xz7xfXXt5oCq3SNUz4fMIP4XGF9Ky+Ue2tBA3hcS7LSBlA==
 
 "@types/minimist@^1.2.0":
   version "1.2.2"
@@ -987,18 +1000,10 @@ asynckit@^0.4.0:
   resolved "https://registry.yarnpkg.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
   integrity sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==
 
-axios@^0.27.2:
-  version "0.27.2"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-0.27.2.tgz#207658cc8621606e586c85db4b41a750e756d972"
-  integrity sha512-t+yRIyySRTp/wua5xEr+z1q60QmLq8ABsS5O9Me1AsE5dfKqgnCFzwiCZZ/cGNd1lq4/7akDWMxdhVlucjmnOQ==
-  dependencies:
-    follow-redirects "^1.14.9"
-    form-data "^4.0.0"
-
-axios@^1.1.3, axios@^1.5.0, axios@^1.6.8:
-  version "1.7.2"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.2.tgz#b625db8a7051fbea61c35a3cbb3a1daa7b9c7621"
-  integrity sha512-2A8QhOMrbomlDuiLeK9XibIBzuHeRcqqNOHp0Cyp5EoJ1IFDh+XZH3A6BkXtv0K4gFGCI0Y4BM7B1wOEi0Rmgw==
+axios@^1.6.2:
+  version "1.7.5"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.5.tgz#21eed340eb5daf47d29b6e002424b3e88c8c54b1"
+  integrity sha512-fZu86yCo+svH3uqJ/yTdQ0QHpQu5oL+/QE+QPSv6BZSkDAoky9vytxp7u5qk83OJFS3kEBcesWni9WTZAv3tSw==
   dependencies:
     follow-redirects "^1.15.6"
     form-data "^4.0.0"
@@ -1223,6 +1228,11 @@ compare-func@^2.0.0:
     array-ify "^1.0.0"
     dot-prop "^5.1.0"
 
+consola@^2.15.3:
+  version "2.15.3"
+  resolved "https://registry.yarnpkg.com/consola/-/consola-2.15.3.tgz#2e11f98d6a4be71ff72e0bdf07bd23e12cb61550"
+  integrity sha512-9vAdYbHj6x2fLKC4+oPH0kFzY/orMZyG2Aj+kNylHxKGJ/Ed4dpNyAQYwJOdqO4zdM7XpVHmyejQDcQHrnuXbw==
+
 conventional-changelog-angular@^6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/conventional-changelog-angular/-/conventional-changelog-angular-6.0.0.tgz#a9a9494c28b7165889144fd5b91573c4aa9ca541"
@@ -1445,14 +1455,6 @@ ethereum-cryptography@^2.0.0:
     "@scure/bip32" "1.3.1"
     "@scure/bip39" "1.2.1"
 
-ethereum-multicall@^2.19.0:
-  version "2.24.0"
-  resolved "https://registry.yarnpkg.com/ethereum-multicall/-/ethereum-multicall-2.24.0.tgz#b6ff351a632cae7882ca24224bd3ea2426b6e213"
-  integrity sha512-+xWNmtWdpL4zOdAF2zeLYa1ZsrHLeU7KLmBAsc0el140qdQmF9ubyM9SwKHzy+xztTHi+eCnmCjknqhEU25gFA==
-  dependencies:
-    "@ethersproject/providers" "^5.0.10"
-    ethers "^5.0.15"
-
 ethereumjs-util@7.1.5, ethereumjs-util@^7.1.4:
   version "7.1.5"
   resolved "https://registry.yarnpkg.com/ethereumjs-util/-/ethereumjs-util-7.1.5.tgz#9ecf04861e4fbbeed7465ece5f23317ad1129181"
@@ -1464,7 +1466,7 @@ ethereumjs-util@7.1.5, ethereumjs-util@^7.1.4:
     ethereum-cryptography "^0.1.3"
     rlp "^2.2.4"
 
-ethers@5.7.2, ethers@^5.0.15, ethers@^5.3.1, ethers@^5.6.8, ethers@^5.7.2:
+ethers@5.7.2, ethers@^5.3.1, ethers@^5.7.2:
   version "5.7.2"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.7.2.tgz#3a7deeabbb8c030d4126b24f84e525466145872e"
   integrity sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==
@@ -1592,7 +1594,7 @@ find-up@^5.0.0:
     locate-path "^6.0.0"
     path-exists "^4.0.0"
 
-follow-redirects@^1.14.9, follow-redirects@^1.15.6:
+follow-redirects@^1.15.6:
   version "1.15.6"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.6.tgz#7f815c0cda4249c74ff09e95ef97c23b5fd0399b"
   integrity sha512-wWN62YITEaOpSK584EZXJafH1AGpO8RVgElfkuXbTOrPX4fIfOyEpW/CsiNd8JdYrAoOvafRTOEnvsO++qCqFA==
@@ -1986,7 +1988,7 @@ lodash.upperfirst@^4.3.1:
   resolved "https://registry.yarnpkg.com/lodash.upperfirst/-/lodash.upperfirst-4.3.1.tgz#1365edf431480481ef0d1c68957a5ed99d49f7ce"
   integrity sha512-sReKOYJIJf74dhJONhU4e0/shzi1trVbSWDOhKYE5XV2O+H7Sb2Dihwuc7xWxVl+DgFPyTqIN3zMfT9cq5iWDg==
 
-lodash@^4.17.15:
+lodash@^4.17.15, lodash@^4.17.21:
   version "4.17.21"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
@@ -2357,38 +2359,6 @@ redent@^3.0.0:
   dependencies:
     indent-string "^4.0.0"
     strip-indent "^3.0.0"
-
-redstone-oracles-smartweave-contracts@*:
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/redstone-oracles-smartweave-contracts/-/redstone-oracles-smartweave-contracts-1.0.6.tgz#aa7b6ec453133be240df6cb4fe52a11582cb65b7"
-  integrity sha512-QTGDhkSJyVxggFVaET9EiuwTjdiyNjqWmVNE/jyd8OAESvVtrclLuhQL9bIVlJhVXq6IroyWf0rs8eh/OEG/4Q==
-
-redstone-protocol@*, redstone-protocol@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/redstone-protocol/-/redstone-protocol-1.0.5.tgz#c8555e9a9e3ee49d11b6586bf7090e59404e3395"
-  integrity sha512-62qHSb9jF5875a/gc8MbDcHH1n4dZsBXxlIxpk3vx/MeykAMB6nLd1174Qukvupkr69cneeRQiVqqALkQpmRlg==
-  dependencies:
-    ethers "^5.6.8"
-
-redstone-sdk@^1.6.1:
-  version "1.8.2"
-  resolved "https://registry.yarnpkg.com/redstone-sdk/-/redstone-sdk-1.8.2.tgz#39abf332b0bd2b3e935fd58f385f8e2c70d2e2e5"
-  integrity sha512-kcNt7HwcKLBI3X5EMnB8V1HODiLNVsFEqoVfwToBRFtgTPV8yTcPG7XfUkYiybE8MYSzoM49HNePBwp1liqDbg==
-  dependencies:
-    axios "^0.27.2"
-    ethers "^5.7.2"
-    redstone-oracles-smartweave-contracts "*"
-    redstone-protocol "*"
-    redstone-utils "^0.1.0"
-
-redstone-utils@^0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/redstone-utils/-/redstone-utils-0.1.0.tgz#5af17f5371f940978b5dd0d1776cf48822e75355"
-  integrity sha512-p0MJV5W3RbGX5xDchgQ1Aik7VQ1q0FStDo5TgCl3midng/V8RhLI0IjhKXjC037DwgKbMFOo//rSuQGlJqhZ4A==
-  dependencies:
-    axios "^1.5.0"
-    decimal.js "^10.4.3"
-    ethereum-multicall "^2.19.0"
 
 require-directory@^2.1.1:
   version "2.1.1"
@@ -2858,3 +2828,8 @@ zod@^3.22.2:
   version "3.22.4"
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.22.4.tgz#f31c3a9386f61b1f228af56faa9255e845cf3fff"
   integrity sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==
+
+zod@^3.22.4:
+  version "3.23.8"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.23.8.tgz#e37b957b5d52079769fb8097099b592f0ef4067d"
+  integrity sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==

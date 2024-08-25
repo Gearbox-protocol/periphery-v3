@@ -41,6 +41,7 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
 
     /// @notice Contract version
     uint256 public constant override version = 3_10;
+    bytes32 public constant override contractType = "PRICE_FEED_COMPRESSOR";
 
     /// @notice Map of state serializers for different price feed types
     /// @dev    Serializers only apply to feeds that don't implement `IStateSerializer` themselves

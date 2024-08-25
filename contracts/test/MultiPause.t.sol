@@ -5,9 +5,9 @@ pragma solidity ^0.8.17;
 
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {CallerNotPausableAdminException} from "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
-import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
-
-import {MultiPause} from "../emergency/MultiPause.sol";
+import {ACLTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLTrait.sol";
+import {MultiPause, PausableContract} from "../emergency/MultiPause.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {ForkTest} from "./ForkTest.sol";
 
@@ -45,9 +45,9 @@ contract MultiPauseTest is ForkTest {
         address[] memory pools = register.getPools();
 
         // ensure that at least one contract is paused
-        if (!ACLNonReentrantTrait(pools[0]).paused()) {
+        if (!Pausable(pools[0]).paused()) {
             vm.prank(admin);
-            ACLNonReentrantTrait(pools[0]).pause();
+            PausableContract(pools[0]).pause();
         }
 
         vm.prank(admin);
@@ -78,8 +78,7 @@ contract MultiPauseTest is ForkTest {
     function _assert_contractsPaused(address[] memory contracts) internal {
         for (uint256 i; i < contracts.length; ++i) {
             assertTrue(
-                ACLNonReentrantTrait(contracts[i]).paused(),
-                string.concat("Contract ", vm.toString(contracts[i]), " is not paused")
+                Pausable(contracts[i]).paused(), string.concat("Contract ", vm.toString(contracts[i]), " is not paused")
             );
         }
     }
@@ -87,9 +86,7 @@ contract MultiPauseTest is ForkTest {
     function _assert_allPoolsPaused() internal {
         address[] memory pools = register.getPools();
         for (uint256 i; i < pools.length; ++i) {
-            assertTrue(
-                ACLNonReentrantTrait(pools[i]).paused(), string.concat("Pool ", vm.toString(pools[i]), " is not paused")
-            );
+            assertTrue(Pausable(pools[i]).paused(), string.concat("Pool ", vm.toString(pools[i]), " is not paused"));
         }
     }
 
@@ -98,15 +95,12 @@ contract MultiPauseTest is ForkTest {
         for (uint256 i; i < creditManagers.length; ++i) {
             if (ICreditManagerV3(creditManagers[i]).version() < 3_00) {
                 assertTrue(
-                    ACLNonReentrantTrait(creditManagers[i]).paused(),
+                    Pausable(creditManagers[i]).paused(),
                     string.concat("Manager ", vm.toString(creditManagers[i]), " is not paused")
                 );
             } else {
                 address facade = ICreditManagerV3(creditManagers[i]).creditFacade();
-                assertTrue(
-                    ACLNonReentrantTrait(facade).paused(),
-                    string.concat("Facade ", vm.toString(facade), " is not paused")
-                );
+                assertTrue(Pausable(facade).paused(), string.concat("Facade ", vm.toString(facade), " is not paused"));
             }
         }
     }

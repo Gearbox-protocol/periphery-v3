@@ -31,13 +31,13 @@ contract AdaptgerCompressorV3 {
 
                 /// add try{} catch for serialisation
 
-                adapters[i] = ContractAdapter({
-                    targetContract: ICreditManagerV3(creditManager).adapterToContract(allowedAdapter),
-                    adapter: allowedAdapter,
-                    adapterType: uint8(IAdapter(allowedAdapter)._gearboxAdapterType()),
-                    version: IAdapter(allowedAdapter)._gearboxAdapterVersion(),
-                    stateSerialised: stateSerialised
-                });
+                // adapters[i] = ContractAdapter({
+                //     targetContract: ICreditManagerV3(creditManager).adapterToContract(allowedAdapter),
+                //     adapter: allowedAdapter,
+                //     adapterType: uint8(IAdapter(allowedAdapter)._gearboxAdapterType()),
+                //     version: IAdapter(allowedAdapter)._gearboxAdapterVersion(),
+                //     stateSerialised: stateSerialised
+                // });
             }
         }
     }

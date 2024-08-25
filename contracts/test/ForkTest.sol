@@ -12,12 +12,12 @@ import {
     NO_VERSION_CONTROL
 } from "@gearbox-protocol/core-v3/contracts/test/interfaces/IAddressProviderV3.sol";
 
-import {IACLExt} from "./interfaces/IACLExt.sol";
+import {ACL} from "@gearbox-protocol/governance/contracts/market/ACL.sol";
 import {IContractsRegisterExt} from "./interfaces/IContractsRegisterExt.sol";
 
 abstract contract ForkTest is Test {
     IAddressProviderV3 addressProvider;
-    IACLExt acl;
+    ACL acl;
     IContractsRegisterExt register;
     address configurator;
 
@@ -37,7 +37,7 @@ abstract contract ForkTest is Test {
         }
 
         addressProvider = IAddressProviderV3(vm.envAddress("FORK_ADDRESS_PROVIDER"));
-        acl = IACLExt(addressProvider.getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL));
+        acl = ACL(addressProvider.getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL));
         register = IContractsRegisterExt(addressProvider.getAddressOrRevert(AP_CONTRACTS_REGISTER, NO_VERSION_CONTROL));
         configurator = acl.owner();
     }

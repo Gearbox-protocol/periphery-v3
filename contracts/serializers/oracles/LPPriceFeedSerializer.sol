@@ -23,8 +23,8 @@ contract LPPriceFeedSerializer is IStateSerializerLegacy {
             pf.lpContract(),
             pf.lowerBound(),
             pf.upperBound(),
-            pf.updateBoundsAllowed(),
-            pf.lastBoundsUpdate(),
+            // pf.updateBoundsAllowed(),
+            // pf.lastBoundsUpdate(),
             _getPriceData(pf)
         );
     }
