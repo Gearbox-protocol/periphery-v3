@@ -153,6 +153,10 @@ contract Migrate is Script {
         _addressProvider.setAddress(AP_MARKET_CONFIGURATOR_FACTORY, factory, false);
 
         vm.stopBroadcast();
+
+        string memory path = "address.toml";
+        string memory data = string.concat("ADDRESS_PROVIDER=", vm.toString(address(_addressProvider)), "\n");
+        vm.writeFile(path, data);
     }
 
     function stringToBytes32(string memory source) public pure returns (bytes32 result) {

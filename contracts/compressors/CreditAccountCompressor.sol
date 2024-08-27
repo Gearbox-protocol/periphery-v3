@@ -17,17 +17,18 @@ import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
+import {ICreditAccountCompressor} from "../interfaces/ICreditAccountCompressor.sol";
 
 import {IAddressProviderV3} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3.sol";
 import {IMarketConfiguratorV3} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorV3.sol";
 
-import {CreditAccountData, CreditAccountFilter, CreditManagerFilter, TokenInfo} from "./Types.sol";
+import {CreditAccountData, CreditAccountFilter, CreditManagerFilter, TokenInfo} from "../types/CreditAccountState.sol";
 
 /// @title  Credit account compressor
 /// @notice Allows to fetch data on all credit accounts matching certain criteria in an efficient manner
 /// @dev    The contract is not gas optimized and is thus not recommended for on-chain use
 /// @dev    Querying functions try to process as many accounts as possible and stop when they get close to gas limit
-contract CreditAccountCompressor is IVersion, SanityCheckTrait {
+contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     /// @notice Contract version
     uint256 public constant override version = 3_10;
     bytes32 public constant override contractType = "CREDIT_ACCOUNT_COMPRESSOR";

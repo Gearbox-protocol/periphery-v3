@@ -15,19 +15,17 @@ import {PriceFeedCompressor} from "./PriceFeedCompressor.sol";
 import {MarketData} from "../types/MarketData.sol";
 import {PoolState} from "../types/PoolState.sol";
 
-import "forge-std/console.sol";
+import {IMarketCompressor} from "../interfaces/IMarketCompressor.sol";
 
-// struct PriceOnDemand {
-//     address priceFeed;
-//     bytes callData;
-// }
+import "forge-std/console.sol";
 
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
-contract MarketCompressorV3 {
+contract MarketCompressor is IMarketCompressor {
     // Contract version
     uint256 public constant version = 3_10;
+    bytes32 public constant contractType = "MARKET_COMPRESSOR";
 
     PriceFeedCompressor priceOracleCompressor;
     PoolCompressorV3 poolCompressor;
