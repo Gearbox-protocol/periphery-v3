@@ -24,11 +24,15 @@ import {IMarketConfiguratorV3} from "@gearbox-protocol/governance/contracts/inte
 
 import {CreditAccountData, CreditAccountFilter, CreditManagerFilter, TokenInfo} from "../types/CreditAccountState.sol";
 
+import {Contains} from "../libraries/Contains.sol";
+
 /// @title  Credit account compressor
 /// @notice Allows to fetch data on all credit accounts matching certain criteria in an efficient manner
 /// @dev    The contract is not gas optimized and is thus not recommended for on-chain use
 /// @dev    Querying functions try to process as many accounts as possible and stop when they get close to gas limit
 contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
+    using Contains for address[];
+
     /// @notice Contract version
     uint256 public constant override version = 3_10;
     bytes32 public constant override contractType = "CREDIT_ACCOUNT_COMPRESSOR";
@@ -374,7 +378,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         uint256 num;
         for (uint256 i; i < configurators.length; ++i) {
             if (filter.curators.length != 0) {
-                if (!_contains(filter.curators, IMarketConfiguratorV3(configurators[i]).owner())) continue;
+                if (!filter.curators.contains(IMarketConfiguratorV3(configurators[i]).owner())) continue;
             }
 
             address cr = IMarketConfiguratorV3(configurators[i]).contractsRegister();
@@ -385,7 +389,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
                 if (ver < 3_00 || ver > 3_99) continue;
 
                 if (filter.pools.length != 0) {
-                    if (!_contains(filter.pools, ICreditManagerV3(managers[j]).pool())) continue;
+                    if (!filter.pools.contains(ICreditManagerV3(managers[j]).pool())) continue;
                 }
 
                 if (filter.underlying != address(0)) {
@@ -400,13 +404,5 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         assembly {
             mstore(creditManagers, num)
         }
-    }
-
-    /// @dev Checks whether `arr` contains `value`
-    function _contains(address[] memory arr, address value) internal pure returns (bool) {
-        for (uint256 i; i < arr.length; ++i) {
-            if (value == arr[i]) return true;
-        }
-        return false;
     }
 }

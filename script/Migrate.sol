@@ -152,6 +152,9 @@ contract Migrate is Script {
         factory = address(new MarketConfiguratorFactoryV3(address(_addressProvider)));
         _addressProvider.setAddress(AP_MARKET_CONFIGURATOR_FACTORY, factory, false);
 
+        address priceFeedCompressor = address(new PriceFeedCompressor());
+        address marketCompressor = address(new MarketCompressor(addressProvider, priceFeedCompressor));
+
         vm.stopBroadcast();
 
         string memory path = "address.toml";
