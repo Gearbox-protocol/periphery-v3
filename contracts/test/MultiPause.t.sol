@@ -75,7 +75,7 @@ contract MultiPauseTest is ForkTest {
         _assert_allManagersPaused();
     }
 
-    function _assert_contractsPaused(address[] memory contracts) internal {
+    function _assert_contractsPaused(address[] memory contracts) internal view {
         for (uint256 i; i < contracts.length; ++i) {
             assertTrue(
                 Pausable(contracts[i]).paused(), string.concat("Contract ", vm.toString(contracts[i]), " is not paused")
@@ -83,14 +83,14 @@ contract MultiPauseTest is ForkTest {
         }
     }
 
-    function _assert_allPoolsPaused() internal {
+    function _assert_allPoolsPaused() internal view {
         address[] memory pools = register.getPools();
         for (uint256 i; i < pools.length; ++i) {
             assertTrue(Pausable(pools[i]).paused(), string.concat("Pool ", vm.toString(pools[i]), " is not paused"));
         }
     }
 
-    function _assert_allManagersPaused() internal {
+    function _assert_allManagersPaused() internal view {
         address[] memory creditManagers = register.getCreditManagers();
         for (uint256 i; i < creditManagers.length; ++i) {
             if (ICreditManagerV3(creditManagers[i]).version() < 3_00) {
