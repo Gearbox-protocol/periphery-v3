@@ -67,8 +67,8 @@ interface IAddressProviderV3Legacy {
 address constant emergencyLiquidator = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
 
 contract Migrate2 is Migrate {
-      using LibString for bytes32;
-      
+    using LibString for bytes32;
+
     function run() external override(Migrate) {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
@@ -79,7 +79,8 @@ contract Migrate2 is Migrate {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        AddressProviderV3_1 _addressProvider =  AddressProviderV3_1(_deployGovernance3_1(oldAddressProvider, vetoAdmin, deployer));
+        AddressProviderV3_1 _addressProvider =
+            AddressProviderV3_1(_deployGovernance3_1(oldAddressProvider, vetoAdmin, deployer));
 
         address priceFeedCompressor = address(new PriceFeedCompressor());
         _addressProvider.setAddress(priceFeedCompressor, true);
@@ -89,10 +90,13 @@ contract Migrate2 is Migrate {
 
         vm.stopBroadcast();
 
-        string memory path = "address.toml";
-        string memory data = string.concat("ADDRESS_PROVIDER=", vm.toString(address(_addressProvider)), "\n");
-        vm.writeFile(path, data);
-    }
+        string memory obj1 = "address_provider";
 
-   
+        vm.serializeAddress(obj1, "addressProvider", address(_addressProvider));
+
+        // "Mainnet", "Arbitrum", "Optimism", "Base"
+        string memory output = vm.serializeString(obj1, "network", "Mainnet");
+        
+        vm.writeJson(output, "address-provider.json");
+    }
 }
