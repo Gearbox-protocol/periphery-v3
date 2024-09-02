@@ -59,7 +59,7 @@ struct CreditAccountFilter {
 /// @param  curators If set, match credit managers managed by given curators
 /// @param  pools If set, match credit managers connected to given pools
 /// @param  underlying If set, match credit managers with given underlying
-struct CreditManagerFilter {
+struct MarketFilter {
     address[] curators;
     address[] pools;
     address underlying;

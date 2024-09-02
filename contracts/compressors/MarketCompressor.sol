@@ -4,14 +4,16 @@
 pragma solidity ^0.8.17;
 
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
+import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
 import {Contains} from "../libraries/Contains.sol";
 
-import {IAddressProviderV3} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3.sol";
+import {IAddressProviderV3_1} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3_1.sol";
 import {IMarketConfiguratorV3} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorV3.sol";
+import {MarketFilter} from "../types/CreditAccountState.sol";
 
 import {PoolCompressorV3} from "./PoolCompressor.sol";
 import {PriceFeedCompressor} from "./PriceFeedCompressor.sol";
@@ -51,6 +53,15 @@ contract MarketCompressor is IMarketCompressor {
         priceOracleCompressor = PriceFeedCompressor(priceOracleCompressorAddress);
     }
 
+    function getMarkets(MarketFilter memory filter) external view returns (MarketData[] memory result) {
+        address[] memory pools = _getPools(filter);
+        result = new MarketData[](pools.length);
+
+        for (uint256 i = 0; i < pools.length; i++) {
+            result[i] = getMarketData(pools[i]);
+        }
+    }
+
     function getMarketData(address pool) public view returns (MarketData memory result) {
         result.pool = poolCompressor.getPoolState(pool);
         result.poolQuotaKeeper = poolCompressor.getPoolQuotaKeeperState(result.pool.poolQuotaKeeper);
@@ -78,36 +89,43 @@ contract MarketCompressor is IMarketCompressor {
         return ICreditManagerV3(ps.creditManagerDebtParams[0].creditManager).priceOracle();
     }
 
-    /// @dev Credit managers discovery
-    function _getPools(address[] memory riskCurators) internal view returns (address[] memory pools) {
-        address[] memory configurators = IAddressProviderV3(ADDRESS_PROVIDER).marketConfigurators();
+    /// @dev Pools discovery
+    function _getPools(MarketFilter memory filter) internal view returns (address[] memory pools) {
+        address[] memory configurators = IAddressProviderV3_1(ADDRESS_PROVIDER).marketConfigurators();
 
-        // rough estimate of maximum number of credit managers
+        // rough estimate of maximum number of credit pools
         uint256 max;
         for (uint256 i; i < configurators.length; ++i) {
-            if (riskCurators.contains(IMarketConfiguratorV3(configurators[i]).owner())) {
-                address cr = IMarketConfiguratorV3(configurators[i]).contractsRegister();
-                max += IContractsRegister(cr).getCreditManagers().length;
-            }
+            max += IMarketConfiguratorV3(configurators[i]).pools().length;
         }
 
-        // allocate the array with maximum potentially needed size (total number of credit managers can be assumed
+        // allocate the array with maximum potentially needed size (total number of credit pools can be assumed
         // to be relatively small and the function is only called once, so memory expansion cost is not an issue)
         pools = new address[](max);
         uint256 num;
 
         for (uint256 i; i < configurators.length; ++i) {
-            if (riskCurators.contains(IMarketConfiguratorV3(configurators[i]).owner())) {
-                address cr = IMarketConfiguratorV3(configurators[i]).contractsRegister();
-                address[] memory managers = IContractsRegister(cr).getPools();
-                for (uint256 j; j < managers.length; ++j) {
-                    // we're only concerned with v3 contracts
-                    uint256 ver = IVersion(managers[j]).version();
-                    if (ver < 3_00 || ver > 3_99) continue;
-
-                    pools[num++] = managers[j];
-                }
+            if (filter.curators.length != 0) {
+                if (!filter.curators.contains(IMarketConfiguratorV3(configurators[i]).owner())) continue;
             }
+
+            address[] memory pools = IMarketConfiguratorV3(configurators[i]).pools();
+            for (uint256 j; j < pools.length; ++j) {
+                if (filter.pools.length != 0) {
+                    if (!filter.pools.contains(pools[j])) continue;
+                }
+
+                if (filter.underlying != address(0)) {
+                    if (IPoolV3(pools[j]).asset() != filter.underlying) continue;
+                }
+
+                pools[num++] = pools[j];
+            }
+        }
+
+        // trim the array to its actual size
+        assembly {
+            mstore(pools, num)
         }
     }
 }

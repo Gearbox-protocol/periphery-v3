@@ -19,10 +19,10 @@ import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/C
 import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
 import {ICreditAccountCompressor} from "../interfaces/ICreditAccountCompressor.sol";
 
-import {IAddressProviderV3} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3.sol";
+import {IAddressProviderV3_1} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3_1.sol";
 import {IMarketConfiguratorV3} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorV3.sol";
 
-import {CreditAccountData, CreditAccountFilter, CreditManagerFilter, TokenInfo} from "../types/CreditAccountState.sol";
+import {CreditAccountData, CreditAccountFilter, MarketFilter, TokenInfo} from "../types/CreditAccountState.sol";
 
 import {Contains} from "../libraries/Contains.sol";
 
@@ -47,7 +47,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     /// @param  addressProvider Address provider contract address
     constructor(address addressProvider) nonZeroAddress(addressProvider) {
         if (addressProvider.code.length == 0) revert InvalidAddressProviderException();
-        try IAddressProviderV3(addressProvider).marketConfigurators() {}
+        try IAddressProviderV3_1(addressProvider).marketConfigurators() {}
         catch {
             revert InvalidAddressProviderException();
         }
@@ -64,26 +64,26 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         return _getCreditAccountData(creditAccount, creditManager);
     }
 
-    /// @notice Returns data for credit accounts that match `caFilter` in credit managers matching `cmFilter`
+    /// @notice Returns data for credit accounts that match `caFilter` in credit managers matching `marketFilter`
     /// @dev    The non-zero value of `nextOffset` return variable indicates that gas supplied with a call was
     ///         insufficient to process all the accounts and next iteration starting from this value is needed
-    function getCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter, uint256 offset)
+    function getCreditAccounts(MarketFilter memory marketFilter, CreditAccountFilter memory caFilter, uint256 offset)
         external
         view
         returns (CreditAccountData[] memory data, uint256 nextOffset)
     {
-        address[] memory creditManagers = _getCreditManagers(cmFilter);
+        address[] memory creditManagers = _getCreditManagers(marketFilter);
         return _getCreditAccounts(creditManagers, caFilter, offset, type(uint256).max);
     }
 
     /// @dev Same as above but with `limit` parameter that specifies the number of accounts to process
     function getCreditAccounts(
-        CreditManagerFilter memory cmFilter,
+        MarketFilter memory marketFilter,
         CreditAccountFilter memory caFilter,
         uint256 offset,
         uint256 limit
     ) public view returns (CreditAccountData[] memory data, uint256 nextOffset) {
-        address[] memory creditManagers = _getCreditManagers(cmFilter);
+        address[] memory creditManagers = _getCreditManagers(marketFilter);
         return _getCreditAccounts(creditManagers, caFilter, offset, limit);
     }
 
@@ -116,13 +116,13 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     // COUNTING //
     // -------- //
 
-    /// @notice Counts credit accounts that match `caFilter` in credit managers matching `cmFilter`
-    function countCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter)
+    /// @notice Counts credit accounts that match `caFilter` in credit managers matching `marketFilter`
+    function countCreditAccounts(MarketFilter memory marketFilter, CreditAccountFilter memory caFilter)
         external
         view
         returns (uint256)
     {
-        address[] memory creditManagers = _getCreditManagers(cmFilter);
+        address[] memory creditManagers = _getCreditManagers(marketFilter);
         return _countCreditAccounts(creditManagers, caFilter, 0, type(uint256).max);
     }
 
@@ -358,12 +358,8 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     }
 
     /// @dev Credit managers discovery
-    function _getCreditManagers(CreditManagerFilter memory filter)
-        internal
-        view
-        returns (address[] memory creditManagers)
-    {
-        address[] memory configurators = IAddressProviderV3(ADDRESS_PROVIDER).marketConfigurators();
+    function _getCreditManagers(MarketFilter memory filter) internal view returns (address[] memory creditManagers) {
+        address[] memory configurators = IAddressProviderV3_1(ADDRESS_PROVIDER).marketConfigurators();
 
         // rough estimate of maximum number of credit managers
         uint256 max;

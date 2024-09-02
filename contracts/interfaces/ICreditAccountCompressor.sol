@@ -4,7 +4,7 @@
 pragma solidity ^0.8.17;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
-import {CreditAccountData, CreditAccountFilter, CreditManagerFilter, TokenInfo} from "../types/CreditAccountState.sol";
+import {CreditAccountData, CreditAccountFilter, MarketFilter, TokenInfo} from "../types/CreditAccountState.sol";
 
 /// @title  Credit account compressor
 /// @notice Allows to fetch data on all credit accounts matching certain criteria in an efficient manner
@@ -17,14 +17,14 @@ interface ICreditAccountCompressor is IVersion {
     /// @notice Returns data for credit accounts that match `caFilter` in credit managers matching `cmFilter`
     /// @dev    The non-zero value of `nextOffset` return variable indicates that gas supplied with a call was
     ///         insufficient to process all the accounts and next iteration starting from this value is needed
-    function getCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter, uint256 offset)
+    function getCreditAccounts(MarketFilter memory cmFilter, CreditAccountFilter memory caFilter, uint256 offset)
         external
         view
         returns (CreditAccountData[] memory data, uint256 nextOffset);
 
     /// @dev Same as above but with `limit` parameter that specifies the number of accounts to process
     function getCreditAccounts(
-        CreditManagerFilter memory cmFilter,
+        MarketFilter memory cmFilter,
         CreditAccountFilter memory caFilter,
         uint256 offset,
         uint256 limit
@@ -47,7 +47,7 @@ interface ICreditAccountCompressor is IVersion {
     ) external view returns (CreditAccountData[] memory data, uint256 nextOffset);
 
     /// @notice Counts credit accounts that match `caFilter` in credit managers matching `cmFilter`
-    function countCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter)
+    function countCreditAccounts(MarketFilter memory cmFilter, CreditAccountFilter memory caFilter)
         external
         view
         returns (uint256);

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "forge-std/Script.sol";
-import {IAddressProviderV3} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3.sol";
+import {IAddressProviderV3_1} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3_1.sol";
 import {AddressProviderV3_1} from "@gearbox-protocol/governance/contracts/global/AddressProviderV3.sol";
 
 import {PriceFeedCompressor} from "../contracts/compressors/PriceFeedCompressor.sol";
@@ -96,7 +96,7 @@ contract Migrate2 is Migrate {
 
         // "Mainnet", "Arbitrum", "Optimism", "Base"
         string memory output = vm.serializeString(obj1, "network", "Mainnet");
-        
+
         vm.writeJson(output, "address-provider.json");
     }
 }
