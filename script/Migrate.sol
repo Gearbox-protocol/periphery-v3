@@ -74,6 +74,7 @@ contract Migrate2 is Migrate {
         address deployer = vm.addr(deployerPrivateKey);
         address oldAddressProvider = vm.envAddress("ADDRESS_PROVIDER");
         address vetoAdmin = vm.envAddress("VETO_ADMIN");
+        console.log(vetoAdmin);
 
         address acl = IAddressProviderV3Legacy(oldAddressProvider).getAddressOrRevert("ACL", NO_VERSION_CONTROL);
 

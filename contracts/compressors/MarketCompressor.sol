@@ -109,17 +109,18 @@ contract MarketCompressor is IMarketCompressor {
                 if (!filter.curators.contains(IMarketConfiguratorV3(configurators[i]).owner())) continue;
             }
 
-            address[] memory pools = IMarketConfiguratorV3(configurators[i]).pools();
-            for (uint256 j; j < pools.length; ++j) {
+            address[] memory poolsMC = IMarketConfiguratorV3(configurators[i]).pools();
+            for (uint256 j; j < poolsMC.length; ++j) {
+                address currentPool = poolsMC[j];
                 if (filter.pools.length != 0) {
-                    if (!filter.pools.contains(pools[j])) continue;
+                    if (!filter.pools.contains(currentPool)) continue;
                 }
 
                 if (filter.underlying != address(0)) {
-                    if (IPoolV3(pools[j]).asset() != filter.underlying) continue;
+                    if (IPoolV3(currentPool).asset() != filter.underlying) continue;
                 }
 
-                pools[num++] = pools[j];
+                pools[num++] = currentPool;
             }
         }
 

@@ -96,7 +96,11 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
     {
         result.addr = priceOracle;
         result.version = IPriceOracleV3(priceOracle).version();
-        result.contractType = IVersion(priceOracle).contractType();
+        try IVersion(priceOracle).contractType() returns (bytes32 contractType) {
+            result.contractType = contractType;
+        } catch {
+            result.contractType = "PRICE_ORACLE";
+        }
 
         (result.priceFeedMapping, result.priceFeedStructure) = getPriceFeeds(priceOracle, tokens);
     }
