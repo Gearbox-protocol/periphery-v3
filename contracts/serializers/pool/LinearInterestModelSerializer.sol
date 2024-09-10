@@ -19,7 +19,7 @@ contract LinearInterestModelSerializer is IStateSerializerLegacy {
             LinearInterestRateModelV3(_model).getModelParameters();
 
         return (
-            abi.encodePacked(
+            abi.encode(
                 U_1,
                 U_2,
                 R_base,

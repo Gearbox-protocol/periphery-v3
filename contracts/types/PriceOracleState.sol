@@ -18,6 +18,10 @@ struct PriceFeedAnswer {
     bool success;
 }
 
+// Market:
+// PriceOraqlcState:  PriceFeedMapEntry[] priceFeedMapping;
+//
+
 /// @notice Represents an entry in the price feed map of a price oracle
 /// @dev    `stalenessPeriod` is always 0 if price oracle's version is below `3_10`
 struct PriceFeedMapEntry {
@@ -42,13 +46,14 @@ struct PriceFeedMapEntry {
 /// @param  answer Price feed answer packed in a struct
 struct PriceFeedTreeNode {
     address priceFeed;
-    uint8 decimals;
     uint8 priceFeedType;
     uint256 version;
+    uint8 decimals;
     bool skipCheck;
     bool updatable;
-    bytes specificParams;
+    // TODO: better naming, underlying is confusing
     address[] underlyingFeeds;
     uint32[] underlyingStalenessPeriods;
     PriceFeedAnswer answer;
+    bytes specificParams;
 }

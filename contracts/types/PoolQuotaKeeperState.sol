@@ -3,10 +3,10 @@
 // (c) Gearbox Holdings, 2024
 pragma solidity ^0.8.17;
 
+import {BaseParams} from "./BaseState.sol";
+
 struct PoolQuotaKeeperState {
-    address addr;
-    uint256 version;
-    bytes32 contractType;
+    BaseParams baseParams;
     address rateKeeper;
     QuotaTokenParams[] quotas;
     address[] creditManagers;

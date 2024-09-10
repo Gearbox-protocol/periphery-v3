@@ -10,31 +10,58 @@ import {RateKeeperState} from "./RateKeeperState.sol";
 import {PriceOracleState} from "./PriceOracleState.sol";
 import {CreditManagerState} from "./CreditManagerState.sol";
 import {CreditFacadeState} from "./CreditFacadeState.sol";
-import {InterestRateModelState} from "./InterestRateModelState.sol";
+import {BaseState, BaseParams} from "./BaseState.sol";
 
 struct MarketData {
-    address riskCuratorManager;
-    ACLState acl;
+    // MarketConfigurator baseParams
+    BaseParams baseParams;
+    // Owner who manages market
+    address owner;
+    // Syntax sugar ?
+    address underlying;
+    // Risk curator name
+    string name;
     PoolState pool;
     PoolQuotaKeeperState poolQuotaKeeper;
-    InterestRateModelState interestRateModel;
+    BaseState interestRateModel;
     RateKeeperState rateKeeper;
-    address[] tokens; // <- V3: collateral tokens, V3.1. from local price oracle
-    CreditManagerData[] creditManagers;
     PriceOracleState priceOracleData;
+    TokenInfo[] tokens; // <- V3: collateral tokens, V3.1. from local price oracle
+    CreditManagerData[] creditManagers;
+    // ZappersInfo
+    ZapperInfo[] zappers;
+    // Roles
+    address[] pausableAdmins;
+    address[] unpausableAdmins;
     address[] emergencyLiquidators;
 }
 // LossLiquidatorPolicy
 // ControllerTimelock (?)
 
-struct TokenBalance {
+struct ZapperInfo {
+    BaseParams baseParams;
+    address tokenIn;
+    address tokenOut;
+}
+
+struct TokenInfo {
     address token;
-    uint256 balance;
-    bool isForbidden;
-    bool isEnabled;
+    uint8 decimals;
+    string symbol;
+    string name;
+}
+
+struct ContractAdapter {
+    BaseParams baseParams;
+    address targetContract;
 }
 
 struct CreditManagerData {
     CreditFacadeState creditFacade;
     CreditManagerState creditManager;
+    BaseState creditConfigurator;
+    ContractAdapter[] adapters;
+    uint256 totalDebt;
+    uint256 totalDebtLimit;
+    uint256 availableToBorrow;
 }

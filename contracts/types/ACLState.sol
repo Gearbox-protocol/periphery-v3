@@ -9,5 +9,5 @@ struct ACLState {
     address owner;
     address[] pausableAdmins;
     address[] unpausableAdmins;
-    bytes serialisedData;
+    bytes serializedParams;
 }

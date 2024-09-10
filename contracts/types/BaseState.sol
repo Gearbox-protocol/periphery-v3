@@ -3,9 +3,13 @@
 // (c) Gearbox Holdings, 2024
 pragma solidity ^0.8.17;
 
-struct LossLiquidatorState {
+struct BaseParams {
     address addr;
     uint256 version;
     bytes32 contractType;
-    bytes serialisedData;
+    bytes serializedParams;
+}
+
+struct BaseState {
+    BaseParams baseParams;
 }

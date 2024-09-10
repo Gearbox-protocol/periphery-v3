@@ -8,11 +8,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
-import {
-    CollateralCalcTask,
-    CollateralDebtData,
-    ICreditManagerV3
-} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
+import {CollateralCalcTask, CollateralDebtData, ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
@@ -46,9 +42,11 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     /// @notice Constructor
     /// @param  addressProvider Address provider contract address
     constructor(address addressProvider) nonZeroAddress(addressProvider) {
-        if (addressProvider.code.length == 0) revert InvalidAddressProviderException();
-        try IAddressProviderV3_1(addressProvider).marketConfigurators() {}
-        catch {
+        if (addressProvider.code.length == 0)
+            revert InvalidAddressProviderException();
+        try
+            IAddressProviderV3_1(addressProvider).marketConfigurators()
+        {} catch {
             revert InvalidAddressProviderException();
         }
         ADDRESS_PROVIDER = addressProvider;
@@ -59,7 +57,9 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     // -------- //
 
     /// @notice Returns data for a particular `creditAccount`
-    function getCreditAccountData(address creditAccount) external view returns (CreditAccountData memory) {
+    function getCreditAccountData(
+        address creditAccount
+    ) external view returns (CreditAccountData memory) {
         address creditManager = ICreditAccountV3(creditAccount).creditManager();
         return _getCreditAccountData(creditAccount, creditManager);
     }
@@ -67,13 +67,23 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     /// @notice Returns data for credit accounts that match `caFilter` in credit managers matching `marketFilter`
     /// @dev    The non-zero value of `nextOffset` return variable indicates that gas supplied with a call was
     ///         insufficient to process all the accounts and next iteration starting from this value is needed
-    function getCreditAccounts(MarketFilter memory marketFilter, CreditAccountFilter memory caFilter, uint256 offset)
+    function getCreditAccounts(
+        MarketFilter memory marketFilter,
+        CreditAccountFilter memory caFilter,
+        uint256 offset
+    )
         external
         view
         returns (CreditAccountData[] memory data, uint256 nextOffset)
     {
         address[] memory creditManagers = _getCreditManagers(marketFilter);
-        return _getCreditAccounts(creditManagers, caFilter, offset, type(uint256).max);
+        return
+            _getCreditAccounts(
+                creditManagers,
+                caFilter,
+                offset,
+                type(uint256).max
+            );
     }
 
     /// @dev Same as above but with `limit` parameter that specifies the number of accounts to process
@@ -82,7 +92,11 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         CreditAccountFilter memory caFilter,
         uint256 offset,
         uint256 limit
-    ) public view returns (CreditAccountData[] memory data, uint256 nextOffset) {
+    )
+        public
+        view
+        returns (CreditAccountData[] memory data, uint256 nextOffset)
+    {
         address[] memory creditManagers = _getCreditManagers(marketFilter);
         return _getCreditAccounts(creditManagers, caFilter, offset, limit);
     }
@@ -90,14 +104,24 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     /// @notice Returns data for credit accounts that match `caFilter` in a given `creditManager`
     /// @dev    The non-zero value of `nextOffset` return variable indicates that gas supplied with a call was
     ///         insufficient to process all the accounts and next iteration starting from this value is needed
-    function getCreditAccounts(address creditManager, CreditAccountFilter memory caFilter, uint256 offset)
+    function getCreditAccounts(
+        address creditManager,
+        CreditAccountFilter memory caFilter,
+        uint256 offset
+    )
         external
         view
         returns (CreditAccountData[] memory data, uint256 nextOffset)
     {
         address[] memory creditManagers = new address[](1);
         creditManagers[0] = creditManager;
-        return _getCreditAccounts(creditManagers, caFilter, offset, type(uint256).max);
+        return
+            _getCreditAccounts(
+                creditManagers,
+                caFilter,
+                offset,
+                type(uint256).max
+            );
     }
 
     /// @dev Same as above but with `limit` parameter that specifies the number of accounts to process
@@ -106,7 +130,11 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         CreditAccountFilter memory caFilter,
         uint256 offset,
         uint256 limit
-    ) external view returns (CreditAccountData[] memory data, uint256 nextOffset) {
+    )
+        external
+        view
+        returns (CreditAccountData[] memory data, uint256 nextOffset)
+    {
         address[] memory creditManagers = new address[](1);
         creditManagers[0] = creditManager;
         return _getCreditAccounts(creditManagers, caFilter, offset, limit);
@@ -117,24 +145,34 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     // -------- //
 
     /// @notice Counts credit accounts that match `caFilter` in credit managers matching `marketFilter`
-    function countCreditAccounts(MarketFilter memory marketFilter, CreditAccountFilter memory caFilter)
-        external
-        view
-        returns (uint256)
-    {
+    function countCreditAccounts(
+        MarketFilter memory marketFilter,
+        CreditAccountFilter memory caFilter
+    ) external view returns (uint256) {
         address[] memory creditManagers = _getCreditManagers(marketFilter);
-        return _countCreditAccounts(creditManagers, caFilter, 0, type(uint256).max);
+        return
+            _countCreditAccounts(
+                creditManagers,
+                caFilter,
+                0,
+                type(uint256).max
+            );
     }
 
     /// @notice Counts credit accounts that match `caFilter` in a given `creditManager`
-    function countCreditAccounts(address creditManager, CreditAccountFilter memory caFilter)
-        external
-        view
-        returns (uint256)
-    {
+    function countCreditAccounts(
+        address creditManager,
+        CreditAccountFilter memory caFilter
+    ) external view returns (uint256) {
         address[] memory creditManagers = new address[](1);
         creditManagers[0] = creditManager;
-        return _countCreditAccounts(creditManagers, caFilter, 0, type(uint256).max);
+        return
+            _countCreditAccounts(
+                creditManagers,
+                caFilter,
+                0,
+                type(uint256).max
+            );
     }
 
     // --------- //
@@ -147,8 +185,17 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         CreditAccountFilter memory filter,
         uint256 offset,
         uint256 limit
-    ) internal view returns (CreditAccountData[] memory data, uint256 nextOffset) {
-        uint256 num = _countCreditAccounts(creditManagers, filter, offset, limit);
+    )
+        internal
+        view
+        returns (CreditAccountData[] memory data, uint256 nextOffset)
+    {
+        uint256 num = _countCreditAccounts(
+            creditManagers,
+            filter,
+            offset,
+            limit
+        );
         if (num == 0) return (data, 0);
 
         // allocating the `CreditAccountData` array might consume most of the gas leaving no room for computations,
@@ -173,7 +220,8 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
             }
 
             uint256 count = Math.min(len - offset, limit);
-            address[] memory creditAccounts = ICreditManagerV3(creditManager).creditAccounts(offset, count);
+            address[] memory creditAccounts = ICreditManagerV3(creditManager)
+                .creditAccounts(offset, count);
 
             // circumvent the "Stack too deep." error
             CreditAccountFilter memory filter_ = filter;
@@ -183,7 +231,10 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
                 if (_checkFilterMatch(creditAccount, creditManager, filter_)) {
                     uint256 gasBefore = gasleft();
 
-                    CreditAccountData memory d = _getCreditAccountData(creditAccount, creditManager);
+                    CreditAccountData memory d = _getCreditAccountData(
+                        creditAccount,
+                        creditManager
+                    );
                     ++dataOffset;
                     assembly {
                         // save the pointer to created struct
@@ -234,10 +285,12 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
                 continue;
             }
 
-            address[] memory creditAccounts =
-                ICreditManagerV3(creditManager).creditAccounts(offset, Math.min(len - offset, limit));
+            address[] memory creditAccounts = ICreditManagerV3(creditManager)
+                .creditAccounts(offset, Math.min(len - offset, limit));
             for (uint256 j; j < creditAccounts.length; ++j) {
-                if (_checkFilterMatch(creditAccounts[j], creditManager, filter)) {
+                if (
+                    _checkFilterMatch(creditAccounts[j], creditManager, filter)
+                ) {
                     ++num;
                 }
             }
@@ -249,39 +302,46 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     }
 
     /// @dev Data loading implementation
-    function _getCreditAccountData(address creditAccount, address creditManager)
-        internal
-        view
-        returns (CreditAccountData memory data)
-    {
+    function _getCreditAccountData(
+        address creditAccount,
+        address creditManager
+    ) internal view returns (CreditAccountData memory data) {
         data.creditAccount = creditAccount;
         data.creditManager = creditManager;
         data.creditFacade = ICreditManagerV3(creditManager).creditFacade();
         data.underlying = ICreditManagerV3(creditManager).underlying();
-        data.owner = ICreditManagerV3(creditManager).getBorrowerOrRevert(creditAccount);
+        data.owner = ICreditManagerV3(creditManager).getBorrowerOrRevert(
+            creditAccount
+        );
 
-        CollateralDebtData memory cdd =
-            ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_ONLY);
+        CollateralDebtData memory cdd = ICreditManagerV3(creditManager)
+            .calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_ONLY);
         data.enabledTokensMask = cdd.enabledTokensMask;
         data.debt = cdd.debt;
         data.accruedInterest = cdd.accruedInterest;
         data.accruedFees = cdd.accruedFees;
 
         // collateral is computed separately since it might revert on `balanceOf` and `latestRoundData` calls
-        try ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL)
+        try
+            ICreditManagerV3(creditManager).calcDebtAndCollateral(
+                creditAccount,
+                CollateralCalcTask.DEBT_COLLATERAL
+            )
         returns (CollateralDebtData memory cdd_) {
             data.totalDebtUSD = cdd_.totalDebtUSD;
             data.totalValueUSD = cdd_.totalValueUSD;
             data.twvUSD = cdd_.twvUSD;
             data.totalValue = cdd_.totalValue;
 
-            data.healthFactor = cdd_.twvUSD * PERCENTAGE_FACTOR >= type(uint16).max * cdd_.totalDebtUSD
+            data.healthFactor = cdd_.twvUSD * PERCENTAGE_FACTOR >=
+                type(uint16).max * cdd_.totalDebtUSD
                 ? type(uint16).max
-                : uint16(cdd_.twvUSD * PERCENTAGE_FACTOR / cdd_.totalDebtUSD);
+                : uint16((cdd_.twvUSD * PERCENTAGE_FACTOR) / cdd_.totalDebtUSD);
             data.success = true;
         } catch {}
 
-        uint256 maxTokens = ICreditManagerV3(creditManager).collateralTokensCount();
+        uint256 maxTokens = ICreditManagerV3(creditManager)
+            .collateralTokensCount();
 
         // the function is called for every account, so allocating an array of size `maxTokens` and trimming it
         // might cause issues with memory expansion and we must count the precise number of tokens in advance
@@ -290,8 +350,12 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         for (uint256 k; k < maxTokens; ++k) {
             uint256 mask = 1 << k;
             if (cdd.enabledTokensMask & mask == 0) {
-                address token = ICreditManagerV3(creditManager).getTokenByMask(mask);
-                try IERC20(token).balanceOf(creditAccount) returns (uint256 balance) {
+                address token = ICreditManagerV3(creditManager).getTokenByMask(
+                    mask
+                );
+                try IERC20(token).balanceOf(creditAccount) returns (
+                    uint256 balance
+                ) {
                     if (balance <= 1) continue;
                 } catch {
                     continue;
@@ -304,19 +368,25 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         data.tokens = new TokenInfo[](numTokens);
         uint256 i;
         while (returnedTokensMask != 0) {
-            uint256 mask = returnedTokensMask & uint256(-int256(returnedTokensMask));
-            address token = ICreditManagerV3(creditManager).getTokenByMask(mask);
+            uint256 mask = returnedTokensMask &
+                uint256(-int256(returnedTokensMask));
+            address token = ICreditManagerV3(creditManager).getTokenByMask(
+                mask
+            );
             data.tokens[i].token = token;
             data.tokens[i].mask = mask;
 
-            try IERC20(token).balanceOf(creditAccount) returns (uint256 balance) {
+            try IERC20(token).balanceOf(creditAccount) returns (
+                uint256 balance
+            ) {
                 data.tokens[i].balance = balance;
                 data.tokens[i].success = true;
             } catch {}
 
             if (IPoolQuotaKeeperV3(cdd._poolQuotaKeeper).isQuotedToken(token)) {
-                (data.tokens[i].quota,) =
-                    IPoolQuotaKeeperV3(cdd._poolQuotaKeeper).getQuotaAndOutstandingInterest(creditAccount, token);
+                (data.tokens[i].quota, ) = IPoolQuotaKeeperV3(
+                    cdd._poolQuotaKeeper
+                ).getQuotaAndOutstandingInterest(creditAccount, token);
             }
 
             returnedTokensMask ^= mask;
@@ -325,30 +395,50 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     }
 
     /// @dev Credit account filtering implementation
-    function _checkFilterMatch(address creditAccount, address creditManager, CreditAccountFilter memory filter)
-        internal
-        view
-        returns (bool)
-    {
+    function _checkFilterMatch(
+        address creditAccount,
+        address creditManager,
+        CreditAccountFilter memory filter
+    ) internal view returns (bool) {
         if (filter.owner != address(0)) {
-            address owner = ICreditManagerV3(creditManager).getBorrowerOrRevert(creditAccount);
+            address owner = ICreditManagerV3(creditManager).getBorrowerOrRevert(
+                creditAccount
+            );
             if (owner != filter.owner) return false;
         }
 
         if (!filter.includeZeroDebt) {
-            (uint256 debt,,,,,,,) = ICreditManagerV3(creditManager).creditAccountInfo(creditAccount);
+            (uint256 debt, , , , , , , ) = ICreditManagerV3(creditManager)
+                .creditAccountInfo(creditAccount);
             if (debt == 0) return false;
         }
 
-        if (filter.minHealthFactor != 0 || filter.maxHealthFactor != 0 || filter.reverting) {
-            try ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL)
+        if (
+            filter.minHealthFactor != 0 ||
+            filter.maxHealthFactor != 0 ||
+            filter.reverting
+        ) {
+            try
+                ICreditManagerV3(creditManager).calcDebtAndCollateral(
+                    creditAccount,
+                    CollateralCalcTask.DEBT_COLLATERAL
+                )
             returns (CollateralDebtData memory cdd) {
                 if (filter.reverting) return false;
-                uint16 healthFactor = cdd.twvUSD * PERCENTAGE_FACTOR >= type(uint16).max * cdd.totalDebtUSD
+                uint16 healthFactor = cdd.twvUSD * PERCENTAGE_FACTOR >=
+                    type(uint16).max * cdd.totalDebtUSD
                     ? type(uint16).max
-                    : uint16(cdd.twvUSD * PERCENTAGE_FACTOR / cdd.totalDebtUSD);
-                if (filter.minHealthFactor != 0 && healthFactor < filter.minHealthFactor) return false;
-                if (filter.maxHealthFactor != 0 && healthFactor > filter.maxHealthFactor) return false;
+                    : uint16(
+                        (cdd.twvUSD * PERCENTAGE_FACTOR) / cdd.totalDebtUSD
+                    );
+                if (
+                    filter.minHealthFactor != 0 &&
+                    healthFactor < filter.minHealthFactor
+                ) return false;
+                if (
+                    filter.maxHealthFactor != 0 &&
+                    healthFactor > filter.maxHealthFactor
+                ) return false;
             } catch {
                 if (!filter.reverting) return false;
             }
@@ -358,13 +448,17 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     }
 
     /// @dev Credit managers discovery
-    function _getCreditManagers(MarketFilter memory filter) internal view returns (address[] memory creditManagers) {
-        address[] memory configurators = IAddressProviderV3_1(ADDRESS_PROVIDER).marketConfigurators();
+    function _getCreditManagers(
+        MarketFilter memory filter
+    ) internal view returns (address[] memory creditManagers) {
+        address[] memory configurators = IAddressProviderV3_1(ADDRESS_PROVIDER)
+            .marketConfigurators();
 
         // rough estimate of maximum number of credit managers
         uint256 max;
         for (uint256 i; i < configurators.length; ++i) {
-            address cr = IMarketConfiguratorV3(configurators[i]).contractsRegister();
+            address cr = IMarketConfiguratorV3(configurators[i])
+                .contractsRegister();
             max += IContractsRegister(cr).getCreditManagers().length;
         }
 
@@ -374,22 +468,35 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         uint256 num;
         for (uint256 i; i < configurators.length; ++i) {
             if (filter.curators.length != 0) {
-                if (!filter.curators.contains(IMarketConfiguratorV3(configurators[i]).owner())) continue;
+                if (
+                    !filter.curators.contains(
+                        IMarketConfiguratorV3(configurators[i]).owner()
+                    )
+                ) continue;
             }
 
-            address cr = IMarketConfiguratorV3(configurators[i]).contractsRegister();
-            address[] memory managers = IContractsRegister(cr).getCreditManagers();
+            address cr = IMarketConfiguratorV3(configurators[i])
+                .contractsRegister();
+            address[] memory managers = IContractsRegister(cr)
+                .getCreditManagers();
             for (uint256 j; j < managers.length; ++j) {
                 // we're only concerned with v3 contracts
                 uint256 ver = IVersion(managers[j]).version();
                 if (ver < 3_00 || ver > 3_99) continue;
 
                 if (filter.pools.length != 0) {
-                    if (!filter.pools.contains(ICreditManagerV3(managers[j]).pool())) continue;
+                    if (
+                        !filter.pools.contains(
+                            ICreditManagerV3(managers[j]).pool()
+                        )
+                    ) continue;
                 }
 
                 if (filter.underlying != address(0)) {
-                    if (ICreditManagerV3(managers[j]).underlying() != filter.underlying) continue;
+                    if (
+                        ICreditManagerV3(managers[j]).underlying() !=
+                        filter.underlying
+                    ) continue;
                 }
 
                 creditManagers[num++] = managers[j];

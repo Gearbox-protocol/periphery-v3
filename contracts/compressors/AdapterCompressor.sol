@@ -4,7 +4,7 @@
 pragma solidity ^0.8.17;
 
 import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
-import {ContractAdapter} from "../types/CreditManagerState.sol";
+import {ContractAdapter} from "../types/MarketData.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
 import {IAdapter} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAdapter.sol";
@@ -15,9 +15,12 @@ contract AdaptgerCompressorV3 {
     // Contract version
     uint256 public constant version = 3_10;
 
-    function getContractAdapters(address creditManager) external view returns (ContractAdapter[] memory adapters) {
-        ICreditConfiguratorV3 creditConfigurator =
-            ICreditConfiguratorV3(ICreditManagerV3(creditManager).creditConfigurator());
+    function getContractAdapters(
+        address creditManager
+    ) external view returns (ContractAdapter[] memory adapters) {
+        ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(
+            ICreditManagerV3(creditManager).creditConfigurator()
+        );
 
         address[] memory allowedAdapters = creditConfigurator.allowedAdapters();
         uint256 len = allowedAdapters.length;
