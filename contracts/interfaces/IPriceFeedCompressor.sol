@@ -9,7 +9,7 @@ import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVer
 
 interface IPriceFeedCompressor is IVersion {
     /// @notice Emitted when new state serializer is set for a given price feed type
-    event SetSerializer(uint8 indexed priceFeedType, address indexed serializer);
+    event SetSerializer(bytes32 indexed contractType, address indexed serializer);
 
     function getPriceFeeds(address priceOracle)
         external

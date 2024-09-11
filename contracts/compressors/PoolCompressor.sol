@@ -24,8 +24,8 @@ import {PERCENTAGE_FACTOR, RAY} from "@gearbox-protocol/core-v3/contracts/librar
 import {IRateKeeper} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IRateKeeper.sol";
 
 // Serializers
-import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
-import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
+import {BaseLib} from "../libraries/BaseLib.sol";
+
 import {GaugeSerializer} from "../serializers/pool/GaugeSerializer.sol";
 import {LinearInterestModelSerializer} from "../serializers/pool/LinearInterestModelSerializer.sol";
 
@@ -42,19 +42,15 @@ contract PoolCompressorV3 {
 
     constructor() {
         gaugeSerializer = address(new GaugeSerializer());
-        linearInterestModelSerializer = address(
-            new LinearInterestModelSerializer()
-        );
+        linearInterestModelSerializer = address(new LinearInterestModelSerializer());
     }
 
-    function getPoolState(
-        address pool
-    ) public view returns (PoolState memory result) {
+    function getPoolState(address pool) public view returns (PoolState memory result) {
         PoolV3 _pool = PoolV3(pool);
         //
         // CONTRACT PARAMETERS
         //
-        result.baseParams = getBaseParams(pool, "POOL", address(0));
+        result.baseParams = BaseLib.getBaseParams(pool, "POOL", address(0));
 
         //
         // ERC20 Properties
@@ -139,12 +135,10 @@ contract PoolCompressorV3 {
         result.isPaused = _pool.paused();
     }
 
-    function getPoolQuotaKeeperState(
-        address pqk
-    ) external view returns (PoolQuotaKeeperState memory result) {
+    function getPoolQuotaKeeperState(address pqk) external view returns (PoolQuotaKeeperState memory result) {
         IPoolQuotaKeeperV3 _pqk = IPoolQuotaKeeperV3(pqk);
 
-        result.baseParams = getBaseParams(pqk, "POOL_QUOTA_KEEPER", address(0));
+        result.baseParams = BaseLib.getBaseParams(pqk, "POOL_QUOTA_KEEPER", address(0));
 
         // address rateKeeper;
         result.rateKeeper = _pqk.gauge();
@@ -173,18 +167,14 @@ contract PoolCompressorV3 {
         result.lastQuotaRateUpdate = _pqk.lastQuotaRateUpdate();
     }
 
-    function getRateKeeperState(
-        address rateKeeper
-    ) external view returns (RateKeeperState memory result) {
+    function getRateKeeperState(address rateKeeper) external view returns (RateKeeperState memory result) {
         IRateKeeper _rateKeeper = IRateKeeper(rateKeeper);
 
         bytes32 contractType;
 
-        result.baseParams = getBaseParams(rateKeeper, "GAUGE", gaugeSerializer);
+        result.baseParams = BaseLib.getBaseParams(rateKeeper, "GAUGE", gaugeSerializer);
 
-        IPoolQuotaKeeperV3 _pqk = IPoolQuotaKeeperV3(
-            PoolV3(_rateKeeper.pool()).poolQuotaKeeper()
-        );
+        IPoolQuotaKeeperV3 _pqk = IPoolQuotaKeeperV3(PoolV3(_rateKeeper.pool()).poolQuotaKeeper());
 
         address[] memory quotaTokens = _pqk.quotedTokens();
         uint256 quotaTokensLen = quotaTokens.length;
@@ -200,18 +190,12 @@ contract PoolCompressorV3 {
 
     /// @dev Returns CreditManagerData for a particular _cm
     /// @param _cm CreditManager address
-    function getCreditManagerState(
-        address _cm
-    ) public view returns (CreditManagerState memory result) {
+    function getCreditManagerState(address _cm) public view returns (CreditManagerState memory result) {
         ICreditManagerV3 creditManager = ICreditManagerV3(_cm);
-        ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(
-            creditManager.creditConfigurator()
-        );
-        CreditFacadeV3 creditFacade = CreditFacadeV3(
-            creditManager.creditFacade()
-        );
+        ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
+        CreditFacadeV3 creditFacade = CreditFacadeV3(creditManager.creditFacade());
 
-        result.baseParams = getBaseParams(_cm, "CREDIT_MANAGER", address(0));
+        result.baseParams = BaseLib.getBaseParams(_cm, "CREDIT_MANAGER", address(0));
         // string name;
         result.name = ICreditManagerV3(_cm).name();
 
@@ -232,18 +216,15 @@ contract PoolCompressorV3 {
         // address[] collateralTokens;
         // uint16[] liquidationThresholds;
         {
-            uint256 collateralTokenCount = creditManager
-                .collateralTokensCount();
+            uint256 collateralTokenCount = creditManager.collateralTokensCount();
 
             result.collateralTokens = new address[](collateralTokenCount);
             result.liquidationThresholds = new uint16[](collateralTokenCount);
 
             unchecked {
                 for (uint256 i = 0; i < collateralTokenCount; ++i) {
-                    (
-                        result.collateralTokens[i],
-                        result.liquidationThresholds[i]
-                    ) = creditManager.collateralTokenByMask(1 << i);
+                    (result.collateralTokens[i], result.liquidationThresholds[i]) =
+                        creditManager.collateralTokenByMask(1 << i);
                 }
             }
         }
@@ -265,12 +246,10 @@ contract PoolCompressorV3 {
 
     /// @dev Returns CreditManagerData for a particular _cm
     /// @param _cf CreditFacade address
-    function getCreditFacadeState(
-        address _cf
-    ) public view returns (CreditFacadeState memory result) {
+    function getCreditFacadeState(address _cf) public view returns (CreditFacadeState memory result) {
         CreditFacadeV3 creditFacade = CreditFacadeV3(_cf);
 
-        result.baseParams = getBaseParams(_cf, "CREDIT_FACADE", address(0));
+        result.baseParams = BaseLib.getBaseParams(_cf, "CREDIT_FACADE", address(0));
         //
         result.maxQuotaMultiplier = creditFacade.maxQuotaMultiplier();
         // address treasury;
@@ -282,8 +261,7 @@ contract PoolCompressorV3 {
         // uint40 expirationDate;
         result.expirationDate = creditFacade.expirationDate();
         // uint8 maxDebtPerBlockMultiplier;
-        result.maxDebtPerBlockMultiplier = creditFacade
-            .maxDebtPerBlockMultiplier();
+        result.maxDebtPerBlockMultiplier = creditFacade.maxDebtPerBlockMultiplier();
         // address botList;
         result.botList = creditFacade.botList();
         // uint256 minDebt;
@@ -297,52 +275,7 @@ contract PoolCompressorV3 {
         result.isPaused = creditFacade.paused();
     }
 
-    function getBaseParams(
-        address addr,
-        bytes32 defaultContractType,
-        address legacySerializer
-    ) public view returns (BaseParams memory baseParams) {
-        baseParams.addr = addr;
-        try IVersion(addr).contractType() returns (bytes32 contractType) {
-            baseParams.contractType = contractType;
-        } catch {
-            baseParams.version = 3_00;
-            baseParams.contractType = defaultContractType;
-        }
-
-        baseParams.version = IVersion(addr).version();
-        try IStateSerializer(addr).serialize() returns (
-            bytes memory serializedParams
-        ) {
-            baseParams.serializedParams = serializedParams;
-        } catch {
-            if (legacySerializer != address(0)) {
-                baseParams.serializedParams = IStateSerializerLegacy(
-                    legacySerializer
-                ).serialize(addr);
-            }
-        }
-    }
-
-    function getBaseState(
-        address addr,
-        bytes32 defaultContractType,
-        address legacySerializer
-    ) public view returns (BaseState memory baseState) {
-        baseState.baseParams = getBaseParams(
-            addr,
-            defaultContractType,
-            legacySerializer
-        );
-    }
-
-    function getInterestModelState(
-        address addr
-    ) public view returns (BaseState memory baseState) {
-        baseState = getBaseState(
-            addr,
-            "INTEREST_MODEL",
-            linearInterestModelSerializer
-        );
+    function getInterestModelState(address addr) public view returns (BaseState memory baseState) {
+        baseState = BaseLib.getBaseState(addr, "INTEREST_MODEL", linearInterestModelSerializer);
     }
 }

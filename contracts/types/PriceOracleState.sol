@@ -3,10 +3,10 @@
 // (c) Gearbox Holdings, 2024
 pragma solidity ^0.8.17;
 
+import {BaseParams} from "./BaseState.sol";
+
 struct PriceOracleState {
-    address addr;
-    uint256 version;
-    bytes32 contractType;
+    BaseParams baseParams;
     PriceFeedMapEntry[] priceFeedMapping;
     PriceFeedTreeNode[] priceFeedStructure;
 }
@@ -45,9 +45,7 @@ struct PriceFeedMapEntry {
 /// @param  underlyingStalenessPeriods Staleness periods of underlying feeds, filled when `priceFeed` is nested
 /// @param  answer Price feed answer packed in a struct
 struct PriceFeedTreeNode {
-    address priceFeed;
-    uint8 priceFeedType;
-    uint256 version;
+    BaseParams baseParams;
     uint8 decimals;
     bool skipCheck;
     bool updatable;
@@ -55,5 +53,4 @@ struct PriceFeedTreeNode {
     address[] underlyingFeeds;
     uint32[] underlyingStalenessPeriods;
     PriceFeedAnswer answer;
-    bytes specificParams;
 }
