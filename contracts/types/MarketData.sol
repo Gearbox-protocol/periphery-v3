@@ -11,6 +11,7 @@ import {PriceOracleState} from "./PriceOracleState.sol";
 import {CreditManagerState} from "./CreditManagerState.sol";
 import {CreditFacadeState} from "./CreditFacadeState.sol";
 import {BaseState, BaseParams} from "./BaseState.sol";
+import {TokenData} from "./TokenData.sol";
 
 struct MarketData {
     // MarketConfigurator baseParams
@@ -26,7 +27,7 @@ struct MarketData {
     BaseState interestRateModel;
     RateKeeperState rateKeeper;
     PriceOracleState priceOracleData;
-    TokenInfo[] tokens; // <- V3: collateral tokens, V3.1. from local price oracle
+    TokenData[] tokens; // <- V3: collateral tokens, V3.1. from local price oracle
     CreditManagerData[] creditManagers;
     // ZappersInfo
     ZapperInfo[] zappers;
@@ -42,13 +43,6 @@ struct ZapperInfo {
     BaseParams baseParams;
     address tokenIn;
     address tokenOut;
-}
-
-struct TokenInfo {
-    address token;
-    uint8 decimals;
-    string symbol;
-    string name;
 }
 
 struct ContractAdapter {

@@ -17,11 +17,13 @@ import {MarketFilter} from "../types/CreditAccountState.sol";
 
 import {PoolCompressorV3} from "./PoolCompressor.sol";
 import {PriceFeedCompressor} from "./PriceFeedCompressor.sol";
+import {TokenCompressor} from "./TokenCompressor.sol";
 
 // // EXCEPTIONS
 // import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
-import {MarketData, TokenInfo} from "../types/MarketData.sol";
+import {MarketData} from "../types/MarketData.sol";
+import {TokenData} from "../types/TokenData.sol";
 import {PoolState} from "../types/PoolState.sol";
 
 import {IMarketCompressor} from "../interfaces/IMarketCompressor.sol";
@@ -41,6 +43,7 @@ contract MarketCompressor is IMarketCompressor {
     /// @notice Address provider contract address
     address public immutable ADDRESS_PROVIDER;
 
+    TokenCompressor tokenCompressor;
     PriceFeedCompressor priceOracleCompressor;
     PoolCompressorV3 poolCompressor;
 
@@ -49,15 +52,12 @@ contract MarketCompressor is IMarketCompressor {
     constructor(address addressProvider, address priceOracleCompressorAddress) {
         ADDRESS_PROVIDER = addressProvider;
         addressProvider = addressProvider;
+        tokenCompressor = new TokenCompressor();
         poolCompressor = new PoolCompressorV3();
-        priceOracleCompressor = PriceFeedCompressor(
-            priceOracleCompressorAddress
-        );
+        priceOracleCompressor = PriceFeedCompressor(priceOracleCompressorAddress);
     }
 
-    function getMarkets(
-        MarketFilter memory filter
-    ) external view returns (MarketData[] memory result) {
+    function getMarkets(MarketFilter memory filter) external view returns (MarketData[] memory result) {
         address[] memory pools = _getPools(filter);
         result = new MarketData[](pools.length);
 
@@ -66,59 +66,39 @@ contract MarketCompressor is IMarketCompressor {
         }
     }
 
-    function getMarketData(
-        address pool
-    ) public view returns (MarketData memory result) {
+    function getMarketData(address pool) public view returns (MarketData memory result) {
         result.pool = poolCompressor.getPoolState(pool);
-        result.poolQuotaKeeper = poolCompressor.getPoolQuotaKeeperState(
-            result.pool.poolQuotaKeeper
-        );
-        result.rateKeeper = poolCompressor.getRateKeeperState(
-            result.poolQuotaKeeper.rateKeeper
-        );
-        result.interestRateModel = poolCompressor.getInterestModelState(
-            result.pool.interestRateModel
-        );
+        result.poolQuotaKeeper = poolCompressor.getPoolQuotaKeeperState(result.pool.poolQuotaKeeper);
+        result.rateKeeper = poolCompressor.getRateKeeperState(result.poolQuotaKeeper.rateKeeper);
+        result.interestRateModel = poolCompressor.getInterestModelState(result.pool.interestRateModel);
 
         address priceOracle = _getPriceOracle(result.pool);
-        address[] memory tokens = IPoolQuotaKeeperV3(
-            result.pool.poolQuotaKeeper
-        ).quotedTokens();
+        address[] memory tokens = IPoolQuotaKeeperV3(result.pool.poolQuotaKeeper).quotedTokens();
 
-        // TODO: add token data
-        result.tokens = new TokenInfo[](tokens.length + 1);
-        // result.tokens[0] = tokenCompressor.getTokenInfo(result.pool.underlying);
+        result.tokens = new TokenData[](tokens.length + 1);
+        address[] memory underlyingAndTokens = new address[](tokens.length + 1);
+        result.tokens[0] = tokenCompressor.getTokenInfo(result.pool.underlying);
+        underlyingAndTokens[0] = result.pool.underlying;
 
-        // for (uint256 i = 0; i < tokens.length; i++) {
-        //     result.tokens[i + 1] = tokenCompressor.getTokenInfo(tokens[i]);
-        // }
+        for (uint256 i = 0; i < tokens.length; i++) {
+            result.tokens[i + 1] = tokenCompressor.getTokenInfo(tokens[i]);
+            underlyingAndTokens[i + 1] = tokens[i];
+        }
         // How to query if no credit mangers are deployed?
-        // //
-        // TODO: add local address[]
-        // result.priceOracleData = priceOracleCompressor.getPriceOracleState(
-        //     priceOracle,
-        //     result.tokens
-        // );
+        result.priceOracleData = priceOracleCompressor.getPriceOracleState(priceOracle, underlyingAndTokens);
     }
 
-    function _getPriceOracle(
-        PoolState memory ps
-    ) internal view returns (address) {
+    function _getPriceOracle(PoolState memory ps) internal view returns (address) {
         if (ps.creditManagerDebtParams.length == 0) {
             return address(0);
         }
 
-        return
-            ICreditManagerV3(ps.creditManagerDebtParams[0].creditManager)
-                .priceOracle();
+        return ICreditManagerV3(ps.creditManagerDebtParams[0].creditManager).priceOracle();
     }
 
     /// @dev Pools discovery
-    function _getPools(
-        MarketFilter memory filter
-    ) internal view returns (address[] memory pools) {
-        address[] memory configurators = IAddressProviderV3_1(ADDRESS_PROVIDER)
-            .marketConfigurators();
+    function _getPools(MarketFilter memory filter) internal view returns (address[] memory pools) {
+        address[] memory configurators = IAddressProviderV3_1(ADDRESS_PROVIDER).marketConfigurators();
 
         // rough estimate of maximum number of credit pools
         uint256 max;
@@ -133,15 +113,10 @@ contract MarketCompressor is IMarketCompressor {
 
         for (uint256 i; i < configurators.length; ++i) {
             if (filter.curators.length != 0) {
-                if (
-                    !filter.curators.contains(
-                        IMarketConfiguratorV3(configurators[i]).owner()
-                    )
-                ) continue;
+                if (!filter.curators.contains(IMarketConfiguratorV3(configurators[i]).owner())) continue;
             }
 
-            address[] memory poolsMC = IMarketConfiguratorV3(configurators[i])
-                .pools();
+            address[] memory poolsMC = IMarketConfiguratorV3(configurators[i]).pools();
             for (uint256 j; j < poolsMC.length; ++j) {
                 address currentPool = poolsMC[j];
                 if (filter.pools.length != 0) {
@@ -149,8 +124,9 @@ contract MarketCompressor is IMarketCompressor {
                 }
 
                 if (filter.underlying != address(0)) {
-                    if (IPoolV3(currentPool).asset() != filter.underlying)
+                    if (IPoolV3(currentPool).asset() != filter.underlying) {
                         continue;
+                    }
                 }
 
                 pools[num++] = currentPool;

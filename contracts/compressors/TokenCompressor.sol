@@ -3,13 +3,20 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
-import {TokenInfo} from "../types/MarketData.sol";
+import {TokenData} from "../types/TokenData.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibString} from "@solady/utils/LibString.sol";
+import {ITokenCompressor} from "../interfaces/ITokenCompressor.sol";
 
-contract TokenCompressor {
-    function getTokenInfo(address token) public view returns (TokenInfo memory result) {
-        result.token = token;
+/// @title Token compressor 3.0.
+/// @notice Helper contract to fetch ERC20 token metadata
+contract TokenCompressor is ITokenCompressor {
+    /// @notice Contract version
+    uint256 public constant override version = 3_10;
+    bytes32 public constant override contractType = "TOKEN_COMPRESSOR";
+
+    function getTokenInfo(address token) public view returns (TokenData memory result) {
+        result.addr = token;
         result.decimals = IERC20Metadata(token).decimals();
 
         // Fallback to low-level call to handle bytes32 symbol
