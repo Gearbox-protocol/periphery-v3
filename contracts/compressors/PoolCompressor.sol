@@ -17,6 +17,8 @@ import {BaseParams, BaseState} from "../types/BaseState.sol";
 import {PoolState, CreditManagerDebtParams} from "../types/PoolState.sol";
 import {PoolQuotaKeeperState, QuotaTokenParams} from "../types/PoolQuotaKeeperState.sol";
 import {RateKeeperState, Rate} from "../types/RateKeeperState.sol";
+
+import {CreditManagerData} from "../types/MarketData.sol";
 import {CreditManagerState} from "../types/CreditManagerState.sol";
 import {CreditFacadeState} from "../types/CreditFacadeState.sol";
 
@@ -253,7 +255,7 @@ contract PoolCompressorV3 {
         //
         result.maxQuotaMultiplier = creditFacade.maxQuotaMultiplier();
         // address treasury;
-        result.treasury = creditFacade.treasury();
+        // result.treasury = creditFacade.treasury();
         // bool expirable;
         result.expirable = creditFacade.expirable();
         // address degenNFT;
@@ -277,5 +279,18 @@ contract PoolCompressorV3 {
 
     function getInterestModelState(address addr) public view returns (BaseState memory baseState) {
         baseState = BaseLib.getBaseState(addr, "INTEREST_MODEL", linearInterestModelSerializer);
+    }
+
+    function getCreditManagerData(address creditManager) public view returns (CreditManagerData memory result) {
+        result.creditManager = getCreditManagerState(creditManager);
+        result.creditFacade = getCreditFacadeState(ICreditManagerV3(creditManager).creditFacade());
+        result.creditConfigurator = BaseLib.getBaseState(
+            ICreditManagerV3(creditManager).creditConfigurator(), "CREDIT_CONFIGURATOR", address(0)
+        );
+
+        PoolV3 _pool = PoolV3(result.creditManager.pool);
+        result.totalDebt = _pool.creditManagerBorrowed(creditManager);
+        result.totalDebtLimit = _pool.creditManagerDebtLimit(creditManager);
+        result.availableToBorrow = _pool.creditManagerBorrowable(creditManager);
     }
 }

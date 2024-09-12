@@ -22,7 +22,7 @@ import {TokenCompressor} from "./TokenCompressor.sol";
 // // EXCEPTIONS
 // import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
-import {MarketData} from "../types/MarketData.sol";
+import {MarketData, CreditManagerData} from "../types/MarketData.sol";
 import {TokenData} from "../types/TokenData.sol";
 import {PoolState} from "../types/PoolState.sol";
 
@@ -83,6 +83,15 @@ contract MarketCompressor is IMarketCompressor {
         for (uint256 i = 0; i < tokens.length; i++) {
             result.tokens[i + 1] = tokenCompressor.getTokenInfo(tokens[i]);
             underlyingAndTokens[i + 1] = tokens[i];
+        }
+
+        // creditManager
+
+        uint256 len = result.pool.creditManagerDebtParams.length;
+        result.creditManagers = new CreditManagerData[](len);
+        for (uint256 i = 0; i < len; i++) {
+            result.creditManagers[i] =
+                poolCompressor.getCreditManagerData(result.pool.creditManagerDebtParams[i].creditManager);
         }
         // How to query if no credit mangers are deployed?
         result.priceOracleData = priceOracleCompressor.getPriceOracleState(priceOracle, underlyingAndTokens);

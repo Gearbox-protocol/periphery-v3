@@ -57,6 +57,10 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
     constructor() {
         address lpSerializer = address(new LPPriceFeedSerializer());
 
+        contractTypes[uint8(PriceFeedType.ZERO_ORACLE)] = "PF_ZERO_ORACLE";
+        contractTypes[uint8(PriceFeedType.CHAINLINK_ORACLE)] = "PF_CHAINLINK_ORACLE";
+        contractTypes[uint8(PriceFeedType.COMPOSITE_ORACLE)] = "PF_COMPOSITE_ORACLE";
+
         contractTypes[uint8(PriceFeedType.BALANCER_STABLE_LP_ORACLE)] = "PF_BALANCER_STABLE_LP_ORACLE";
         contractTypes[uint8(PriceFeedType.COMPOUND_V2_ORACLE)] = "NOT_USED";
         contractTypes[uint8(PriceFeedType.CURVE_2LP_ORACLE)] = "PF_CURVE_STABLE_LP_ORACLE";
