@@ -7,6 +7,7 @@ import {AddressProviderV3_1} from "@gearbox-protocol/governance/contracts/global
 
 import {PriceFeedCompressor} from "../contracts/compressors/PriceFeedCompressor.sol";
 import {MarketCompressor} from "../contracts/compressors/MarketCompressor.sol";
+import {CreditAccountCompressor} from "../contracts/compressors/CreditAccountCompressor.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 import {
@@ -89,6 +90,9 @@ contract Migrate2 is Migrate {
         _addressProvider.setAddress(priceFeedCompressor, true);
 
         address newContract = address(new MarketCompressor(address(_addressProvider), priceFeedCompressor));
+        _addressProvider.setAddress(newContract, true);
+
+        newContract = address(new CreditAccountCompressor(address(_addressProvider)));
         _addressProvider.setAddress(newContract, true);
 
         vm.stopBroadcast();
