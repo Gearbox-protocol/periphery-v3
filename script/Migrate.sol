@@ -104,6 +104,7 @@ contract Migrate2 is Migrate {
         // "Mainnet", "Arbitrum", "Optimism", "Base"
         string memory output = vm.serializeString(obj1, "network", "Mainnet");
 
-        vm.writeJson(output, "address-provider.json");
+        string memory outDir = vm.envOr("OUT_DIR", string("."));
+        vm.writeJson(output, string(abi.encodePacked(outDir, "/address-provider.json")));
     }
 }
