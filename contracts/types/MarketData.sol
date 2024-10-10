@@ -19,7 +19,7 @@ struct MarketData {
     // Owner who manages market
     address owner;
     // Syntax sugar ?
-    address underlying;
+    // address underlying;
     // Risk curator name
     string name;
     PoolState pool;

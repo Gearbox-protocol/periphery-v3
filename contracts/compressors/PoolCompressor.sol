@@ -31,6 +31,8 @@ import {BaseLib} from "../libraries/BaseLib.sol";
 import {GaugeSerializer} from "../serializers/pool/GaugeSerializer.sol";
 import {LinearInterestModelSerializer} from "../serializers/pool/LinearInterestModelSerializer.sol";
 
+import {AdapterCompressor} from "./AdapterCompressor.sol";
+
 /// @title Pool compressor
 /// @notice Collects data from pool related contracts
 /// Do not use for data from data compressor for state-changing functions
@@ -42,9 +44,12 @@ contract PoolCompressorV3 {
     address public immutable gaugeSerializer;
     address public immutable linearInterestModelSerializer;
 
+    AdapterCompressor adapterCompressor;
+
     constructor() {
         gaugeSerializer = address(new GaugeSerializer());
         linearInterestModelSerializer = address(new LinearInterestModelSerializer());
+        adapterCompressor = new AdapterCompressor();
     }
 
     function getPoolState(address pool) public view returns (PoolState memory result) {
@@ -172,8 +177,6 @@ contract PoolCompressorV3 {
     function getRateKeeperState(address rateKeeper) external view returns (RateKeeperState memory result) {
         IRateKeeper _rateKeeper = IRateKeeper(rateKeeper);
 
-        bytes32 contractType;
-
         result.baseParams = BaseLib.getBaseParams(rateKeeper, "GAUGE", gaugeSerializer);
 
         IPoolQuotaKeeperV3 _pqk = IPoolQuotaKeeperV3(PoolV3(_rateKeeper.pool()).poolQuotaKeeper());
@@ -292,5 +295,7 @@ contract PoolCompressorV3 {
         result.totalDebt = _pool.creditManagerBorrowed(creditManager);
         result.totalDebtLimit = _pool.creditManagerDebtLimit(creditManager);
         result.availableToBorrow = _pool.creditManagerBorrowable(creditManager);
+
+        result.adapters = adapterCompressor.getContractAdapters(creditManager);
     }
 }
