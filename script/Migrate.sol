@@ -85,15 +85,13 @@ contract Migrate2 is Migrate {
             AddressProviderV3_1(_deployGovernance3_1(oldAddressProvider, vetoAdmin, deployer));
 
         address priceFeedCompressor = address(new PriceFeedCompressor());
-        console.log("PriceFeedCompressor: ", priceFeedCompressor);
-
         _addressProvider.setAddress(priceFeedCompressor, true);
 
-        address newContract = address(new MarketCompressor(address(_addressProvider), priceFeedCompressor));
-        _addressProvider.setAddress(newContract, true);
+        address marketCompressor = address(new MarketCompressor(address(_addressProvider), priceFeedCompressor));
+        _addressProvider.setAddress(marketCompressor, true);
 
-        newContract = address(new CreditAccountCompressor(address(_addressProvider)));
-        _addressProvider.setAddress(newContract, true);
+        address creditAccountCompressor = address(new CreditAccountCompressor(address(_addressProvider)));
+        _addressProvider.setAddress(creditAccountCompressor, true);
 
         vm.stopBroadcast();
 
