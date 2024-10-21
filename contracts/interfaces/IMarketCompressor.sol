@@ -3,6 +3,7 @@
 // (c) Gearbox Holdings, 2024
 pragma solidity ^0.8.10;
 
+import {BaseParams} from "../types/BaseState.sol";
 import {MarketData} from "../types/MarketData.sol";
 import {PoolState} from "../types/PoolState.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
@@ -15,4 +16,9 @@ interface IMarketCompressor is IVersion {
     function getMarketData(address pool) external view returns (MarketData memory result);
 
     function getMarkets(MarketFilter memory filter) external view returns (MarketData[] memory result);
+
+    function getUpdatablePriceFeeds(MarketFilter memory filter)
+        external
+        view
+        returns (BaseParams[] memory updatablePriceFeeds);
 }
