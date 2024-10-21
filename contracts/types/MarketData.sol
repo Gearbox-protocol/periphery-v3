@@ -18,6 +18,7 @@ struct MarketData {
     BaseParams baseParams;
     // Owner who manages market
     address owner;
+    address acl;
     // Syntax sugar ?
     // address underlying;
     // Risk curator name

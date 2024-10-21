@@ -69,7 +69,7 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
         contractTypes[uint8(PriceFeedType.CURVE_CRYPTO_ORACLE)] = "PF_CURVE_CRYPTO_LP_ORACLE";
         contractTypes[uint8(PriceFeedType.CURVE_USD_ORACLE)] = "PF_CURVE_USD_ORACLE";
         contractTypes[uint8(PriceFeedType.ERC4626_VAULT_ORACLE)] = "PF_ERC4626_ORACLE";
-        contractTypes[uint8(PriceFeedType.WRAPPED_AAVE_V2_ORACLE)] = "NOT_USER";
+        contractTypes[uint8(PriceFeedType.WRAPPED_AAVE_V2_ORACLE)] = "NOT_USED";
         contractTypes[uint8(PriceFeedType.WSTETH_ORACLE)] = "PF_WSTETH_ORACLE";
         contractTypes[uint8(PriceFeedType.YEARN_ORACLE)] = "PF_YEARN_ORACLE";
         contractTypes[uint8(PriceFeedType.MELLOW_LRT_ORACLE)] = "PF_MELLOW_LRT_ORACLE";

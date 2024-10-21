@@ -22,9 +22,11 @@ import {TokenCompressor} from "./TokenCompressor.sol";
 // // EXCEPTIONS
 // import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
+import {BaseParams} from "../types/BaseState.sol";
 import {MarketData, CreditManagerData} from "../types/MarketData.sol";
 import {TokenData} from "../types/TokenData.sol";
 import {PoolState} from "../types/PoolState.sol";
+import {PriceOracleState} from "../types/PriceOracleState.sol";
 
 import {IMarketCompressor} from "../interfaces/IMarketCompressor.sol";
 
@@ -66,38 +68,74 @@ contract MarketCompressor is IMarketCompressor {
         }
     }
 
+    function getUpdatablePriceFeeds(MarketFilter memory filter)
+        external
+        view
+        returns (BaseParams[] memory updatablePriceFeeds)
+    {
+        address[] memory pools = _getPools(filter);
+        uint256 numPools = pools.length;
+        PriceOracleState[] memory poStates = new PriceOracleState[](numPools);
+        uint256 numUpdatable;
+        for (uint256 i; i < numPools; ++i) {
+            address[] memory tokens = _getTokens(pools[i]);
+            address priceOracle = _getPriceOracle(poolCompressor.getPoolState(pools[i]));
+            poStates[i] = priceOracleCompressor.getPriceOracleState(priceOracle, tokens);
+            for (uint256 j; j < poStates[i].priceFeedStructure.length; ++j) {
+                if (poStates[i].priceFeedStructure[j].updatable) ++numUpdatable;
+            }
+        }
+
+        updatablePriceFeeds = new BaseParams[](numUpdatable);
+        uint256 k;
+        for (uint256 i; i < numPools; ++i) {
+            for (uint256 j; j < poStates[i].priceFeedStructure.length; ++j) {
+                if (poStates[i].priceFeedStructure[j].updatable) {
+                    updatablePriceFeeds[k++] = poStates[i].priceFeedStructure[j].baseParams;
+                }
+            }
+        }
+    }
+
     function getMarketData(address pool) public view returns (MarketData memory result) {
+        result.acl = IPoolV3(pool).acl();
         result.pool = poolCompressor.getPoolState(pool);
         result.poolQuotaKeeper = poolCompressor.getPoolQuotaKeeperState(result.pool.poolQuotaKeeper);
         result.rateKeeper = poolCompressor.getRateKeeperState(result.poolQuotaKeeper.rateKeeper);
         result.interestRateModel = poolCompressor.getInterestModelState(result.pool.interestRateModel);
 
-        address priceOracle = _getPriceOracle(result.pool);
-        address[] memory tokens = IPoolQuotaKeeperV3(result.pool.poolQuotaKeeper).quotedTokens();
-
-        result.tokens = new TokenData[](tokens.length + 1);
-        address[] memory underlyingAndTokens = new address[](tokens.length + 1);
-        result.tokens[0] = tokenCompressor.getTokenInfo(result.pool.underlying);
-        underlyingAndTokens[0] = result.pool.underlying;
-
-        for (uint256 i = 0; i < tokens.length; i++) {
-            result.tokens[i + 1] = tokenCompressor.getTokenInfo(tokens[i]);
-            underlyingAndTokens[i + 1] = tokens[i];
+        address[] memory tokens = _getTokens(pool);
+        result.tokens = new TokenData[](tokens.length);
+        for (uint256 i; i < tokens.length; i++) {
+            result.tokens[i] = tokenCompressor.getTokenInfo(tokens[i]);
         }
 
         // creditManager
-
         uint256 len = result.pool.creditManagerDebtParams.length;
         result.creditManagers = new CreditManagerData[](len);
         for (uint256 i = 0; i < len; i++) {
             result.creditManagers[i] =
                 poolCompressor.getCreditManagerData(result.pool.creditManagerDebtParams[i].creditManager);
         }
-        // How to query if no credit mangers are deployed?
-        result.priceOracleData = priceOracleCompressor.getPriceOracleState(priceOracle, underlyingAndTokens);
+
+        address priceOracle = _getPriceOracle(result.pool);
+        result.priceOracleData = priceOracleCompressor.getPriceOracleState(priceOracle, tokens);
+    }
+
+    function _getTokens(address pool) internal view returns (address[] memory tokens) {
+        // under proper configuration, equivalent to price oracle's `getTokens`
+        address quotaKeeper = IPoolV3(pool).poolQuotaKeeper();
+        address[] memory quotedTokens = IPoolQuotaKeeperV3(quotaKeeper).quotedTokens();
+        uint256 numTokens = quotedTokens.length;
+        tokens = new address[](numTokens + 1);
+        tokens[0] = IPoolV3(pool).asset();
+        for (uint256 i; i < numTokens; ++i) {
+            tokens[i + 1] = quotedTokens[i];
+        }
     }
 
     function _getPriceOracle(PoolState memory ps) internal view returns (address) {
+        // TODO: read from market configurator instead once structure is known
         if (ps.creditManagerDebtParams.length == 0) {
             return address(0);
         }
