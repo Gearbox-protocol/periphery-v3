@@ -18,8 +18,12 @@ import {GearStakingV3} from "@gearbox-protocol/core-v3/contracts/core/GearStakin
 import {PriceOracleV3} from "@gearbox-protocol/core-v3/contracts/core/PriceOracleV3.sol";
 import {PoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolQuotaKeeperV3.sol";
 import {GaugeV3} from "@gearbox-protocol/core-v3/contracts/pool/GaugeV3.sol";
+import {QuotaRateParams} from "@gearbox-protocol/core-v3/contracts/interfaces/IGaugeV3.sol";
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
-import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
+import {
+    IPoolQuotaKeeperV3, TokenQuotaParams
+} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
+import {IAdapter} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAdapter.sol";
 
 import {IACL} from "@gearbox-protocol/governance/contracts/interfaces/IACL.sol";
 
@@ -28,6 +32,7 @@ import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditF
 import {CreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditConfiguratorV3.sol";
 
 import {PriceFeedMigrator} from "./migrators/PriceFeedMigrator.sol";
+import {IntegrationsMigrator} from "./migrators/IntegrationsMigrator.sol";
 
 interface IAddressProviderV3Legacy {
     function getAddressOrRevert(bytes32 key, uint256 _version) external view returns (address result);
@@ -55,12 +60,15 @@ contract MigratePools is Script {
     mapping(address => address) poolToPriceOracle;
 
     PriceFeedMigrator pfMigrator;
+    IntegrationsMigrator intMigrator;
 
     function run() external {
         deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address oldAddressProvider = vm.envAddress("OLD_ADDRESS_PROVIDER");
 
         pfMigrator = new PriceFeedMigrator(deployerPrivateKey);
+
+        pfMigrator.deployZeroPriceFeed();
 
         oldPriceOracle = IAddressProviderV3Legacy(oldAddressProvider).getAddressOrRevert(AP_PRICE_ORACLE, 300);
         oldGearStaking = IAddressProviderV3Legacy(oldAddressProvider).getAddressOrRevert(AP_GEAR_STAKING, 300);
@@ -85,14 +93,36 @@ contract MigratePools is Script {
 
                 (address priceFeed, uint32 stalenessPeriod) = pfMigrator.migratePriceFeed(oldPriceOracle, token, false);
 
-                vm.broadcast(deployerPrivateKey);
-                PriceOracleV3(poolToPriceOracle[pool]).setPriceFeed(token, priceFeed, stalenessPeriod);
+                (address reservePriceFeed, uint32 reserveStalenessPeriod) =
+                    pfMigrator.migratePriceFeed(oldPriceOracle, token, true);
 
-                (priceFeed, stalenessPeriod) = pfMigrator.migratePriceFeed(oldPriceOracle, token, true);
+                if (intMigrator.migratePhantomToken(token) != address(0)) {
+                    address newPhantomToken = intMigrator.oldToNewPhantomToken(token);
 
-                if (priceFeed != address(0)) {
                     vm.broadcast(deployerPrivateKey);
-                    PriceOracleV3(poolToPriceOracle[pool]).setReservePriceFeed(token, priceFeed, stalenessPeriod);
+                    PriceOracleV3(poolToPriceOracle[pool]).setPriceFeed(newPhantomToken, priceFeed, stalenessPeriod);
+
+                    if (reservePriceFeed != address(0)) {
+                        vm.broadcast(deployerPrivateKey);
+                        PriceOracleV3(poolToPriceOracle[pool]).setReservePriceFeed(
+                            newPhantomToken, reservePriceFeed, reserveStalenessPeriod
+                        );
+                    }
+
+                    vm.broadcast(deployerPrivateKey);
+                    PriceOracleV3(poolToPriceOracle[pool]).setPriceFeed(token, pfMigrator.zeroPriceFeed(), 0);
+
+                    _addNewPhantomToken(pool, newPhantomToken, token);
+                } else {
+                    vm.broadcast(deployerPrivateKey);
+                    PriceOracleV3(poolToPriceOracle[pool]).setPriceFeed(token, priceFeed, stalenessPeriod);
+
+                    if (reservePriceFeed != address(0)) {
+                        vm.broadcast(deployerPrivateKey);
+                        PriceOracleV3(poolToPriceOracle[pool]).setReservePriceFeed(
+                            token, reservePriceFeed, reserveStalenessPeriod
+                        );
+                    }
                 }
 
                 address[] memory updatableFeeds = pfMigrator.getUpdatablePriceFeeds(token);
@@ -151,6 +181,10 @@ contract MigratePools is Script {
                 (uint128 minDebt, uint128 maxDebt) = CreditFacadeV3(oldCreditFacade).debtLimits();
                 vm.broadcast(deployerPrivateKey);
                 CreditConfiguratorV3(creditConfigurator).setDebtLimits(minDebt, maxDebt);
+
+                _addPhantomTokensToCM(creditManager, oldCreditFacade, creditConfigurator);
+
+                _migrateAdapters(creditConfigurator);
             }
         }
     }
@@ -177,5 +211,63 @@ contract MigratePools is Script {
                 forbiddenTokensMask ^= mask;
             }
         }
+    }
+
+    function _addNewPhantomToken(address pool, address newPhantomToken, address oldPhantomToken) internal {
+        address poolQuotaKeeper = IPoolV3(pool).poolQuotaKeeper();
+        address gauge = IPoolQuotaKeeperV3(poolQuotaKeeper).gauge();
+
+        (uint16 minRate, uint16 maxRate,,) = GaugeV3(gauge).quotaRateParams(oldPhantomToken);
+
+        vm.broadcast(deployerPrivateKey);
+        GaugeV3(gauge).addQuotaToken(newPhantomToken, minRate, maxRate);
+
+        (,, uint16 quotaIncreaseFee,, uint96 limit,) =
+            IPoolQuotaKeeperV3(poolQuotaKeeper).getTokenQuotaParams(oldPhantomToken);
+
+        vm.broadcast(deployerPrivateKey);
+        IPoolQuotaKeeperV3(poolQuotaKeeper).setTokenLimit(newPhantomToken, limit);
+
+        vm.broadcast(deployerPrivateKey);
+        IPoolQuotaKeeperV3(poolQuotaKeeper).setTokenQuotaIncreaseFee(newPhantomToken, quotaIncreaseFee);
+    }
+
+    function _addPhantomTokensToCM(address creditManager, address creditFacade, address creditConfigurator) internal {
+        uint256 collateralTokensCount = ICreditManagerV3(creditManager).collateralTokensCount();
+        uint256 forbiddenTokenMask = CreditFacadeV3(creditFacade).forbiddenTokenMask();
+
+        for (uint256 i = 1; i < collateralTokensCount; ++i) {
+            (address token, uint16 lt) = ICreditManagerV3(creditManager).collateralTokenByMask(1 << i);
+
+            address newPhantomToken = intMigrator.oldToNewPhantomToken(token);
+
+            if (newPhantomToken != address(0)) {
+                vm.broadcast(deployerPrivateKey);
+                CreditConfiguratorV3(creditConfigurator).addCollateralToken(newPhantomToken, lt);
+
+                vm.broadcast(deployerPrivateKey);
+                CreditConfiguratorV3(creditConfigurator).setLiquidationThreshold(token, 0);
+
+                if (1 << i | forbiddenTokenMask != 0) {
+                    vm.broadcast(deployerPrivateKey);
+                    CreditConfiguratorV3(creditConfigurator).forbidToken(newPhantomToken);
+                }
+            }
+        }
+    }
+
+    function _migrateAdapters(address creditConfigurator) internal {
+        address[] memory allowedAdapters = CreditConfiguratorV3(creditConfigurator).allowedAdapters();
+
+        for (uint256 i = 0; i < allowedAdapters.length; ++i) {
+            address newAdapter = intMigrator.migrateAdapter(allowedAdapters[i]);
+
+            vm.broadcast(deployerPrivateKey);
+            CreditConfiguratorV3(creditConfigurator).allowAdapter(newAdapter);
+        }
+
+        allowedAdapters = CreditConfiguratorV3(creditConfigurator).allowedAdapters();
+
+        intMigrator.configureAdapters(allowedAdapters);
     }
 }

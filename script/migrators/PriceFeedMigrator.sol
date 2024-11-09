@@ -55,7 +55,7 @@ contract PriceFeedMigrator is Script, Test {
 
     uint256 deployerPrivateKey;
 
-    address zeroPriceFeed;
+    address public zeroPriceFeed;
     mapping(address => address) mainPriceFeeds;
     mapping(address => address) reservePriceFeeds;
 
@@ -67,6 +67,13 @@ contract PriceFeedMigrator is Script, Test {
 
     constructor(uint256 _pkey) {
         deployerPrivateKey = _pkey;
+    }
+
+    function deployZeroPriceFeed() external {
+        if (zeroPriceFeed == address(0)) {
+            vm.broadcast(deployerPrivateKey);
+            zeroPriceFeed = address(new ZeroPriceFeed());
+        }
     }
 
     function _migrateFromOld(address token, address oldPriceFeed, uint32 oldStalenessPeriod)
@@ -151,7 +158,9 @@ contract PriceFeedMigrator is Script, Test {
 
             vm.broadcast(deployerPrivateKey);
             newPriceFeed = address(
-                new RedstonePriceFeed(redstoneToken, "redstone-primary-prod", dataFeedId, signers, signersThreshold, descriptor)
+                new RedstonePriceFeed(
+                    redstoneToken, "redstone-primary-prod", dataFeedId, signers, signersThreshold, descriptor
+                )
             );
 
             _updatablePriceFeeds[token].add(newPriceFeed);
