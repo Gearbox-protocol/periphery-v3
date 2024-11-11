@@ -12,6 +12,7 @@ import {
 } from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 import {BitMask} from "@gearbox-protocol/core-v3/contracts/libraries/BitMask.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {PoolV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolV3.sol";
 import {GearStakingV3} from "@gearbox-protocol/core-v3/contracts/core/GearStakingV3.sol";
@@ -59,6 +60,8 @@ contract MigratePools is Script {
 
     mapping(address => address) poolToPriceOracle;
 
+    address botList;
+
     PriceFeedMigrator pfMigrator;
     IntegrationsMigrator intMigrator;
 
@@ -76,6 +79,11 @@ contract MigratePools is Script {
         acl = IAddressProviderV3Legacy(oldAddressProvider).getAddressOrRevert(AP_ACL, 0);
 
         address[] memory pools = IOldContractsRegister(oldContractsRegister).getPools();
+
+        address aclOwner = Ownable(acl).owner();
+
+        vm.broadcast(deployerPrivateKey);
+        botList = new BotList(aclOwner);
 
         for (uint256 i = 0; i < pools.length; ++i) {
             address pool = pools[i];
@@ -149,8 +157,7 @@ contract MigratePools is Script {
                     address degenNFT = CreditFacadeV3(oldCreditFacade).degenNFT();
                     bool expirable = CreditFacadeV3(oldCreditFacade).expirable();
 
-                    /// TODO: ADD BOT LIST
-                    creditFacade = address(new CreditFacadeV3(creditManager, address(0), weth, degenNFT, expirable));
+                    creditFacade = address(new CreditFacadeV3(creditManager, botList, weth, degenNFT, expirable));
                 }
 
                 address oldCreditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();

@@ -115,6 +115,8 @@ contract IntegrationsMigrator is Script, Test {
             newAdapter = address(new UniswapV2Adapter(creditManager, targetContract));
 
             /// CLONE UNI V2 PAIRS
+            /// event: SetPairStatus(token0, token1, pairs[i].allowed);
+            /// function: setPairStatusBatch(UniswapV2PairStatus[] calldata pairs)
         }
         /// UNISWAP V3
         else if (aType == AdapterType.UNISWAP_V3_ROUTER) {
@@ -122,6 +124,8 @@ contract IntegrationsMigrator is Script, Test {
             newAdapter = address(new UniswapV3Adapter(creditManager, targetContract));
 
             /// CLONE UNI V3 PAIRS
+            /// event: SetPoolStatus(token0, token1, pools[i].fee, pools[i].allowed);
+            /// function: setPoolStatusBatch(UniswapV3PoolStatus[] calldata pools)
         }
         /// YEARN V2
         else if (aType == AdapterType.YEARN_V2) {
@@ -149,6 +153,8 @@ contract IntegrationsMigrator is Script, Test {
             newAdapter = address(new BalancerV2VaultAdapter(creditManager, targetContract));
 
             /// CLONE BALANCER POOLS
+            /// event: SetPoolStatus(poolId, newStatus);
+            /// function: setPoolStatus(bytes32 poolId, PoolStatus newStatus)
         }
         /// CAMELOT V3
         else if (aType == AdapterType.CAMELOT_V3_ROUTER) {
@@ -156,6 +162,8 @@ contract IntegrationsMigrator is Script, Test {
             newAdapter = address(new CamelotV3Adapter(creditManager, targetContract));
 
             /// CLONE CAMELOT POOLS
+            /// event: SetPoolStatus(token0, token1, pools[i].allowed);
+            /// function: setPoolStatusBatch(CamelotV3PoolStatus[] calldata pools)
         }
         /// VELODROME V2
         else if (aType == AdapterType.VELODROME_V2_ROUTER) {
@@ -163,6 +171,8 @@ contract IntegrationsMigrator is Script, Test {
             newAdapter = address(new VelodromeV2RouterAdapter(creditManager, targetContract));
 
             /// CLONE VELODROME POOLS
+            /// event: SetPoolStatus(token0, token1, pools[i].stable, pools[i].factory, pools[i].allowed)
+            /// function: setPoolStatusBatch(VelodromeV2PoolStatus[] calldata pools)
         }
         /// PENDLE ROUTER
         else if (aType == AdapterType.PENDLE_ROUTER) {
@@ -229,6 +239,8 @@ contract IntegrationsMigrator is Script, Test {
             newAdapter = address(new MellowVaultAdapter(creditManager, targetContract));
 
             /// CLONE MELLOW UNDERLYINGS
+            /// event: SetUnderlyingStatus(underlyings[i].underlying, underlyings[i].allowed)
+            /// function: setUnderlyingStatusBatch(MellowUnderlyingStatus[] calldata underlyings)
         }
 
         oldToNewAdapter[oldAdapter] = newAdapter;
