@@ -163,10 +163,13 @@ contract MigratePools is Script {
                 address oldCreditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
 
                 vm.broadcast(deployerPrivateKey);
-                CreditConfiguratorV3(creditConfigurator).upgradeCreditConfigurator(creditConfigurator);
+                CreditConfiguratorV3(oldCreditConfigurator).upgradeCreditConfigurator(creditConfigurator);
 
                 vm.broadcast(deployerPrivateKey);
                 CreditConfiguratorV3(creditConfigurator).setCreditFacade(creditFacade, false);
+
+                vm.broadcast(deployerPrivateKey);
+                CreditConfiguratorV3(creditConfigurator).setPriceOracle(poolToPriceOracle[pool]);
 
                 uint8 maxDebtPerBlockMultiplier = CreditFacadeV3(oldCreditFacade).maxDebtPerBlockMultiplier();
 
