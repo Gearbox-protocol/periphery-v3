@@ -55,6 +55,9 @@ contract AdapterCompressor is IAdapterCompressor {
         contractTypes[uint8(AdapterType.SYMBIOTIC_DEFAULT_COLLATERAL)] = "AD_SYMBIOTIC_DEFAULT_COLLATERAL";
         contractTypes[uint8(AdapterType.MELLOW_LRT_VAULT)] = "AD_MELLOW_LRT_VAULT";
         contractTypes[uint8(AdapterType.PENDLE_ROUTER)] = "AD_PENDLE_ROUTER";
+        contractTypes[uint8(AdapterType.DAI_USDS_EXCHANGE)] = "AD_DAI_USDS_EXCHANGE";
+        contractTypes[uint8(AdapterType.MELLOW_ERC4626_VAULT)] = "AD_MELLOW_ERC4626_VAULT";
+        contractTypes[uint8(AdapterType.STAKING_REWARDS)] = "AD_STAKING_REWARDS";
     }
 
     function getContractAdapters(address creditManager) external view returns (ContractAdapter[] memory adapters) {

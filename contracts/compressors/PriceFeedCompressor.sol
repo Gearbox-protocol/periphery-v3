@@ -73,6 +73,7 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
         contractTypes[uint8(PriceFeedType.WSTETH_ORACLE)] = "PF_WSTETH_ORACLE";
         contractTypes[uint8(PriceFeedType.YEARN_ORACLE)] = "PF_YEARN_ORACLE";
         contractTypes[uint8(PriceFeedType.MELLOW_LRT_ORACLE)] = "PF_MELLOW_LRT_ORACLE";
+        contractTypes[uint8(PriceFeedType.PENDLE_PT_TWAP_ORACLE)] = "PF_PENDLE_PT_TWAP_ORACLE";
 
         // these types need special serialization
         contractTypes[uint8(PriceFeedType.BALANCER_WEIGHTED_LP_ORACLE)] = "PF_BALANCER_WEIGHTED_LP_ORACLE";
