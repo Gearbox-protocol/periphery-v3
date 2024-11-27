@@ -2,15 +2,12 @@
 pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {
-    IAddressProviderV3,
-    AP_TREASURY,
-    NO_VERSION_CONTROL
-} from "@gearbox-protocol/core-v3/contracts/interfaces/IAddressProviderV3.sol";
-import {IDegenNFTV2} from "@gearbox-protocol/core-v2/contracts/interfaces/IDegenNFTV2.sol";
 import {IDegenDistributorV3} from "../interfaces/IDegenDistributorV3.sol";
 
-bytes32 constant AP_DEGEN_NFT = "DEGEN_NFT";
+interface IDegenNFT {
+    function mint(address to, uint256 amount) external;
+    function burn(address from, uint256 amount) external;
+}
 
 contract DegenDistributorV3 is IDegenDistributorV3 {
     uint256 public constant version = 3_00;
@@ -35,9 +32,9 @@ contract DegenDistributorV3 is IDegenDistributorV3 {
         _;
     }
 
-    constructor(address addressProvider) {
-        treasury = IAddressProviderV3(addressProvider).getAddressOrRevert(AP_TREASURY, NO_VERSION_CONTROL);
-        degenNFT = IAddressProviderV3(addressProvider).getAddressOrRevert(AP_DEGEN_NFT, 1);
+    constructor(address degenNFT_, address treasury_) {
+        degenNFT = degenNFT_;
+        treasury = treasury_;
     }
 
     function updateMerkleRoot(bytes32 newRoot) external treasuryOnly {
@@ -57,7 +54,7 @@ contract DegenDistributorV3 is IDegenDistributorV3 {
 
         uint256 claimedAmount = totalAmount - claimed[account];
         claimed[account] += claimedAmount;
-        IDegenNFTV2(degenNFT).mint(account, claimedAmount);
+        IDegenNFT(degenNFT).mint(account, claimedAmount);
 
         emit Claimed(account, claimedAmount);
     }
