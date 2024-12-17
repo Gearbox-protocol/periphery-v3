@@ -20,6 +20,7 @@ import {BPTWeightedPriceFeedSerializer} from "../serializers/oracles/BPTWeighted
 import {LPPriceFeedSerializer} from "../serializers/oracles/LPPriceFeedSerializer.sol";
 import {PythPriceFeedSerializer} from "../serializers/oracles/PythPriceFeedSerializer.sol";
 import {RedstonePriceFeedSerializer} from "../serializers/oracles/RedstonePriceFeedSerializer.sol";
+import {PendleTWAPPTPriceFeedSerializer} from "../serializers/oracles/PendleTWAPPTPriceFeedSerializer.sol";
 import {PriceFeedAnswer, PriceFeedMapEntry, PriceFeedTreeNode, PriceOracleState} from "../types/PriceOracleState.sol";
 
 interface ImplementsPriceFeedType {
@@ -96,6 +97,7 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
         _setSerializer("PF_BOUNDED_ORACLE", address(new BoundedPriceFeedSerializer()));
         _setSerializer("PF_PYTH_ORACLE", address(new PythPriceFeedSerializer()));
         _setSerializer("PF_REDSTONE_ORACLE", address(new RedstonePriceFeedSerializer()));
+        _setSerializer("PF_PENDLE_PT_TWAP_ORACLE", address(new PendleTWAPPTPriceFeedSerializer()));
     }
 
     /// @notice Returns all potentially useful price feeds data for a given price oracle in the form of two arrays:
