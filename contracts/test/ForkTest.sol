@@ -5,20 +5,21 @@ pragma solidity ^0.8.17;
 
 import {Test} from "forge-std/Test.sol";
 
-import {ACL} from "@gearbox-protocol/core-v2/contracts/core/ACL.sol";
-import {ContractsRegister} from "@gearbox-protocol/core-v2/contracts/core/ContractsRegister.sol";
+import {IAddressProviderV3_1} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3_1.sol";
 
 import {
     AP_ACL,
     AP_CONTRACTS_REGISTER,
-    IAddressProviderV3,
     NO_VERSION_CONTROL
-} from "@gearbox-protocol/core-v3/contracts/interfaces/IAddressProviderV3.sol";
+} from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
+
+import {ACL} from "@gearbox-protocol/governance/contracts/market/ACL.sol";
+import {IContractsRegisterExt} from "./interfaces/IContractsRegisterExt.sol";
 
 abstract contract ForkTest is Test {
-    IAddressProviderV3 addressProvider;
+    IAddressProviderV3_1 addressProvider;
     ACL acl;
-    ContractsRegister register;
+    IContractsRegisterExt register;
     address configurator;
 
     modifier onlyFork() {
@@ -36,9 +37,9 @@ abstract contract ForkTest is Test {
             vm.createSelectFork(rpcUrl, blockNumber);
         }
 
-        addressProvider = IAddressProviderV3(vm.envAddress("FORK_ADDRESS_PROVIDER"));
+        addressProvider = IAddressProviderV3_1(vm.envAddress("FORK_ADDRESS_PROVIDER"));
         acl = ACL(addressProvider.getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL));
-        register = ContractsRegister(addressProvider.getAddressOrRevert(AP_CONTRACTS_REGISTER, NO_VERSION_CONTROL));
+        register = IContractsRegisterExt(addressProvider.getAddressOrRevert(AP_CONTRACTS_REGISTER, NO_VERSION_CONTROL));
         configurator = acl.owner();
     }
 }

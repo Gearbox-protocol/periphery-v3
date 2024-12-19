@@ -3,26 +3,33 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
-import {IContractsRegister} from "@gearbox-protocol/core-v2/contracts/interfaces/IContractsRegister.sol";
-
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
-import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
+import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
+import {ACLTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLTrait.sol";
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 enum PausableAction {
     Pause,
     Unpause
 }
 
+interface PausableContract {
+    /// @notice Pauses contract, can only be called by an account with pausable admin role
+    /// @dev Reverts if contract is already paused
+    function pause() external;
+
+    /// @notice Unpauses contract, can only be called by an account with unpausable admin role
+    /// @dev Reverts if contract is already unpaused
+    function unpause() external;
+}
+
 /// @title MultiPause
 /// @author Gearbox Foundation
 /// @notice Allows pausable admins to pause multiple contracts in a single transaction
 /// @dev This contract is expected to be one of pausable admins in the ACL contract
-contract MultiPause is ACLNonReentrantTrait, ContractsRegisterTrait {
-    constructor(address addressProvider)
-        ACLNonReentrantTrait(addressProvider)
-        ContractsRegisterTrait(addressProvider)
-    {}
+contract MultiPause is ACLTrait, ContractsRegisterTrait {
+    constructor(address acl_, address contractsRegister_) ACLTrait(acl_) ContractsRegisterTrait(contractsRegister_) {}
 
     /// @notice Pauses contracts from the given list
     /// @dev Ignores contracts that are already paused
@@ -86,11 +93,11 @@ contract MultiPause is ACLNonReentrantTrait, ContractsRegisterTrait {
         unchecked {
             for (uint256 i; i < len; ++i) {
                 if (action == PausableAction.Pause) {
-                    if (ACLNonReentrantTrait(contracts[i]).paused()) continue;
-                    ACLNonReentrantTrait(contracts[i]).pause();
+                    if (Pausable(contracts[i]).paused()) continue;
+                    PausableContract(contracts[i]).pause();
                 } else {
-                    if (!ACLNonReentrantTrait(contracts[i]).paused()) continue;
-                    ACLNonReentrantTrait(contracts[i]).unpause();
+                    if (!Pausable(contracts[i]).paused()) continue;
+                    PausableContract(contracts[i]).unpause();
                 }
             }
         }

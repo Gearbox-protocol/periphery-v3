@@ -5,9 +5,10 @@ pragma solidity ^0.8.17;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {DataCompressorV2_1} from "../data/DataCompressorV2_1.sol";
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
+
 import {DataCompressorV3} from "../data/DataCompressorV3.sol";
-import {IDataCompressorV3, PriceOnDemand} from "../interfaces/IDataCompressorV3.sol";
+import {IDataCompressorV3} from "../interfaces/IDataCompressorV3.sol";
 import {CreditAccountData, CreditManagerData, PoolData, TokenBalance, ContractAdapter} from "../data/Types.sol";
 
 import {NetworkDetector} from "@gearbox-protocol/sdk-gov/contracts/NetworkDetector.sol";
@@ -17,7 +18,6 @@ import "forge-std/console.sol";
 address constant ap = 0x9ea7b04Da02a5373317D745c1571c84aaD03321D;
 
 contract DCTest {
-    DataCompressorV2_1 public dc2;
     DataCompressorV3 public dc3;
 
     uint256 chainId;
@@ -34,7 +34,6 @@ contract DCTest {
     }
 
     function setUp() public liveTestOnly {
-        dc2 = new DataCompressorV2_1(ap);
         dc3 = new DataCompressorV3(ap);
     }
 
@@ -111,34 +110,23 @@ contract DCTest {
     }
 
     function test_dc_01_pools() public view liveTestOnly {
-        PoolData[] memory pools = dc2.getPoolsV1List();
-        console.log("V1 pools");
-        _printPools(pools);
-
-        pools = dc3.getPoolsV3List();
+        PoolData[] memory pools = dc3.getPoolsV3List();
         console.log("\nV3 pools");
         _printPools(pools);
     }
 
     function test_dc_02_credit_managers() public view liveTestOnly {
-        CreditManagerData[] memory cms = dc2.getCreditManagersV2List();
-        console.log("V2 credit managers");
-        _printCreditManagers(cms);
-
-        cms = dc3.getCreditManagersV3List();
+        CreditManagerData[] memory cms = dc3.getCreditManagersV3List();
         console.log("\n\nV3 credit managers");
         _printCreditManagers(cms);
     }
 
     function test_dc_03_credit_accounts() public liveTestOnly {
-        CreditAccountData[] memory cas = dc2.getCreditAccountsByBorrower(address(this));
-        console.log("V2 credit accounts", cas.length);
-
-        cas = dc3.getCreditAccountsByBorrower(address(this), new PriceOnDemand[](0));
+        CreditAccountData[] memory cas = dc3.getCreditAccountsByBorrower(address(this), new PriceUpdate[](0));
         console.log("V3 credit accounts", cas.length);
     }
 
     // function test_dc_04_borrower() public liveTestOnly {
-    //     dc3.getCreditAccountsByBorrower(0xf13df765f3047850Cede5aA9fDF20a12A75f7F70, new PriceOnDemand[](0));
+    //     dc3.getCreditAccountsByBorrower(0xf13df765f3047850Cede5aA9fDF20a12A75f7F70, new PriceUpdate[](0));
     // }
 }

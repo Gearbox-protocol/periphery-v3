@@ -6,10 +6,12 @@ pragma solidity ^0.8.10;
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IZapper} from "@gearbox-protocol/integrations-v3/contracts/interfaces/zappers/IZapper.sol";
 import {IZapperRegister} from "../interfaces/IZapperRegister.sol";
-import {ACLNonReentrantTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLNonReentrantTrait.sol";
+import {ACLTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLTrait.sol";
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
+import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
+import {ControlledTrait} from "@gearbox-protocol/core-v3/contracts/traits/ControlledTrait.sol";
 
-contract ZapperRegister is ACLNonReentrantTrait, ContractsRegisterTrait, IZapperRegister {
+contract ZapperRegister is ContractsRegisterTrait, SanityCheckTrait, ControlledTrait, IZapperRegister {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     // Contract version
@@ -17,12 +19,12 @@ contract ZapperRegister is ACLNonReentrantTrait, ContractsRegisterTrait, IZapper
 
     mapping(address => EnumerableSet.AddressSet) internal _zappersMap;
 
-    constructor(address addressProvider)
-        ACLNonReentrantTrait(addressProvider)
-        ContractsRegisterTrait(addressProvider)
+    constructor(address acl, address contractsRegister)
+        ControlledTrait(acl)
+        ContractsRegisterTrait(contractsRegister)
     {}
 
-    function addZapper(address zapper) external nonZeroAddress(zapper) controllerOnly {
+    function addZapper(address zapper) external nonZeroAddress(zapper) controllerOrConfiguratorOnly {
         address pool = IZapper(zapper).pool();
         _ensureRegisteredPool(pool);
 
@@ -33,7 +35,7 @@ contract ZapperRegister is ACLNonReentrantTrait, ContractsRegisterTrait, IZapper
         }
     }
 
-    function removeZapper(address zapper) external nonZeroAddress(zapper) controllerOnly {
+    function removeZapper(address zapper) external nonZeroAddress(zapper) controllerOrConfiguratorOnly {
         EnumerableSet.AddressSet storage zapperSet = _zappersMap[IZapper(zapper).pool()];
         if (zapperSet.contains(zapper)) {
             zapperSet.remove(zapper);
