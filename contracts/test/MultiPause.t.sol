@@ -22,8 +22,8 @@ contract MultiPauseTest is ForkTest {
         admin = makeAddr("ADMIN");
 
         vm.startPrank(configurator);
-        acl.addPausableAdmin(admin);
-        acl.addPausableAdmin(address(multiPause));
+        _grantRole("PAUSABLE_ADMIN", admin);
+        _grantRole("PAUSABLE_ADMIN", address(multiPause));
         vm.stopPrank();
     }
 

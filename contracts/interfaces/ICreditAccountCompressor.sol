@@ -4,7 +4,8 @@
 pragma solidity ^0.8.17;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
-import {CreditAccountData, CreditAccountFilter, MarketFilter, TokenInfo} from "../types/CreditAccountState.sol";
+import {CreditAccountData, TokenInfo} from "../types/CreditAccountState.sol";
+import {CreditAccountFilter, MarketFilter} from "../types/Filters.sol";
 
 /// @title  Credit account compressor
 /// @notice Allows to fetch data on all credit accounts matching certain criteria in an efficient manner

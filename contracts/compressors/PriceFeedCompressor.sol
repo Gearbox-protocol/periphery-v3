@@ -3,12 +3,12 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {AddressIsNotContractException} from "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {IPriceOracleV3, PriceFeedParams} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
 import {IPriceFeed, IUpdatablePriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
 import {IPriceFeedCompressor} from "../interfaces/IPriceFeedCompressor.sol";
 import {PriceFeedType} from "@gearbox-protocol/sdk-gov/contracts/PriceFeedType.sol";
-import {IVersion} from "../interfaces/IVersion.sol";
 
 import {BaseLib} from "../libraries/BaseLib.sol";
 
@@ -197,10 +197,10 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
     // --------- //
 
     /// @dev Sets `serializer` for `priceFeedType`
-    function _setSerializer(bytes32 contractType, address serializer) internal {
-        if (serializers[contractType] != serializer) {
-            serializers[contractType] = serializer;
-            emit SetSerializer(contractType, serializer);
+    function _setSerializer(bytes32 contractType_, address serializer) internal {
+        if (serializers[contractType_] != serializer) {
+            serializers[contractType_] = serializer;
+            emit SetSerializer(contractType_, serializer);
         }
     }
 
@@ -251,8 +251,8 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
 
     /// @dev Returns price feed tree node, see `PriceFeedTreeNode` for detailed description of struct fields
     function _getPriceFeedTreeNode(address priceFeed) internal view returns (PriceFeedTreeNode memory data) {
-        try IVersion(priceFeed).contractType() returns (bytes32 contractType) {
-            data.baseParams.contractType = contractType;
+        try IVersion(priceFeed).contractType() returns (bytes32 contractType_) {
+            data.baseParams.contractType = contractType_;
         } catch {
             try ImplementsPriceFeedType(priceFeed).priceFeedType() returns (uint8 priceFeedType) {
                 data.baseParams.contractType = contractTypes[priceFeedType];

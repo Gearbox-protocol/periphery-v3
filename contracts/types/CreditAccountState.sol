@@ -9,6 +9,7 @@ pragma solidity ^0.8.17;
 /// @param  creditFacade Facade connected to account's credit manager
 /// @param  underlying Credit manager's underlying token
 /// @param  owner Credit account's owner
+/// @param  expirationDate Expiration timestamp, in case facade is expirable
 /// @param  enabledTokensMask Bitmask of tokens enabled on credit account as collateral
 /// @param  debt Credit account's debt principal in underlying
 /// @param  accruedInterest Base and quota interest accrued on the credit account
@@ -28,6 +29,7 @@ struct CreditAccountData {
     address creditFacade;
     address underlying;
     address owner;
+    uint40 expirationDate;
     uint256 enabledTokensMask;
     uint256 debt;
     uint256 accruedInterest;
@@ -39,30 +41,6 @@ struct CreditAccountData {
     uint16 healthFactor;
     bool success;
     TokenInfo[] tokens;
-}
-
-/// @notice Credit account filters
-/// @param  owner If set, match credit accounts owned by given address
-/// @param  includeZeroDebt If set, also match accounts with zero debt
-/// @param  minHealthFactor If set, only return accounts with health factor above this value
-/// @param  maxHealthFactor If set, only return accounts with health factor below this value
-/// @param  reverting If set, only match accounts with reverting collateral calculation
-struct CreditAccountFilter {
-    address owner;
-    bool includeZeroDebt;
-    uint16 minHealthFactor;
-    uint16 maxHealthFactor;
-    bool reverting;
-}
-
-/// @notice Credit manager filters
-/// @param  curators If set, match credit managers managed by given curators
-/// @param  pools If set, match credit managers connected to given pools
-/// @param  underlying If set, match credit managers with given underlying
-struct MarketFilter {
-    address[] curators;
-    address[] pools;
-    address underlying;
 }
 
 /// @notice Info on credit account's holdings of a token

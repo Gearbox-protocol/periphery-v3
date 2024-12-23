@@ -3,8 +3,8 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {BaseParams, BaseState} from "../types/BaseState.sol";
-import {IVersion} from "../interfaces/IVersion.sol";
 import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
 import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
 

@@ -7,17 +7,14 @@ import {BaseParams} from "./BaseState.sol";
 
 struct CreditFacadeState {
     BaseParams baseParams;
-    uint256 maxQuotaMultiplier;
     address creditManager;
-    address treasury;
-    bool expirable;
     address degenNFT;
+    address botList;
+    bool expirable;
     uint40 expirationDate;
     uint8 maxDebtPerBlockMultiplier;
-    address botList;
     uint256 minDebt;
     uint256 maxDebt;
     uint256 forbiddenTokenMask;
-    address lossLiquidator;
     bool isPaused;
 }

@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Holdings, 2023
-pragma solidity ^0.8.10;
-pragma experimental ABIEncoderV2;
+// (c) Gearbox Holdings, 2024
+pragma solidity ^0.8.23;
 
 import {PoolV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IGaugeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IGaugeV3.sol";
-import {IVersion} from "../interfaces/IVersion.sol";
-import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
-import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
-import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 
 // State & Params
 import {BaseParams, BaseState} from "../types/BaseState.sol";
@@ -18,25 +13,18 @@ import {PoolState, CreditManagerDebtParams} from "../types/PoolState.sol";
 import {PoolQuotaKeeperState, QuotaTokenParams} from "../types/PoolQuotaKeeperState.sol";
 import {RateKeeperState, Rate} from "../types/RateKeeperState.sol";
 
-import {CreditManagerData} from "../types/MarketData.sol";
-import {CreditManagerState} from "../types/CreditManagerState.sol";
-import {CreditFacadeState} from "../types/CreditFacadeState.sol";
-
-import {PERCENTAGE_FACTOR, RAY} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
+import {RAY} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 import {IRateKeeper} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IRateKeeper.sol";
 
 // Serializers
 import {BaseLib} from "../libraries/BaseLib.sol";
-
 import {GaugeSerializer} from "../serializers/pool/GaugeSerializer.sol";
 import {LinearInterestRateModelSerializer} from "../serializers/pool/LinearInterestRateModelSerializer.sol";
-
-import {AdapterCompressor} from "./AdapterCompressor.sol";
 
 /// @title Pool compressor
 /// @notice Collects data from pool related contracts
 /// Do not use for data from data compressor for state-changing functions
-contract PoolCompressorV3 {
+contract PoolCompressor {
     // Contract version
     uint256 public constant version = 3_10;
     bytes32 public constant contractType = "POOL_COMPRESSOR";
@@ -44,12 +32,9 @@ contract PoolCompressorV3 {
     address public immutable gaugeSerializer;
     address public immutable linearInterestRateModelSerializer;
 
-    AdapterCompressor adapterCompressor;
-
     constructor() {
         gaugeSerializer = address(new GaugeSerializer());
         linearInterestRateModelSerializer = address(new LinearInterestRateModelSerializer());
-        adapterCompressor = new AdapterCompressor();
     }
 
     function getPoolState(address pool) public view returns (PoolState memory result) {
@@ -76,7 +61,6 @@ contract PoolCompressorV3 {
         // address interestRateModel;
         result.interestRateModel = _pool.interestRateModel();
 
-        result.treasury = _pool.treasury();
         //
         // address underlying;
         result.underlying = _pool.underlyingToken();
@@ -93,16 +77,10 @@ contract PoolCompressorV3 {
         // uint256 dieselRate;
         result.dieselRate = _pool.convertToAssets(RAY);
 
-        // uint256 totalBorrowed;
-        result.totalBorrowed = _pool.totalBorrowed();
-        // uint256 totalAssets;
-        result.totalAssets = _pool.totalAssets();
         // uint256 supplyRate;
         result.supplyRate = _pool.supplyRate();
         // uint256 withdrawFee;
         result.withdrawFee = _pool.withdrawFee();
-        // uint256 totalDebtLimit;
-        result.totalDebtLimit = _pool.totalDebtLimit();
 
         // updates
         // uint256 baseInterestIndexLU;
@@ -122,21 +100,26 @@ contract PoolCompressorV3 {
         // uint256 baseInterestIndexLU;
         result.baseInterestIndexLU = _pool.baseInterestIndexLU();
 
+        // uint256 totalBorrowed;
+        result.totalBorrowed = _pool.totalBorrowed();
+        // uint256 totalDebtLimit;
+        result.totalDebtLimit = _pool.totalDebtLimit();
+
         // CreditManagerDebtParams[] creditManagerDebtParams;
         address[] memory creditManagers = _pool.creditManagers();
         uint256 len = creditManagers.length;
         result.creditManagerDebtParams = new CreditManagerDebtParams[](len);
 
-        unchecked {
-            for (uint256 i; i < len; ++i) {
-                address creditManager = creditManagers[i];
-                result.creditManagerDebtParams[i] = CreditManagerDebtParams({
-                    creditManager: creditManager,
-                    borrowed: _pool.creditManagerBorrowed(creditManager),
-                    limit: _pool.creditManagerDebtLimit(creditManager)
-                });
-            }
+        for (uint256 i; i < len; ++i) {
+            address creditManager = creditManagers[i];
+            result.creditManagerDebtParams[i] = CreditManagerDebtParams({
+                creditManager: creditManager,
+                borrowed: _pool.creditManagerBorrowed(creditManager),
+                limit: _pool.creditManagerDebtLimit(creditManager),
+                available: _pool.creditManagerBorrowable(creditManager)
+            });
         }
+
         // bool isPaused;
         result.isPaused = _pool.paused();
     }
@@ -192,109 +175,11 @@ contract PoolCompressorV3 {
         }
     }
 
-    /// @dev Returns CreditManagerData for a particular _cm
-    /// @param _cm CreditManager address
-    function getCreditManagerState(address _cm) public view returns (CreditManagerState memory result) {
-        ICreditManagerV3 creditManager = ICreditManagerV3(_cm);
-        ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
-        CreditFacadeV3 creditFacade = CreditFacadeV3(creditManager.creditFacade());
-
-        result.baseParams = BaseLib.getBaseParams(_cm, "CREDIT_MANAGER", address(0));
-        // string name;
-        result.name = ICreditManagerV3(_cm).name();
-
-        // address accountFactory;
-        result.accountFactory = creditManager.accountFactory();
-        // address underlying;
-        result.underlying = creditManager.underlying();
-        // address pool;
-        result.pool = creditManager.pool();
-        // address creditFacade;
-        result.creditFacade = address(creditFacade);
-        // address creditConfigurator;
-        result.creditConfigurator = address(creditConfigurator);
-        // address priceOracle;
-        result.priceOracle = creditManager.priceOracle();
-        // uint8 maxEnabledTokens;
-        result.maxEnabledTokens = creditManager.maxEnabledTokens();
-        // address[] collateralTokens;
-        // uint16[] liquidationThresholds;
-        {
-            uint256 collateralTokenCount = creditManager.collateralTokensCount();
-
-            result.collateralTokens = new address[](collateralTokenCount);
-            result.liquidationThresholds = new uint16[](collateralTokenCount);
-
-            unchecked {
-                for (uint256 i = 0; i < collateralTokenCount; ++i) {
-                    (result.collateralTokens[i], result.liquidationThresholds[i]) =
-                        creditManager.collateralTokenByMask(1 << i);
-                }
-            }
-        }
-        // uint16 feeInterest; // Interest fee protocol charges: fee = interest accrues * feeInterest
-        // uint16 feeLiquidation; // Liquidation fee protocol charges: fee = totalValue * feeLiquidation
-        // uint16 liquidationDiscount; // Miltiplier to get amount which liquidator should pay: amount = totalValue * liquidationDiscount
-        // uint16 feeLiquidationExpired; // Liquidation fee protocol charges on expired accounts
-        // uint16 liquidationDiscountExpired; // Multiplier for the amount the liquidator has to pay when closing an expired account
-        {
-            (
-                result.feeInterest,
-                result.feeLiquidation,
-                result.liquidationDiscount,
-                result.feeLiquidationExpired,
-                result.liquidationDiscountExpired
-            ) = creditManager.fees();
-        }
+    function getInterestRateModelState(address addr) public view returns (BaseState memory) {
+        return BaseLib.getBaseState(addr, "IRM_LINEAR", linearInterestRateModelSerializer);
     }
 
-    /// @dev Returns CreditManagerData for a particular _cm
-    /// @param _cf CreditFacade address
-    function getCreditFacadeState(address _cf) public view returns (CreditFacadeState memory result) {
-        CreditFacadeV3 creditFacade = CreditFacadeV3(_cf);
-
-        result.baseParams = BaseLib.getBaseParams(_cf, "CREDIT_FACADE", address(0));
-        //
-        result.maxQuotaMultiplier = creditFacade.maxQuotaMultiplier();
-        // address treasury;
-        // result.treasury = creditFacade.treasury();
-        // bool expirable;
-        result.expirable = creditFacade.expirable();
-        // address degenNFT;
-        result.degenNFT = creditFacade.degenNFT();
-        // uint40 expirationDate;
-        result.expirationDate = creditFacade.expirationDate();
-        // uint8 maxDebtPerBlockMultiplier;
-        result.maxDebtPerBlockMultiplier = creditFacade.maxDebtPerBlockMultiplier();
-        // address botList;
-        result.botList = creditFacade.botList();
-        // uint256 minDebt;
-        // uint256 maxDebt;
-        (result.minDebt, result.maxDebt) = creditFacade.debtLimits();
-        // uint256 forbiddenTokenMask;
-        result.forbiddenTokenMask = creditFacade.forbiddenTokenMask();
-        // address lossLiquidator;
-        // result.lossLiquidator = creditFacade.lossLiquidator();
-        // bool isPaused;
-        result.isPaused = creditFacade.paused();
-    }
-
-    function getInterestRateModelState(address addr) public view returns (BaseState memory baseState) {
-        baseState = BaseLib.getBaseState(addr, "INTEREST_MODEL", linearInterestRateModelSerializer);
-    }
-
-    function getCreditManagerData(address creditManager) public view returns (CreditManagerData memory result) {
-        result.creditManager = getCreditManagerState(creditManager);
-        result.creditFacade = getCreditFacadeState(ICreditManagerV3(creditManager).creditFacade());
-        result.creditConfigurator = BaseLib.getBaseState(
-            ICreditManagerV3(creditManager).creditConfigurator(), "CREDIT_CONFIGURATOR", address(0)
-        );
-
-        PoolV3 _pool = PoolV3(result.creditManager.pool);
-        result.totalDebt = _pool.creditManagerBorrowed(creditManager);
-        result.totalDebtLimit = _pool.creditManagerDebtLimit(creditManager);
-        result.availableToBorrow = _pool.creditManagerBorrowable(creditManager);
-
-        result.adapters = adapterCompressor.getContractAdapters(creditManager);
+    function getLossPolicyState(address lossPolicy) public view returns (BaseState memory) {
+        return BaseLib.getBaseState(lossPolicy, "LP_ALIASED", address(0));
     }
 }

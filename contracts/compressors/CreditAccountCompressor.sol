@@ -7,19 +7,19 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
+import {ICreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {
     CollateralCalcTask,
     CollateralDebtData,
     ICreditManagerV3
 } from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
-import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
 import {ICreditAccountCompressor} from "../interfaces/ICreditAccountCompressor.sol";
 
+import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/extensions/IContractsRegister.sol";
 import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
 import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
 import {IMarketConfiguratorFactory} from
@@ -29,7 +29,8 @@ import {
     NO_VERSION_CONTROL
 } from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
 
-import {CreditAccountData, CreditAccountFilter, MarketFilter, TokenInfo} from "../types/CreditAccountState.sol";
+import {CreditAccountData, TokenInfo} from "../types/CreditAccountState.sol";
+import {CreditAccountFilter, MarketFilter} from "../types/Filters.sol";
 
 import {Contains} from "../libraries/Contains.sol";
 
@@ -49,7 +50,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
 
     address public immutable marketConfiguratorFactory;
 
-    /// @notice Thrown when address provider is not a contract or does not implement `marketConfigurators()`
+    /// @notice Thrown when address provider is not a contract
     error InvalidAddressProviderException();
 
     /// @notice Constructor
@@ -269,6 +270,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         data.creditFacade = ICreditManagerV3(creditManager).creditFacade();
         data.underlying = ICreditManagerV3(creditManager).underlying();
         data.owner = ICreditManagerV3(creditManager).getBorrowerOrRevert(creditAccount);
+        data.expirationDate = ICreditFacadeV3(creditManager).expirationDate();
 
         CollateralDebtData memory cdd =
             ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_ONLY);
@@ -369,7 +371,9 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
 
     /// @dev Credit managers discovery
     function _getCreditManagers(MarketFilter memory filter) internal view returns (address[] memory creditManagers) {
-        address[] memory configurators = IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
+        address[] memory configurators = filter.configurators.length != 0
+            ? filter.configurators
+            : IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
 
         // rough estimate of maximum number of credit managers
         uint256 max;
@@ -383,26 +387,17 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         creditManagers = new address[](max);
         uint256 num;
         for (uint256 i; i < configurators.length; ++i) {
-            if (filter.curators.length != 0) {
-                if (!filter.curators.contains(Ownable(configurators[i]).owner())) continue;
-            }
-
             address cr = IMarketConfigurator(configurators[i]).contractsRegister();
             address[] memory managers = IContractsRegister(cr).getCreditManagers();
             for (uint256 j; j < managers.length; ++j) {
-                // we're only concerned with v3 contracts
-                uint256 ver = IVersion(managers[j]).version();
-                if (ver < 3_00 || ver > 3_99) continue;
-
-                if (filter.pools.length != 0) {
-                    if (!filter.pools.contains(ICreditManagerV3(managers[j]).pool())) continue;
+                address manager = managers[j];
+                // FIXME: there's room for optimization that allows to avoid scanning over all configurators
+                if (filter.pools.length != 0 && !filter.pools.contains(ICreditManagerV3(manager).pool())) continue;
+                if (filter.underlying != address(0) && ICreditManagerV3(manager).underlying() != filter.underlying) {
+                    continue;
                 }
 
-                if (filter.underlying != address(0)) {
-                    if (ICreditManagerV3(managers[j]).underlying() != filter.underlying) continue;
-                }
-
-                creditManagers[num++] = managers[j];
+                creditManagers[num++] = manager;
             }
         }
 

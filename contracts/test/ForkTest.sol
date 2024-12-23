@@ -15,13 +15,15 @@ import {
     NO_VERSION_CONTROL
 } from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
 
-import {IACLLegacy as IACL} from "@gearbox-protocol/governance/contracts/market/legacy/MarketConfiguratorLegacy.sol";
-import {IContractsRegisterExt} from "./interfaces/IContractsRegisterExt.sol";
+import {ACL} from "@gearbox-protocol/governance/contracts/market/ACL.sol";
+import {IACLLegacy} from "@gearbox-protocol/governance/contracts/market/legacy/MarketConfiguratorLegacy.sol";
+import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
 
 abstract contract ForkTest is Test {
     IAddressProvider addressProvider;
-    IACL acl;
-    IContractsRegisterExt register;
+    ACL acl;
+    IACLLegacy aclLegacy;
+    IContractsRegister register;
     address configurator;
 
     modifier onlyFork() {
@@ -40,8 +42,25 @@ abstract contract ForkTest is Test {
         }
 
         addressProvider = IAddressProvider(vm.envAddress("FORK_ADDRESS_PROVIDER"));
-        acl = IACL(addressProvider.getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL));
-        register = IContractsRegisterExt(addressProvider.getAddressOrRevert(AP_CONTRACTS_REGISTER, NO_VERSION_CONTROL));
-        configurator = Ownable(address(acl)).owner();
+
+        acl = new ACL();
+        aclLegacy = IACLLegacy(addressProvider.getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL));
+        register = IContractsRegister(addressProvider.getAddressOrRevert(AP_CONTRACTS_REGISTER, NO_VERSION_CONTROL));
+        configurator = Ownable(address(aclLegacy)).owner();
+        acl.transferOwnership(configurator);
+        vm.prank(configurator);
+        acl.acceptOwnership();
+    }
+
+    function _grantRole(bytes32 role, address account) internal {
+        acl.grantRole(role, account);
+        if (role == "PAUSABLE_ADMIN") IACLLegacy(aclLegacy).addPausableAdmin(account);
+        else if (role == "UNPAUSABLE_ADMIN") IACLLegacy(aclLegacy).addUnpausableAdmin(account);
+    }
+
+    function _revokeRole(bytes32 role, address account) internal {
+        acl.revokeRole(role, account);
+        if (role == "PAUSABLE_ADMIN") IACLLegacy(aclLegacy).removePausableAdmin(account);
+        else if (role == "UNPAUSABLE_ADMIN") IACLLegacy(aclLegacy).removeUnpausableAdmin(account);
     }
 }

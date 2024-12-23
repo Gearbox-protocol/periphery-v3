@@ -3,13 +3,13 @@
 // (c) Gearbox Holdings, 2024
 pragma solidity ^0.8.17;
 
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {AdapterType} from "@gearbox-protocol/sdk-gov/contracts/AdapterType.sol";
-import {ContractAdapter} from "../types/MarketData.sol";
+import {AdapterState} from "../types/CreditSuiteData.sol";
 import {IAdapterCompressor} from "../interfaces/IAdapterCompressor.sol";
 import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
-import {IVersion} from "../interfaces/IVersion.sol";
 
 interface ILegacyAdapter {
     function _gearboxAdapterVersion() external view returns (uint16);
@@ -61,22 +61,20 @@ contract AdapterCompressor is IAdapterCompressor {
         // TODO: should add equalizer as well
     }
 
-    function getContractAdapters(address creditManager) external view returns (ContractAdapter[] memory adapters) {
+    function getAdapters(address creditManager) external view returns (AdapterState[] memory adapters) {
         ICreditConfiguratorV3 creditConfigurator =
             ICreditConfiguratorV3(ICreditManagerV3(creditManager).creditConfigurator());
 
         address[] memory allowedAdapters = creditConfigurator.allowedAdapters();
         uint256 len = allowedAdapters.length;
 
-        adapters = new ContractAdapter[](len);
-        bytes memory stateSerialised;
-
+        adapters = new AdapterState[](len);
         unchecked {
             for (uint256 i = 0; i < len; ++i) {
                 address adapter = allowedAdapters[i];
                 adapters[i].baseParams.addr = adapter;
-                try IVersion(adapter).contractType() returns (bytes32 adapterType) {
-                    adapters[i].baseParams.contractType = adapterType;
+                try IVersion(adapter).contractType() returns (bytes32 contractType_) {
+                    adapters[i].baseParams.contractType = contractType_;
                 } catch {
                     try ILegacyAdapter(adapter)._gearboxAdapterType() returns (uint8 adapterType) {
                         adapters[i].baseParams.contractType = contractTypes[adapterType];

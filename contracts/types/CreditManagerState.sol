@@ -5,6 +5,11 @@ pragma solidity ^0.8.17;
 
 import {BaseParams} from "./BaseState.sol";
 
+struct CollateralToken {
+    address token;
+    uint16 liquidationThreshold;
+}
+
 struct CreditManagerState {
     BaseParams baseParams;
     string name;
@@ -13,13 +18,11 @@ struct CreditManagerState {
     address pool;
     address creditFacade;
     address creditConfigurator;
-    address priceOracle;
     uint8 maxEnabledTokens;
-    address[] collateralTokens;
-    uint16[] liquidationThresholds;
-    uint16 feeInterest; // Interest fee protocol charges: fee = interest accrues * feeInterest
-    uint16 feeLiquidation; // Liquidation fee protocol charges: fee = totalValue * feeLiquidation
-    uint16 liquidationDiscount; // Miltiplier to get amount which liquidator should pay: amount = totalValue * liquidationDiscount
-    uint16 feeLiquidationExpired; // Liquidation fee protocol charges on expired accounts
-    uint16 liquidationDiscountExpired; // Multiplier for the amount the liquidator has to pay when closing an expired account
+    CollateralToken[] collateralTokens;
+    uint16 feeInterest;
+    uint16 feeLiquidation;
+    uint16 liquidationDiscount;
+    uint16 feeLiquidationExpired;
+    uint16 liquidationDiscountExpired;
 }

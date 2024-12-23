@@ -31,6 +31,7 @@ struct PriceFeedMapEntry {
     uint32 stalenessPeriod;
 }
 
+// TODO: revise fields
 /// @notice Represents a node in the price feed "tree"
 /// @param  priceFeed Price feed address
 /// @param  decimals Price feed's decimals (might not be equal to 8 for lower-level)
@@ -49,7 +50,6 @@ struct PriceFeedTreeNode {
     uint8 decimals;
     bool skipCheck;
     bool updatable;
-    // TODO: better naming, underlying is confusing
     address[] underlyingFeeds;
     uint32[] underlyingStalenessPeriods;
     PriceFeedAnswer answer;

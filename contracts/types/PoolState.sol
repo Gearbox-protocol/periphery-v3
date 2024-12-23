@@ -17,18 +17,16 @@ struct PoolState {
     // connected contracts
     address poolQuotaKeeper; // +
     address interestRateModel; // +
-    address treasury; // +
     address underlying; // +
     uint256 availableLiquidity; // +
     uint256 expectedLiquidity; // +
     uint256 baseInterestIndex; // +
     uint256 baseInterestRate; // +
     uint256 dieselRate;
-    uint256 totalBorrowed; // +
-    uint256 totalAssets; // +
     uint256 supplyRate; // +
     uint256 withdrawFee; // +
     // Limits
+    uint256 totalBorrowed; // +
     uint256 totalDebtLimit; // +
     CreditManagerDebtParams[] creditManagerDebtParams; // +
     //
@@ -47,4 +45,5 @@ struct CreditManagerDebtParams {
     address creditManager;
     uint256 borrowed;
     uint256 limit;
+    uint256 available;
 }
