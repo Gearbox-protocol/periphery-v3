@@ -58,6 +58,7 @@ contract AdapterCompressor is IAdapterCompressor {
         contractTypes[uint8(AdapterType.DAI_USDS_EXCHANGE)] = "AD_DAI_USDS_EXCHANGE";
         contractTypes[uint8(AdapterType.MELLOW_ERC4626_VAULT)] = "AD_MELLOW_ERC4626_VAULT";
         contractTypes[uint8(AdapterType.STAKING_REWARDS)] = "AD_STAKING_REWARDS";
+        // TODO: should add equalizer as well
     }
 
     function getContractAdapters(address creditManager) external view returns (ContractAdapter[] memory adapters) {

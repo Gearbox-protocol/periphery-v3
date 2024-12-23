@@ -33,17 +33,14 @@ struct MarketData {
     // ZappersInfo
     ZapperInfo[] zappers;
     // Roles
-    address[] pausableAdmins;
-    address[] unpausableAdmins;
     address[] emergencyLiquidators;
 }
 // LossLiquidatorPolicy
-// ControllerTimelock (?)
 
 struct ZapperInfo {
     BaseParams baseParams;
-    address tokenIn;
-    address tokenOut;
+    TokenData tokenIn;
+    TokenData tokenOut;
 }
 
 struct ContractAdapter {

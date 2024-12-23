@@ -9,9 +9,9 @@ import {IZapperRegister} from "../interfaces/IZapperRegister.sol";
 import {ACLTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLTrait.sol";
 import {ContractsRegisterTrait} from "@gearbox-protocol/core-v3/contracts/traits/ContractsRegisterTrait.sol";
 import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
-import {ControlledTrait} from "@gearbox-protocol/core-v3/contracts/traits/ControlledTrait.sol";
+import {ACLTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLTrait.sol";
 
-contract ZapperRegister is ContractsRegisterTrait, SanityCheckTrait, ControlledTrait, IZapperRegister {
+contract ZapperRegister is ContractsRegisterTrait, SanityCheckTrait, ACLTrait, IZapperRegister {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     // Contract version
@@ -19,12 +19,9 @@ contract ZapperRegister is ContractsRegisterTrait, SanityCheckTrait, ControlledT
 
     mapping(address => EnumerableSet.AddressSet) internal _zappersMap;
 
-    constructor(address acl, address contractsRegister)
-        ControlledTrait(acl)
-        ContractsRegisterTrait(contractsRegister)
-    {}
+    constructor(address acl, address contractsRegister) ACLTrait(acl) ContractsRegisterTrait(contractsRegister) {}
 
-    function addZapper(address zapper) external nonZeroAddress(zapper) controllerOrConfiguratorOnly {
+    function addZapper(address zapper) external nonZeroAddress(zapper) configuratorOnly {
         address pool = IZapper(zapper).pool();
         _ensureRegisteredPool(pool);
 
@@ -35,7 +32,7 @@ contract ZapperRegister is ContractsRegisterTrait, SanityCheckTrait, ControlledT
         }
     }
 
-    function removeZapper(address zapper) external nonZeroAddress(zapper) controllerOrConfiguratorOnly {
+    function removeZapper(address zapper) external nonZeroAddress(zapper) configuratorOnly {
         EnumerableSet.AddressSet storage zapperSet = _zappersMap[IZapper(zapper).pool()];
         if (zapperSet.contains(zapper)) {
             zapperSet.remove(zapper);

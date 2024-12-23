@@ -70,7 +70,7 @@ struct CreditAccountData {
 }
 
 struct LinearModel {
-    address interestModel;
+    address interestRateModel;
     uint256 version;
     uint16 U_1;
     uint16 U_2;

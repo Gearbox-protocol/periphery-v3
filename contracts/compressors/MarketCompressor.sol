@@ -3,24 +3,30 @@
 // (c) Gearbox Holdings, 2024
 pragma solidity ^0.8.17;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
+import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
+import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
+import {IMarketConfiguratorFactory} from
+    "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
+import {
+    AP_MARKET_CONFIGURATOR_FACTORY,
+    NO_VERSION_CONTROL
+} from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
+
 import {Contains} from "../libraries/Contains.sol";
 
-import {IAddressProviderV3_1} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProviderV3_1.sol";
-import {IMarketConfiguratorV3} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorV3.sol";
 import {MarketFilter} from "../types/CreditAccountState.sol";
 
 import {PoolCompressorV3} from "./PoolCompressor.sol";
 import {PriceFeedCompressor} from "./PriceFeedCompressor.sol";
 import {TokenCompressor} from "./TokenCompressor.sol";
-
-// // EXCEPTIONS
-// import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
 import {BaseParams} from "../types/BaseState.sol";
 import {MarketData, CreditManagerData} from "../types/MarketData.sol";
@@ -30,20 +36,19 @@ import {PriceOracleState} from "../types/PriceOracleState.sol";
 
 import {IMarketCompressor} from "../interfaces/IMarketCompressor.sol";
 
-import "forge-std/console.sol";
-
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
 /// Do not use for data from data compressor for state-changing functions
 contract MarketCompressor is IMarketCompressor {
     using Contains for address[];
-    // Contract version
 
     uint256 public constant version = 3_10;
     bytes32 public constant contractType = "MARKET_COMPRESSOR";
 
     /// @notice Address provider contract address
-    address public immutable ADDRESS_PROVIDER;
+    address public immutable addressProvider;
+
+    address public immutable marketConfiguratorFactory;
 
     TokenCompressor tokenCompressor;
     PriceFeedCompressor priceOracleCompressor;
@@ -51,9 +56,11 @@ contract MarketCompressor is IMarketCompressor {
 
     error CreditManagerIsNotV3Exception();
 
-    constructor(address addressProvider, address priceOracleCompressorAddress) {
-        ADDRESS_PROVIDER = addressProvider;
-        addressProvider = addressProvider;
+    constructor(address addressProvider_, address priceOracleCompressorAddress) {
+        addressProvider = addressProvider_;
+        marketConfiguratorFactory =
+            IAddressProvider(addressProvider_).getAddressOrRevert(AP_MARKET_CONFIGURATOR_FACTORY, NO_VERSION_CONTROL);
+
         tokenCompressor = new TokenCompressor();
         poolCompressor = new PoolCompressorV3();
         priceOracleCompressor = PriceFeedCompressor(priceOracleCompressorAddress);
@@ -102,7 +109,7 @@ contract MarketCompressor is IMarketCompressor {
         result.pool = poolCompressor.getPoolState(pool);
         result.poolQuotaKeeper = poolCompressor.getPoolQuotaKeeperState(result.pool.poolQuotaKeeper);
         result.rateKeeper = poolCompressor.getRateKeeperState(result.poolQuotaKeeper.rateKeeper);
-        result.interestRateModel = poolCompressor.getInterestModelState(result.pool.interestRateModel);
+        result.interestRateModel = poolCompressor.getInterestRateModelState(result.pool.interestRateModel);
 
         address[] memory tokens = _getTokens(pool);
         result.tokens = new TokenData[](tokens.length);
@@ -145,12 +152,13 @@ contract MarketCompressor is IMarketCompressor {
 
     /// @dev Pools discovery
     function _getPools(MarketFilter memory filter) internal view returns (address[] memory pools) {
-        address[] memory configurators = IAddressProviderV3_1(ADDRESS_PROVIDER).marketConfigurators();
+        address[] memory configurators = IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
 
         // rough estimate of maximum number of credit pools
         uint256 max;
         for (uint256 i; i < configurators.length; ++i) {
-            max += IMarketConfiguratorV3(configurators[i]).pools().length;
+            address contractsRegister = IMarketConfigurator(configurators[i]).contractsRegister();
+            max += IContractsRegister(contractsRegister).getPools().length;
         }
 
         // allocate the array with maximum potentially needed size (total number of credit pools can be assumed
@@ -160,10 +168,11 @@ contract MarketCompressor is IMarketCompressor {
 
         for (uint256 i; i < configurators.length; ++i) {
             if (filter.curators.length != 0) {
-                if (!filter.curators.contains(IMarketConfiguratorV3(configurators[i]).owner())) continue;
+                if (!filter.curators.contains(Ownable(configurators[i]).owner())) continue;
             }
 
-            address[] memory poolsMC = IMarketConfiguratorV3(configurators[i]).pools();
+            address contractsRegister = IMarketConfigurator(configurators[i]).contractsRegister();
+            address[] memory poolsMC = IContractsRegister(contractsRegister).getPools();
             for (uint256 j; j < poolsMC.length; ++j) {
                 address currentPool = poolsMC[j];
                 if (filter.pools.length != 0) {

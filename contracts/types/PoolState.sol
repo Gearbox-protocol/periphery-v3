@@ -18,8 +18,6 @@ struct PoolState {
     address poolQuotaKeeper; // +
     address interestRateModel; // +
     address treasury; // +
-    address controller; // +
-    //
     address underlying; // +
     uint256 availableLiquidity; // +
     uint256 expectedLiquidity; // +

@@ -29,7 +29,7 @@ import {IRateKeeper} from "@gearbox-protocol/core-v3/contracts/interfaces/base/I
 import {BaseLib} from "../libraries/BaseLib.sol";
 
 import {GaugeSerializer} from "../serializers/pool/GaugeSerializer.sol";
-import {LinearInterestModelSerializer} from "../serializers/pool/LinearInterestModelSerializer.sol";
+import {LinearInterestRateModelSerializer} from "../serializers/pool/LinearInterestRateModelSerializer.sol";
 
 import {AdapterCompressor} from "./AdapterCompressor.sol";
 
@@ -42,13 +42,13 @@ contract PoolCompressorV3 {
     bytes32 public constant contractType = "POOL_COMPRESSOR";
 
     address public immutable gaugeSerializer;
-    address public immutable linearInterestModelSerializer;
+    address public immutable linearInterestRateModelSerializer;
 
     AdapterCompressor adapterCompressor;
 
     constructor() {
         gaugeSerializer = address(new GaugeSerializer());
-        linearInterestModelSerializer = address(new LinearInterestModelSerializer());
+        linearInterestRateModelSerializer = address(new LinearInterestRateModelSerializer());
         adapterCompressor = new AdapterCompressor();
     }
 
@@ -77,7 +77,6 @@ contract PoolCompressorV3 {
         result.interestRateModel = _pool.interestRateModel();
 
         result.treasury = _pool.treasury();
-        result.controller = _pool.controller();
         //
         // address underlying;
         result.underlying = _pool.underlyingToken();
@@ -280,8 +279,8 @@ contract PoolCompressorV3 {
         result.isPaused = creditFacade.paused();
     }
 
-    function getInterestModelState(address addr) public view returns (BaseState memory baseState) {
-        baseState = BaseLib.getBaseState(addr, "INTEREST_MODEL", linearInterestModelSerializer);
+    function getInterestRateModelState(address addr) public view returns (BaseState memory baseState) {
+        baseState = BaseLib.getBaseState(addr, "INTEREST_MODEL", linearInterestRateModelSerializer);
     }
 
     function getCreditManagerData(address creditManager) public view returns (CreditManagerData memory result) {

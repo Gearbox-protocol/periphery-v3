@@ -7,10 +7,11 @@ import {LinearInterestRateModelV3} from "@gearbox-protocol/core-v3/contracts/poo
 import {IStateSerializerLegacy} from "../../interfaces/IStateSerializerLegacy.sol";
 import {IStateSerializer} from "../../interfaces/IStateSerializer.sol";
 
-contract LinearInterestModelSerializer is IStateSerializerLegacy {
+contract LinearInterestRateModelSerializer is IStateSerializerLegacy {
     function serialize(address _model) external view returns (bytes memory) {
         uint256 version = LinearInterestRateModelV3(_model).version();
 
+        // FIXME: not that we've added serialization in 3.1.x though
         if (version != 3_00) {
             return IStateSerializer(_model).serialize();
         }
