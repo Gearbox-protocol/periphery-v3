@@ -14,6 +14,7 @@ import {BaseState, BaseParams} from "./BaseState.sol";
 import {TokenData} from "./TokenData.sol";
 
 struct MarketData {
+    // TODO: add risk curator once structure is figured
     address acl;
     address contractsRegister;
     address treasury;

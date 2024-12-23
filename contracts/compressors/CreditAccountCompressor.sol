@@ -55,7 +55,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
 
     /// @notice Constructor
     /// @param  addressProvider_ Address provider contract address
-    constructor(address addressProvider_) nonZeroAddress(addressProvider) {
+    constructor(address addressProvider_) nonZeroAddress(addressProvider_) {
         if (addressProvider_.code.length == 0) {
             revert InvalidAddressProviderException();
         }
