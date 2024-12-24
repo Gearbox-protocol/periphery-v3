@@ -13,6 +13,10 @@ import {IContractsRegisterLegacy} from
 import {ACL} from "@gearbox-protocol/governance/contracts/market/ACL.sol";
 import {ContractsRegister} from "@gearbox-protocol/governance/contracts/market/ContractsRegister.sol";
 
+contract LossPolicy {
+    uint256 public constant version = 3_10;
+}
+
 /// @dev Extremely dumbed-down version of `MarketConfiguratorLegacy` that is just enough to let compressors work
 contract MarketConfigurator {
     string public name;
@@ -22,8 +26,8 @@ contract MarketConfigurator {
 
     constructor(string memory name_, address acl_, address contractsRegister_, address treasury_) {
         name = name_;
-        acl = acl_;
-        contractsRegister = address(new ContractsRegister(address(new ACL())));
+        acl = address(new ACL());
+        contractsRegister = address(new ContractsRegister(acl));
         treasury = treasury_;
 
         address[] memory pools = IContractsRegisterLegacy(contractsRegister_).getPools();
@@ -38,7 +42,7 @@ contract MarketConfigurator {
 
             address priceOracle = _priceOracle(creditManagers[0]);
             // NOTE: v3.0.x contracts don't have loss policies set so we don't bother with them here
-            address lossPolicy = address(1);
+            address lossPolicy = address(new LossPolicy());
 
             ContractsRegister(contractsRegister).registerMarket(pool, priceOracle, lossPolicy);
             for (uint256 j; j < numCreditManagers; ++j) {
@@ -57,9 +61,5 @@ contract MarketConfigurator {
 
     function _priceOracle(address creditManager) internal view returns (address) {
         return ICreditManagerV3(creditManager).priceOracle();
-    }
-
-    function _lossLiquidator(address creditManager) internal view returns (address) {
-        return ICreditFacadeV3(ICreditManagerV3(creditManager).creditFacade()).lossLiquidator();
     }
 }

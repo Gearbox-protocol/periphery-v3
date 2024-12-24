@@ -61,8 +61,6 @@ contract MigrateScript is Script {
         AddressProvider addressProvider = new AddressProvider();
         console.log("new address provider:", address(addressProvider));
 
-        addressProvider.transferOwnership(Ownable(acl).owner());
-
         // NOTE: just some fake address
         addressProvider.setAddress({
             key: AP_MARKET_CONFIGURATOR_FACTORY.fromSmallString(),
@@ -116,6 +114,9 @@ contract MigrateScript is Script {
 
         address creditAccountCompressor = address(new CreditAccountCompressor(address(addressProvider)));
         addressProvider.setAddress(creditAccountCompressor, true);
+
+        // NOTE: configurator must later accept ownership over new address provider
+        addressProvider.transferOwnership(Ownable(acl).owner());
 
         string memory obj1 = "address_provider";
         vm.serializeAddress(obj1, "addressProvider", address(addressProvider));
