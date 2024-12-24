@@ -54,8 +54,25 @@ contract MigrateScript is Script {
         vm.stopBroadcast();
     }
 
+    function run() external withBroadcast {
+        address addressProviderLegacy = vm.envAddress("ADDRESS_PROVIDER");
+        string memory name = vm.envString("CURATOR_NAME");
+        _deployAddressProvider(addressProviderLegacy);
+        _deployMarketConfigurator(addressProviderLegacy, name);
+    }
+
     function deployAddressProvider() external withBroadcast {
         address addressProviderLegacy = vm.envAddress("ADDRESS_PROVIDER");
+        _deployAddressProvider(addressProviderLegacy);
+    }
+
+    function deployMarketConfigurator() external withBroadcast {
+        address addressProviderLegacy = vm.envAddress("ADDRESS_PROVIDER");
+        string memory name = vm.envString("CURATOR_NAME");
+        _deployMarketConfigurator(addressProviderLegacy, name);
+    }
+
+    function _deployAddressProvider(address addressProviderLegacy) internal {
         address acl = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL);
 
         AddressProvider addressProvider = new AddressProvider();
@@ -128,10 +145,7 @@ contract MigrateScript is Script {
         vm.writeJson(output, string(abi.encodePacked(outDir, "/address-provider.json")));
     }
 
-    function deployMarketConfigurator() external withBroadcast {
-        address addressProviderLegacy = vm.envAddress("ADDRESS_PROVIDER");
-        string memory name = vm.envString("CURATOR_NAME");
-
+    function _deployMarketConfigurator(address addressProviderLegacy, string memory name) internal {
         address acl = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL);
         address contractsRegister =
             IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_CONTRACTS_REGISTER, NO_VERSION_CONTROL);
