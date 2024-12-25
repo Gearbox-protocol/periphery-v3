@@ -270,7 +270,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         data.creditFacade = ICreditManagerV3(creditManager).creditFacade();
         data.underlying = ICreditManagerV3(creditManager).underlying();
         data.owner = ICreditManagerV3(creditManager).getBorrowerOrRevert(creditAccount);
-        data.expirationDate = ICreditFacadeV3(creditManager).expirationDate();
+        data.expirationDate = ICreditFacadeV3(data.creditFacade).expirationDate();
 
         CollateralDebtData memory cdd =
             ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_ONLY);
