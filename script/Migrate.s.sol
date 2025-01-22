@@ -8,10 +8,9 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {LibString} from "@solady/utils/LibString.sol";
 
-import {AddressProvider} from "@gearbox-protocol/governance/contracts/global/AddressProvider.sol";
-import {IACL} from "@gearbox-protocol/governance/contracts/interfaces/extensions/IACL.sol";
+import {AddressProvider} from "@gearbox-protocol/governance/contracts/instance/AddressProvider.sol";
+import {IACL} from "@gearbox-protocol/governance/contracts/interfaces/IACL.sol";
 import {
-    AP_ACCOUNT_FACTORY,
     AP_ACL,
     AP_BOT_LIST,
     AP_CONTRACTS_REGISTER,
@@ -75,7 +74,7 @@ contract MigrateScript is Script {
     function _deployAddressProvider(address addressProviderLegacy) internal {
         address acl = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL);
 
-        AddressProvider addressProvider = new AddressProvider();
+        AddressProvider addressProvider = new AddressProvider(address(this));
         console.log("new address provider:", address(addressProvider));
 
         // NOTE: just some fake address
@@ -86,7 +85,7 @@ contract MigrateScript is Script {
         });
 
         APMigration[16] memory migrations = [
-            APMigration({name: AP_ACCOUNT_FACTORY, version: 0}),
+            APMigration({name: "ACCOUNT_FACTORY", version: 0}),
             APMigration({name: AP_BOT_LIST, version: 300}),
             APMigration({name: AP_DEGEN_DISTRIBUTOR, version: 0}),
             APMigration({name: AP_DEGEN_NFT, version: 1}),
@@ -126,14 +125,14 @@ contract MigrateScript is Script {
         address priceFeedCompressor = address(new PriceFeedCompressor());
         addressProvider.setAddress(priceFeedCompressor, true);
 
-        address marketCompressor = address(new MarketCompressor(address(addressProvider), priceFeedCompressor));
+        address marketCompressor = address(new MarketCompressor(address(addressProvider)));
         addressProvider.setAddress(marketCompressor, true);
 
         address creditAccountCompressor = address(new CreditAccountCompressor(address(addressProvider)));
         addressProvider.setAddress(creditAccountCompressor, true);
 
         // NOTE: configurator must later accept ownership over new address provider
-        addressProvider.transferOwnership(Ownable(acl).owner());
+        // addressProvider.transferOwnership(Ownable(acl).owner());
 
         string memory obj1 = "address_provider";
         vm.serializeAddress(obj1, "addressProvider", address(addressProvider));

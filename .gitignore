@@ -1,6 +1,6 @@
 # Compiler files
 cache/
-/forge-out/* 
+/out/* 
 /node_modules/
 /lib/
 # Ignores development broadcast logs

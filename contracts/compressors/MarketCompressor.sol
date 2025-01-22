@@ -10,8 +10,8 @@ import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
 
-import {IACL} from "@gearbox-protocol/governance/contracts/interfaces/extensions/IACL.sol";
-import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/extensions/IContractsRegister.sol";
+import {IACL} from "@gearbox-protocol/governance/contracts/interfaces/IACL.sol";
+import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
 import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
 import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
 import {IMarketConfiguratorFactory} from
@@ -41,6 +41,13 @@ import {PoolState} from "../types/PoolState.sol";
 import {PriceOracleState} from "../types/PriceOracleState.sol";
 
 import {IMarketCompressor} from "../interfaces/IMarketCompressor.sol";
+import {
+    AP_MARKET_COMPRESSOR,
+    AP_POOL_COMPRESSOR,
+    AP_TOKEN_COMPRESSOR,
+    AP_PRICE_FEED_COMPRESSOR,
+    AP_CREDIT_SUITE_COMPRESSOR
+} from "../libraries/Literals.sol";
 
 /// @title Data compressor 3.0.
 /// @notice Collects data from various contracts for use in the dApp
@@ -49,7 +56,7 @@ contract MarketCompressor is IMarketCompressor {
     using Contains for address[];
 
     uint256 public constant version = 3_10;
-    bytes32 public constant contractType = "MARKET_COMPRESSOR";
+    bytes32 public constant contractType = AP_MARKET_COMPRESSOR;
 
     address public immutable addressProvider;
     address public immutable marketConfiguratorFactory;
@@ -64,15 +71,22 @@ contract MarketCompressor is IMarketCompressor {
         address configurator;
     }
 
-    constructor(address addressProvider_, address priceOracleCompressorAddress) {
+    constructor(address addressProvider_) {
         addressProvider = addressProvider_;
+
+        // TODO: change to normal discovery
+
         marketConfiguratorFactory =
             IAddressProvider(addressProvider_).getAddressOrRevert(AP_MARKET_CONFIGURATOR_FACTORY, NO_VERSION_CONTROL);
 
-        poolCompressor = new PoolCompressor();
-        tokenCompressor = new TokenCompressor();
-        creditSuiteCompressor = new CreditSuiteCompressor();
-        priceOracleCompressor = PriceFeedCompressor(priceOracleCompressorAddress);
+        poolCompressor = PoolCompressor(IAddressProvider(addressProvider_).getAddressOrRevert(AP_POOL_COMPRESSOR, 3_10));
+        tokenCompressor =
+            TokenCompressor(IAddressProvider(addressProvider_).getAddressOrRevert(AP_TOKEN_COMPRESSOR, 3_10));
+        creditSuiteCompressor = CreditSuiteCompressor(
+            IAddressProvider(addressProvider_).getAddressOrRevert(AP_CREDIT_SUITE_COMPRESSOR, 3_10)
+        );
+        priceOracleCompressor =
+            PriceFeedCompressor(IAddressProvider(addressProvider_).getAddressOrRevert(AP_PRICE_FEED_COMPRESSOR, 3_10));
     }
 
     function getMarkets(MarketFilter memory filter) external view returns (MarketData[] memory result) {
@@ -170,7 +184,7 @@ contract MarketCompressor is IMarketCompressor {
 
     function _getLossPolicy(address pool, address configurator) internal view returns (address) {
         address contractsRegister = IMarketConfigurator(configurator).contractsRegister();
-        return IContractsRegister(contractsRegister).getLossLiquidator(pool);
+        return IContractsRegister(contractsRegister).getLossPolicy(pool);
     }
 
     /// @dev Pools discovery

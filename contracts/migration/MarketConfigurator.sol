@@ -26,7 +26,7 @@ contract MarketConfigurator {
 
     constructor(string memory name_, address acl_, address contractsRegister_, address treasury_) {
         name = name_;
-        acl = address(new ACL());
+        acl = address(new ACL(address(this)));
         contractsRegister = address(new ContractsRegister(acl));
         treasury = treasury_;
 

@@ -20,7 +20,8 @@
     "@commitlint/config-conventional": "17.6.0",
     "@gearbox-protocol/sdk-gov": "^2.18.2",
     "@openzeppelin/contracts": "^4.9.3",
-    "@redstone-finance/evm-connector": "^0.6.1",
+    "@redstone-finance/evm-connector": "^0.2.5",
+    "@wagmi/cli": "^2.2.0",
     "ds-test": "dapphub/ds-test",
     "forge-std": "foundry-rs/forge-std"
   },

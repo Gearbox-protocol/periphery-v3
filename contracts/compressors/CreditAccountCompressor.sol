@@ -19,7 +19,7 @@ import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/C
 import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
 import {ICreditAccountCompressor} from "../interfaces/ICreditAccountCompressor.sol";
 
-import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/extensions/IContractsRegister.sol";
+import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
 import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
 import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
 import {IMarketConfiguratorFactory} from
@@ -33,17 +33,18 @@ import {CreditAccountData, TokenInfo} from "../types/CreditAccountState.sol";
 import {CreditAccountFilter, MarketFilter} from "../types/Filters.sol";
 
 import {Contains} from "../libraries/Contains.sol";
-
+import {AP_CREDIT_ACCOUNT_COMPRESSOR} from "../libraries/Literals.sol";
 /// @title  Credit account compressor
 /// @notice Allows to fetch data on all credit accounts matching certain criteria in an efficient manner
 /// @dev    The contract is not gas optimized and is thus not recommended for on-chain use
 /// @dev    Querying functions try to process as many accounts as possible and stop when they get close to gas limit
+
 contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     using Contains for address[];
 
     /// @notice Contract version
     uint256 public constant override version = 3_10;
-    bytes32 public constant override contractType = "CREDIT_ACCOUNT_COMPRESSOR";
+    bytes32 public constant override contractType = AP_CREDIT_ACCOUNT_COMPRESSOR;
 
     /// @notice Address provider contract address
     address public immutable addressProvider;
