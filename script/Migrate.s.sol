@@ -32,6 +32,8 @@ import {
 import {CreditAccountCompressor} from "../contracts/compressors/CreditAccountCompressor.sol";
 import {MarketCompressor} from "../contracts/compressors/MarketCompressor.sol";
 import {PriceFeedCompressor} from "../contracts/compressors/PriceFeedCompressor.sol";
+import {TokenCompressor} from "../contracts/compressors/TokenCompressor.sol";
+import {PoolCompressor} from "../contracts/compressors/PoolCompressor.sol";
 
 import {MarketConfigurator} from "../contracts/migration/MarketConfigurator.sol";
 
@@ -124,6 +126,12 @@ contract MigrateScript is Script {
 
         address priceFeedCompressor = address(new PriceFeedCompressor());
         addressProvider.setAddress(priceFeedCompressor, true);
+
+        address tokenCompressor = address(new TokenCompressor());
+        addressProvider.setAddress(tokenCompressor, true);
+
+        address poolCompressor = address(new PoolCompressor());
+        addressProvider.setAddress(poolCompressor, true);
 
         address marketCompressor = address(new MarketCompressor(address(addressProvider)));
         addressProvider.setAddress(marketCompressor, true);
