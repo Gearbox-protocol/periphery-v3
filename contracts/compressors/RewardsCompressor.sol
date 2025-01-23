@@ -59,14 +59,29 @@ contract RewardsCompressor is IRewardsCompressor {
         IConvexV1BaseRewardPoolAdapter convexAdapter = IConvexV1BaseRewardPoolAdapter(adapter);
         IBaseRewardPool rewardPool = IBaseRewardPool(convexAdapter.targetContract());
         address stakedPhantomToken = convexAdapter.stakedPhantomToken();
-        address booster = rewardPool.operator();
-        address minter = IBooster(booster).minter();
 
         rewards = new RewardInfo[](0);
 
-        // Get CRV/BAL rewards
+        // Get base and secondary rewards
+        rewards = _getBaseAndSecondaryRewards(adapter, creditAccount, rewardPool, stakedPhantomToken);
+
+        // Get extra rewards
+        rewards =
+            rewards.concat(_getExtraRewards(adapter, creditAccount, convexAdapter, rewardPool, stakedPhantomToken));
+    }
+
+    /// @dev Gets base (CRV/BAL) and secondary (CVX/AURA) rewards
+    function _getBaseAndSecondaryRewards(
+        address adapter,
+        address creditAccount,
+        IBaseRewardPool rewardPool,
+        address stakedPhantomToken
+    ) internal view returns (RewardInfo[] memory rewards) {
+        rewards = new RewardInfo[](0);
         uint256 baseAmount = rewardPool.earned(creditAccount);
+
         if (baseAmount > 0) {
+            // Add base reward
             rewards = rewards.append(
                 RewardInfo({
                     amount: baseAmount,
@@ -76,9 +91,12 @@ contract RewardsCompressor is IRewardsCompressor {
                 })
             );
 
-            // Get secondary token (CVX/AURA) rewards
+            // Get and add secondary reward if any
+            address booster = rewardPool.operator();
+            address minter = IBooster(booster).minter();
             (uint256 secondaryAmount, address secondaryToken) =
                 _getSecondaryReward(baseAmount, booster, minter, rewardPool);
+
             if (secondaryAmount > 0) {
                 rewards = rewards.append(
                     RewardInfo({
@@ -90,8 +108,16 @@ contract RewardsCompressor is IRewardsCompressor {
                 );
             }
         }
+    }
 
-        // Get extra rewards (unchanged)
+    /// @dev Gets extra rewards from the reward pool
+    function _getExtraRewards(
+        address adapter,
+        address creditAccount,
+        IConvexV1BaseRewardPoolAdapter convexAdapter,
+        IBaseRewardPool rewardPool,
+        address stakedPhantomToken
+    ) internal view returns (RewardInfo[] memory rewards) {
         address[4] memory extraRewards = [
             convexAdapter.extraReward1(),
             convexAdapter.extraReward2(),
@@ -100,6 +126,8 @@ contract RewardsCompressor is IRewardsCompressor {
         ];
 
         uint256 extraRewardsLength = rewardPool.extraRewardsLength();
+        rewards = new RewardInfo[](0);
+
         for (uint256 i = 0; i < extraRewardsLength && i < 4; ++i) {
             if (extraRewards[i] == address(0)) continue;
 
