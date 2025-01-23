@@ -30,6 +30,9 @@ import {IStakingRewards} from "@gearbox-protocol/integrations-v3/contracts/integ
 contract RewardsCompressor is IRewardsCompressor {
     using RewardInfoLib for RewardInfo[];
 
+    uint256 public constant override version = 3_10;
+    bytes32 public constant override contractType = "REWARDS_COMPRESSOR";
+
     /// @notice Returns array of earned rewards for a credit account across all adapters
     /// @param creditAccount Address of the credit account to check
     /// @return rewards Array of RewardInfo structs containing reward information

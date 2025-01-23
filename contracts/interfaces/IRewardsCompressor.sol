@@ -3,6 +3,8 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.23;
 
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
+
 /// @title Reward info struct
 struct RewardInfo {
     uint256 amount;
@@ -70,7 +72,7 @@ interface IConvexToken {
 
 /// @title Rewards compressor interface
 /// @notice Compresses information about earned rewards for various staking adapters
-interface IRewardsCompressor {
+interface IRewardsCompressor is IVersion {
     /// @notice Returns array of earned rewards for a credit account across all adapters
     /// @param creditAccount Address of the credit account to check
     /// @return rewards Array of RewardInfo structs containing reward information
