@@ -20,7 +20,8 @@
     "@commitlint/config-conventional": "17.6.0",
     "@gearbox-protocol/sdk-gov": "^2.18.2",
     "@openzeppelin/contracts": "^4.9.3",
-    "@redstone-finance/evm-connector": "^0.6.1",
+    "@redstone-finance/evm-connector": "^0.2.5",
+    "@wagmi/cli": "^2.2.0",
     "ds-test": "dapphub/ds-test",
     "forge-std": "foundry-rs/forge-std"
   },
@@ -33,5 +34,6 @@
   "lint-staged": {
     "*.sol": "forge fmt",
     "*.{json,md}": "prettier --write"
-  }
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

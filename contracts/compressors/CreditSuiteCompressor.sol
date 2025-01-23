@@ -16,8 +16,13 @@ import {CreditSuiteData} from "../types/CreditSuiteData.sol";
 
 import {AdapterCompressor} from "./AdapterCompressor.sol";
 
+import {AP_CREDIT_SUITE_COMPRESSOR} from "../libraries/Literals.sol";
+
 contract CreditSuiteCompressor {
     AdapterCompressor adapterCompressor;
+
+    uint256 public constant version = 3_10;
+    bytes32 public constant contractType = AP_CREDIT_SUITE_COMPRESSOR;
 
     constructor() {
         adapterCompressor = new AdapterCompressor();

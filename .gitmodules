@@ -1,9 +1,11 @@
 [submodule "lib/@gearbox-protocol/core-v3"]
 	path = lib/@gearbox-protocol/core-v3
 	url = https://github.com/Gearbox-protocol/core-v3
+	branch = next
 [submodule "lib/@gearbox-protocol/integrations-v3"]
 	path = lib/@gearbox-protocol/integrations-v3
 	url = https://github.com/Gearbox-protocol/integrations-v3
+	branch = next
 [submodule "lib/@gearbox-protocol/oracles-v3"]
 	path = lib/@gearbox-protocol/oracles-v3
 	url = https://github.com/Gearbox-protocol/oracles-v3
@@ -23,7 +25,10 @@
 [submodule "lib/@gearbox-protocol/sdk-gov"]
 	path = lib/@gearbox-protocol/sdk-gov
 	url = https://github.com/Gearbox-protocol/sdk-gov
+[submodule "lib/@solady"]
+	path = lib/@solady
+	url = https://github.com/Vectorized/solady
 [submodule "lib/@gearbox-protocol/governance"]
 	path = lib/@gearbox-protocol/governance
 	url = https://github.com/Gearbox-protocol/governance
-	branch = next
+	branch = getter-updates

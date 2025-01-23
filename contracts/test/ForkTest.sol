@@ -43,7 +43,7 @@ abstract contract ForkTest is Test {
 
         addressProvider = IAddressProvider(vm.envAddress("FORK_ADDRESS_PROVIDER"));
 
-        acl = new ACL();
+        acl = new ACL(address(this));
         aclLegacy = IACLLegacy(addressProvider.getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL));
         register = IContractsRegister(addressProvider.getAddressOrRevert(AP_CONTRACTS_REGISTER, NO_VERSION_CONTROL));
         configurator = Ownable(address(aclLegacy)).owner();
