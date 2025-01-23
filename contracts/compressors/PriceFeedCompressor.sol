@@ -269,6 +269,9 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
         try IPriceFeed(priceFeed).skipPriceCheck() returns (bool skipCheck) {
             data.skipCheck = skipCheck;
         } catch {}
+        try IPriceFeed(priceFeed).description() returns (string memory description) {
+            data.description = description;
+        } catch {}
 
         try IUpdatablePriceFeed(priceFeed).updatable() returns (bool updatable) {
             data.updatable = updatable;

@@ -33,6 +33,7 @@ struct PriceFeedMapEntry {
 
 // TODO: revise fields
 /// @notice Represents a node in the price feed "tree"
+/// @param  description Price feed description
 /// @param  priceFeed Price feed address
 /// @param  decimals Price feed's decimals (might not be equal to 8 for lower-level)
 /// @param  priceFeedType Price feed type (same as `PriceFeedType` but annotated as `uint8` to support future types),
@@ -47,6 +48,7 @@ struct PriceFeedMapEntry {
 /// @param  answer Price feed answer packed in a struct
 struct PriceFeedTreeNode {
     BaseParams baseParams;
+    string description;
     uint8 decimals;
     bool skipCheck;
     bool updatable;
