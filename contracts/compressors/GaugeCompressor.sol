@@ -31,8 +31,6 @@ contract GaugeCompressor is IGaugeCompressor {
     uint256 public constant version = 3_10;
     bytes32 public constant contractType = AP_GAUGE_COMPRESSOR;
 
-    bytes32 public constant GAUGE_CONTRACT_TYPE = "RATE_KEEPER::GAUGE";
-
     address public immutable marketConfiguratorFactory;
 
     struct Pool {
@@ -94,7 +92,7 @@ contract GaugeCompressor is IGaugeCompressor {
     /// @return True if the address is a valid gauge (either old or new version)
     function _isValidGauge(address gauge) internal view returns (bool) {
         try IGaugeV3(gauge).contractType() returns (bytes32 cType) {
-            return cType == GAUGE_CONTRACT_TYPE;
+            return cType == "RATE_KEEPER::GAUGE";
         } catch {
             return true;
         }
@@ -142,7 +140,7 @@ contract GaugeCompressor is IGaugeCompressor {
             ? filter.configurators
             : IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
 
-        // rough estimate of maximum number of credit pools
+        // rough estimate of maximum number of pools
         uint256 max;
         for (uint256 i; i < configurators.length; ++i) {
             address contractsRegister = IMarketConfigurator(configurators[i]).contractsRegister();
