@@ -10,11 +10,18 @@ import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVer
 import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {LibString} from "@solady/utils/LibString.sol";
+
+import {AnvilHelper} from "./AnvilHelper.sol";
+
 interface ICreditConfiguratorLegacy {
     function makeTokenQuoted(address token) external;
 }
 
-contract V30Fix is Script {
+contract V30Fix is Script, AnvilHelper {
+    using LibString for address;
+    using LibString for uint256;
+
     address constant ACL = 0x523dA3a8961E4dD4f6206DBf7E6c749f51796bb3;
     address constant CONTRACTS_REGISTER = 0xA50d4E7D8946a7c90652339CDBd262c375d54D99;
 
@@ -23,11 +30,15 @@ contract V30Fix is Script {
         address[] memory creditManagers = IContractsRegister(CONTRACTS_REGISTER).getCreditManagers();
 
         address aclOwner = Ownable(ACL).owner();
-        _setBalance(aclOwner, 10 ether, "http://127.0.0.1:8545");
+        _setBalance(aclOwner, 10 ether);
 
+        _autoImpersonate(true);
+        _impersonate(aclOwner);
         vm.startBroadcast(aclOwner);
 
-        for (uint256 i = 0; i < creditManagers.length; i++) {
+        uint256 len = creditManagers.length;
+
+        for (uint256 i = 0; i < len; i++) {
             address cm = creditManagers[i];
             uint256 version = IVersion(cm).version();
             if (version < 300 || version >= 3_10) continue;
@@ -44,22 +55,13 @@ contract V30Fix is Script {
                 address token = creditManager.getTokenByMask(tokenMask);
 
                 console.log("Making token quoted:", token);
+
                 ICreditConfiguratorLegacy(configurator).makeTokenQuoted(token);
             }
         }
 
         vm.stopBroadcast();
-    }
-
-    function _setBalance(address account, uint256 balance, string memory forkRpcUrl) internal {
-        string[] memory inputs = new string[](7);
-        inputs[0] = "cast";
-        inputs[1] = "rpc";
-        inputs[2] = "anvil_setBalance";
-        inputs[3] = vm.toString(account);
-        inputs[4] = vm.toString(balance);
-        inputs[5] = "--rpc-url";
-        inputs[6] = forkRpcUrl;
-        vm.ffi(inputs);
+        _stopImpersonate(aclOwner);
+        // _autoImpersonate(false);
     }
 }

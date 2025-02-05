@@ -66,6 +66,8 @@ import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfa
 import {IMarketConfiguratorFactory} from
     "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
 
+import {AnvilHelper} from "./AnvilHelper.sol";
+
 struct APMigration {
     bytes32 name;
     uint256 version;
@@ -75,11 +77,12 @@ interface IAddressProviderLegacy {
     function getAddressOrRevert(bytes32 key, uint256 version) external view returns (address);
 }
 
-contract V31Install is Script, GlobalSetup {
+contract V31Install is Script, GlobalSetup, AnvilHelper {
     using LibString for bytes32;
 
     constructor() GlobalSetup() {
         _setPeripheryContracts();
+        _autoImpersonate(false);
     }
 
     function run() public {
