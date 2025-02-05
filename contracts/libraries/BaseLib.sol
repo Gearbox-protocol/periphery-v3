@@ -16,13 +16,13 @@ library BaseLib {
     {
         baseParams.addr = addr;
         try IVersion(addr).contractType() returns (bytes32 contractType) {
+            baseParams.version = IVersion(addr).version();
             baseParams.contractType = contractType;
         } catch {
             baseParams.version = 3_00;
             baseParams.contractType = defaultContractType;
         }
 
-        baseParams.version = IVersion(addr).version();
         try IStateSerializer(addr).serialize() returns (bytes memory serializedParams) {
             baseParams.serializedParams = serializedParams;
         } catch {

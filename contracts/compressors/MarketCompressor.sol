@@ -162,8 +162,6 @@ contract MarketCompressor is IMarketCompressor {
         result.pausableAdmins = IACL(result.acl).getRoleHolders(ROLE_PAUSABLE_ADMIN);
         result.unpausableAdmins = IACL(result.acl).getRoleHolders(ROLE_UNPAUSABLE_ADMIN);
         result.emergencyLiquidators = IACL(result.acl).getRoleHolders(ROLE_EMERGENCY_LIQUIDATOR);
-
-        // TODO: add zappers
     }
 
     function _getTokens(address pool) internal view returns (address[] memory tokens) {
@@ -193,14 +191,14 @@ contract MarketCompressor is IMarketCompressor {
             ? filter.configurators
             : IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
 
-        // rough estimate of maximum number of credit pools
+        // rough estimate of maximum number of pools
         uint256 max;
         for (uint256 i; i < configurators.length; ++i) {
             address contractsRegister = IMarketConfigurator(configurators[i]).contractsRegister();
             max += IContractsRegister(contractsRegister).getPools().length;
         }
 
-        // allocate the array with maximum potentially needed size (total number of credit pools can be assumed
+        // allocate the array with maximum potentially needed size (total number of pools can be assumed
         // to be relatively small and the function is only called once, so memory expansion cost is not an issue)
         pools = new Pool[](max);
         uint256 num;

@@ -17,6 +17,8 @@ import {
     IConvexToken
 } from "../interfaces/IRewardsCompressor.sol";
 
+import {AdapterType} from "@gearbox-protocol/sdk-gov/contracts/AdapterType.sol";
+
 import {IConvexV1BaseRewardPoolAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/interfaces/convex/IConvexV1BaseRewardPoolAdapter.sol";
 import {IStakingRewardsAdapter} from
@@ -25,13 +27,20 @@ import {IBaseRewardPool} from "@gearbox-protocol/integrations-v3/contracts/integ
 import {IBooster} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/IBooster.sol";
 import {IStakingRewards} from "@gearbox-protocol/integrations-v3/contracts/integrations/sky/IStakingRewards.sol";
 
+import {AP_REWARDS_COMPRESSOR} from "../libraries/Literals.sol";
+
+interface ILegacyAdapter {
+    function _gearboxAdapterVersion() external view returns (uint16);
+    function _gearboxAdapterType() external view returns (uint8);
+}
+
 /// @title Rewards compressor
 /// @notice Compresses information about earned rewards for various staking adapters
 contract RewardsCompressor is IRewardsCompressor {
     using RewardInfoLib for RewardInfo[];
 
     uint256 public constant override version = 3_10;
-    bytes32 public constant override contractType = "REWARDS_COMPRESSOR";
+    bytes32 public constant override contractType = AP_REWARDS_COMPRESSOR;
 
     /// @notice Returns array of earned rewards for a credit account across all adapters
     /// @param creditAccount Address of the credit account to check
@@ -43,11 +52,11 @@ contract RewardsCompressor is IRewardsCompressor {
 
         rewards = new RewardInfo[](0);
         for (uint256 i = 0; i < adapters.length; ++i) {
-            bytes32 adapterType = IVersion(adapters[i]).contractType();
+            bytes32 adapterType = _getAdapterType(adapters[i]);
 
-            if (adapterType == "AD_CONVEX_V1_BASE_REWARD_POOL") {
+            if (adapterType == "ADAPTER::CVX_V1_BASE_REWARD_POOL") {
                 rewards = rewards.concat(_getConvexRewards(adapters[i], creditAccount));
-            } else if (adapterType == "AD_STAKING_REWARDS") {
+            } else if (adapterType == "ADAPTER::STAKING_REWARDS") {
                 rewards = rewards.concat(_getStakingRewards(adapters[i], creditAccount));
             }
         }
@@ -246,6 +255,21 @@ contract RewardsCompressor is IRewardsCompressor {
                 stakedPhantomToken: stakingAdapter.stakedPhantomToken(),
                 adapter: adapter
             });
+        }
+    }
+
+    function _getAdapterType(address adapter) internal view returns (bytes32) {
+        try IVersion(adapter).contractType() returns (bytes32 adapterType) {
+            return adapterType;
+        } catch {
+            uint8 adapterType = ILegacyAdapter(adapter)._gearboxAdapterType();
+            if (adapterType == uint8(AdapterType.CONVEX_V1_BASE_REWARD_POOL)) {
+                return "ADAPTER::CVX_V1_BASE_REWARD_POOL";
+            } else if (adapterType == uint8(AdapterType.STAKING_REWARDS)) {
+                return "ADAPTER::STAKING_REWARDS";
+            } else {
+                return "ADAPTER::IRRELEVANT";
+            }
         }
     }
 }
