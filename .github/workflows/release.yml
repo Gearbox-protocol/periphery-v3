@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: setup corepack for yarn 4
+      - name: setup corepack for pnpm
         run: corepack enable
 
       - name: Setup node.js
