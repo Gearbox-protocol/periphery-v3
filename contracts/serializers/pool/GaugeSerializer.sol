@@ -13,6 +13,14 @@ contract GaugeSerializer is IStateSerializerLegacy {
     function serialize(address gauge) external view override returns (bytes memory result) {
         IGaugeV3 _gauge = IGaugeV3(gauge);
 
+        // FIXME: the function shouldn't even be called for contracts other than v3.0 gauges
+        // but we need to add `serialize` to `TumblerV3` for that
+        try _gauge.contractType() returns (bytes32 cType) {
+            if (cType != "RATE_KEEPER::GAUGE") return "";
+        } catch {
+            // the only rate keepers that don't have `contractType` are v3.0 gauges
+        }
+
         address voter = _gauge.voter();
         uint40 epochLastUpdate = _gauge.epochLastUpdate();
         bool epochFrozen = IGaugeV3(gauge).epochFrozen();
