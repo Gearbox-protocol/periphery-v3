@@ -6,6 +6,7 @@ pragma solidity ^0.8.23;
 import {PoolV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IGaugeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IGaugeV3.sol";
+import {IUSDT} from "@gearbox-protocol/core-v3/contracts/interfaces/external/IUSDT.sol";
 
 // State & Params
 import {BaseParams, BaseState} from "../types/BaseState.sol";
@@ -42,7 +43,11 @@ contract PoolCompressor {
         //
         // CONTRACT PARAMETERS
         //
-        result.baseParams = BaseLib.getBaseParams(pool, "POOL", address(0));
+        bytes32 defaultContractType = "POOL";
+        try IUSDT(_pool.underlyingToken()).basisPointsRate() {
+            defaultContractType = "POOL::USDT";
+        } catch {}
+        result.baseParams = BaseLib.getBaseParams(pool, defaultContractType, address(0));
 
         //
         // ERC20 Properties
@@ -159,7 +164,7 @@ contract PoolCompressor {
     function getRateKeeperState(address rateKeeper) external view returns (RateKeeperState memory result) {
         IRateKeeper _rateKeeper = IRateKeeper(rateKeeper);
 
-        result.baseParams = BaseLib.getBaseParams(rateKeeper, "GAUGE", gaugeSerializer);
+        result.baseParams = BaseLib.getBaseParams(rateKeeper, "RATE_KEEPER::GAUGE", gaugeSerializer);
 
         IPoolQuotaKeeperV3 _pqk = IPoolQuotaKeeperV3(PoolV3(_rateKeeper.pool()).poolQuotaKeeper());
 
@@ -176,10 +181,10 @@ contract PoolCompressor {
     }
 
     function getInterestRateModelState(address addr) public view returns (BaseState memory) {
-        return BaseLib.getBaseState(addr, "IRM_LINEAR", linearInterestRateModelSerializer);
+        return BaseLib.getBaseState(addr, "IRM::LINEAR", linearInterestRateModelSerializer);
     }
 
     function getLossPolicyState(address lossPolicy) public view returns (BaseState memory) {
-        return BaseLib.getBaseState(lossPolicy, "LP_ALIASED", address(0));
+        return BaseLib.getBaseState(lossPolicy, "LOSS_POLICY::DEFAULT", address(0));
     }
 }

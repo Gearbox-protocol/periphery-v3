@@ -11,6 +11,7 @@ import {IPriceFeedCompressor} from "../interfaces/IPriceFeedCompressor.sol";
 import {PriceFeedType} from "@gearbox-protocol/sdk-gov/contracts/PriceFeedType.sol";
 
 import {BaseLib} from "../libraries/BaseLib.sol";
+import {AP_PRICE_FEED_COMPRESSOR} from "../libraries/Literals.sol";
 
 import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
 import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
@@ -44,7 +45,7 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
 
     /// @notice Contract version
     uint256 public constant override version = 3_10;
-    bytes32 public constant override contractType = "PRICE_FEED_COMPRESSOR";
+    bytes32 public constant override contractType = AP_PRICE_FEED_COMPRESSOR;
 
     /// @notice Map of state serializers for different price feed types
     /// @dev    Serializers only apply to feeds that don't implement `IStateSerializer` themselves
@@ -58,46 +59,40 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
     constructor() {
         address lpSerializer = address(new LPPriceFeedSerializer());
 
-        contractTypes[uint8(PriceFeedType.ZERO_ORACLE)] = "PF_ZERO_ORACLE";
-        contractTypes[uint8(PriceFeedType.CHAINLINK_ORACLE)] = "PF_CHAINLINK_ORACLE";
-        contractTypes[uint8(PriceFeedType.COMPOSITE_ORACLE)] = "PF_COMPOSITE_ORACLE";
-
-        contractTypes[uint8(PriceFeedType.BALANCER_STABLE_LP_ORACLE)] = "PF_BALANCER_STABLE_LP_ORACLE";
-        contractTypes[uint8(PriceFeedType.COMPOUND_V2_ORACLE)] = "NOT_USED";
-        contractTypes[uint8(PriceFeedType.CURVE_2LP_ORACLE)] = "PF_CURVE_STABLE_LP_ORACLE";
-        contractTypes[uint8(PriceFeedType.CURVE_3LP_ORACLE)] = "PF_CURVE_STABLE_LP_ORACLE";
-        contractTypes[uint8(PriceFeedType.CURVE_4LP_ORACLE)] = "PF_CURVE_STABLE_LP_ORACLE";
-        contractTypes[uint8(PriceFeedType.CURVE_CRYPTO_ORACLE)] = "PF_CURVE_CRYPTO_LP_ORACLE";
-        contractTypes[uint8(PriceFeedType.CURVE_USD_ORACLE)] = "PF_CURVE_USD_ORACLE";
-        contractTypes[uint8(PriceFeedType.ERC4626_VAULT_ORACLE)] = "PF_ERC4626_ORACLE";
-        contractTypes[uint8(PriceFeedType.WRAPPED_AAVE_V2_ORACLE)] = "NOT_USED";
-        contractTypes[uint8(PriceFeedType.WSTETH_ORACLE)] = "PF_WSTETH_ORACLE";
-        contractTypes[uint8(PriceFeedType.YEARN_ORACLE)] = "PF_YEARN_ORACLE";
-        contractTypes[uint8(PriceFeedType.MELLOW_LRT_ORACLE)] = "PF_MELLOW_LRT_ORACLE";
-        contractTypes[uint8(PriceFeedType.PENDLE_PT_TWAP_ORACLE)] = "PF_PENDLE_PT_TWAP_ORACLE";
-
-        // these types need special serialization
-        contractTypes[uint8(PriceFeedType.BALANCER_WEIGHTED_LP_ORACLE)] = "PF_BALANCER_WEIGHTED_LP_ORACLE";
-        contractTypes[uint8(PriceFeedType.BOUNDED_ORACLE)] = "PF_BOUNDED_ORACLE";
-        contractTypes[uint8(PriceFeedType.PYTH_ORACLE)] = "PF_PYTH_ORACLE";
-        contractTypes[uint8(PriceFeedType.REDSTONE_ORACLE)] = "PF_REDSTONE_ORACLE";
+        contractTypes[uint8(PriceFeedType.BALANCER_STABLE_LP_ORACLE)] = "PRICE_FEED::BALANCER_STABLE";
+        contractTypes[uint8(PriceFeedType.BALANCER_WEIGHTED_LP_ORACLE)] = "PRICE_FEED::BALANCER_WEIGHTED";
+        contractTypes[uint8(PriceFeedType.BOUNDED_ORACLE)] = "PRICE_FEED::BOUNDED";
+        contractTypes[uint8(PriceFeedType.COMPOSITE_ORACLE)] = "PRICE_FEED::COMPOSITE";
+        contractTypes[uint8(PriceFeedType.CURVE_2LP_ORACLE)] = "PRICE_FEED::CURVE_STABLE";
+        contractTypes[uint8(PriceFeedType.CURVE_3LP_ORACLE)] = "PRICE_FEED::CURVE_STABLE";
+        contractTypes[uint8(PriceFeedType.CURVE_4LP_ORACLE)] = "PRICE_FEED::CURVE_STABLE";
+        contractTypes[uint8(PriceFeedType.CURVE_CRYPTO_ORACLE)] = "PRICE_FEED::CURVE_CRYPTO";
+        contractTypes[uint8(PriceFeedType.CURVE_USD_ORACLE)] = "PRICE_FEED::CURVE_USD";
+        contractTypes[uint8(PriceFeedType.ERC4626_VAULT_ORACLE)] = "PRICE_FEED::ERC4626";
+        contractTypes[uint8(PriceFeedType.MELLOW_LRT_ORACLE)] = "PRICE_FEED::MELLOW_LRT";
+        contractTypes[uint8(PriceFeedType.PENDLE_PT_TWAP_ORACLE)] = "PRICE_FEED::PENDLE_PT_TWAP";
+        contractTypes[uint8(PriceFeedType.PYTH_ORACLE)] = "PRICE_FEED::PYTH";
+        contractTypes[uint8(PriceFeedType.REDSTONE_ORACLE)] = "PRICE_FEED::REDSTONE";
+        contractTypes[uint8(PriceFeedType.WSTETH_ORACLE)] = "PRICE_FEED::WSTETH";
+        contractTypes[uint8(PriceFeedType.YEARN_ORACLE)] = "PRICE_FEED::YEARN";
+        contractTypes[uint8(PriceFeedType.ZERO_ORACLE)] = "PRICE_FEED::ZERO";
 
         // these types can be serialized as generic LP price feeds
-        _setSerializer("PF_BALANCER_STABLE_LP_ORACLE", lpSerializer);
-        _setSerializer("PF_CURVE_STABLE_LP_ORACLE", lpSerializer);
-        _setSerializer("PF_CURVE_CRYPTO_LP_ORACLE", lpSerializer);
-        _setSerializer("PF_CURVE_USD_ORACLE", lpSerializer);
-        _setSerializer("PF_ERC4626_ORACLE", lpSerializer);
-        _setSerializer("PF_WSTETH_ORACLE", lpSerializer);
-        _setSerializer("PF_YEARN_ORACLE", lpSerializer);
-        _setSerializer("PF_MELLOW_LRT_ORACLE", lpSerializer);
+        _setSerializer("PRICE_FEED::BALANCER_STABLE", lpSerializer);
+        _setSerializer("PRICE_FEED::CURVE_STABLE", lpSerializer);
+        _setSerializer("PRICE_FEED::CURVE_CRYPTO", lpSerializer);
+        _setSerializer("PRICE_FEED::CURVE_USD", lpSerializer);
+        _setSerializer("PRICE_FEED::ERC4626", lpSerializer);
+        _setSerializer("PRICE_FEED::MELLOW_LRT", lpSerializer);
+        _setSerializer("PRICE_FEED::WSTETH", lpSerializer);
+        _setSerializer("PRICE_FEED::YEARN", lpSerializer);
 
         // these types need special serialization
-        _setSerializer("PF_BALANCER_WEIGHTED_LP_ORACLE", address(new BPTWeightedPriceFeedSerializer()));
-        _setSerializer("PF_BOUNDED_ORACLE", address(new BoundedPriceFeedSerializer()));
-        _setSerializer("PF_PYTH_ORACLE", address(new PythPriceFeedSerializer()));
-        _setSerializer("PF_REDSTONE_ORACLE", address(new RedstonePriceFeedSerializer()));
-        _setSerializer("PF_PENDLE_PT_TWAP_ORACLE", address(new PendleTWAPPTPriceFeedSerializer()));
+        _setSerializer("PRICE_FEED::BALANCER_WEIGHTED", address(new BPTWeightedPriceFeedSerializer()));
+        _setSerializer("PRICE_FEED::BOUNDED", address(new BoundedPriceFeedSerializer()));
+        _setSerializer("PRICE_FEED::PENDLE_PT_TWAP", address(new PendleTWAPPTPriceFeedSerializer()));
+        _setSerializer("PRICE_FEED::PYTH", address(new PythPriceFeedSerializer()));
+        _setSerializer("PRICE_FEED::REDSTONE", address(new RedstonePriceFeedSerializer()));
     }
 
     /// @notice Returns all potentially useful price feeds data for a given price oracle in the form of two arrays:
@@ -257,7 +252,7 @@ contract PriceFeedCompressor is IPriceFeedCompressor {
             try ImplementsPriceFeedType(priceFeed).priceFeedType() returns (uint8 priceFeedType) {
                 data.baseParams.contractType = contractTypes[priceFeedType];
             } catch {
-                data.baseParams.contractType = "PF_CHAINLINK_ORACLE";
+                data.baseParams.contractType = "PRICE_FEED::EXTERNAL";
             }
         }
 
