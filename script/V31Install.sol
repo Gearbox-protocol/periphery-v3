@@ -7,6 +7,7 @@ import {console} from "forge-std/console.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 import {AdapterCompressor} from "../contracts/compressors/AdapterCompressor.sol";
+import {GaugeCompressor} from "../contracts/compressors/GaugeCompressor.sol";
 import {PriceFeedCompressor} from "../contracts/compressors/PriceFeedCompressor.sol";
 import {TokenCompressor} from "../contracts/compressors/TokenCompressor.sol";
 import {MarketCompressor} from "../contracts/compressors/MarketCompressor.sol";
@@ -44,6 +45,7 @@ import {
 
 import {
     AP_ADAPTER_COMPRESSOR,
+    AP_GAUGE_COMPRESSOR,
     AP_MARKET_COMPRESSOR,
     AP_POOL_COMPRESSOR,
     AP_TOKEN_COMPRESSOR,
@@ -86,7 +88,7 @@ contract V31Install is Script, GlobalSetup {
 
         _setUpGlobalContracts();
 
-        DeploySystemContractCall[9] memory deployCalls = [
+        DeploySystemContractCall[10] memory deployCalls = [
             DeploySystemContractCall({contractType: AP_TOKEN_COMPRESSOR, version: 3_10, saveVersion: true}),
             DeploySystemContractCall({contractType: AP_CREDIT_ACCOUNT_COMPRESSOR, version: 3_10, saveVersion: true}),
             DeploySystemContractCall({contractType: AP_PRICE_FEED_COMPRESSOR, version: 3_10, saveVersion: true}),
@@ -95,7 +97,8 @@ contract V31Install is Script, GlobalSetup {
             DeploySystemContractCall({contractType: AP_MARKET_COMPRESSOR, version: 3_10, saveVersion: true}),
             DeploySystemContractCall({contractType: AP_PERIPHERY_COMPRESSOR, version: 3_10, saveVersion: true}),
             DeploySystemContractCall({contractType: AP_REWARDS_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_ADAPTER_COMPRESSOR, version: 3_10, saveVersion: true})
+            DeploySystemContractCall({contractType: AP_ADAPTER_COMPRESSOR, version: 3_10, saveVersion: true}),
+            DeploySystemContractCall({contractType: AP_GAUGE_COMPRESSOR, version: 3_10, saveVersion: true})
         ];
 
         uint256 len = deployCalls.length;
@@ -248,6 +251,14 @@ contract V31Install is Script, GlobalSetup {
             UploadableContract({
                 initCode: type(AdapterCompressor).creationCode,
                 contractType: AP_ADAPTER_COMPRESSOR,
+                version: 3_10
+            })
+        );
+
+        contractsToUpload.push(
+            UploadableContract({
+                initCode: type(GaugeCompressor).creationCode,
+                contractType: AP_GAUGE_COMPRESSOR,
                 version: 3_10
             })
         );
