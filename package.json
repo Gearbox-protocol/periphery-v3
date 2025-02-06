@@ -22,13 +22,16 @@
     "@openzeppelin/contracts": "^4.9.3",
     "@redstone-finance/evm-connector": "^0.2.5",
     "@wagmi/cli": "^2.2.0",
+    "@gearbox-protocol/sdk": "3.0.0-vfour.190",
     "ds-test": "dapphub/ds-test",
     "forge-std": "foundry-rs/forge-std"
   },
   "dependencies": {
     "husky": "^8.0.3",
     "lint-staged": "^13.0.3",
-    "prettier": "^3.0.3"
+    "prettier": "^3.0.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
   },
   "prettier": "@gearbox-protocol/prettier-config",
   "lint-staged": {

@@ -30,6 +30,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: 17.6.0
         version: 17.6.0
+      '@gearbox-protocol/sdk':
+        specifier: 3.0.0-vfour.190
+        version: 3.0.0-vfour.190(axios@1.7.9)(typescript@5.7.3)(zod@3.24.1)
       '@gearbox-protocol/sdk-gov':
         specifier: ^2.18.2
         version: 2.33.2
@@ -397,6 +400,11 @@ packages:
   '@gearbox-protocol/sdk-gov@2.33.2':
     resolution: {integrity: sha512-P1Bcb8kBg1ZVdloLMQpqkJvPxp4cV7vIRBPRI0XRzsLciJM5ME1dAWiwaZENZGlN52aOzu024gal0HIYZYuR5g==}
 
+  '@gearbox-protocol/sdk@3.0.0-vfour.190':
+    resolution: {integrity: sha512-WddueIZ+DyrvYrFA7lr16FUP5ThdUwCANwL/nRNK3C7FRBu44KA+r541581Eyhh9u3PBWtADNnDNhd+/CznU0A==}
+    peerDependencies:
+      axios: ^1.0.0
+
   '@jridgewell/resolve-uri@3.1.2':
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
     engines: {node: '>=6.0.0'}
@@ -566,6 +574,21 @@ packages:
   '@redstone-finance/evm-connector@0.2.5':
     resolution: {integrity: sha512-JjMJVXbgmvmbKleIwzMOKu10mDXTABVoYmmfErF2M7M6pftPiKFIVH16gycU93aQVZeRQ74rieQ55Q691xPS8Q==}
 
+  '@redstone-finance/evm-connector@0.7.5':
+    resolution: {integrity: sha512-YJRkeEgkgMpLIYeWkfFOumM13Im2DbpQr6KmLHq1Iec96G7pW2KrvgzFz1J83yO4LjNMkHAd5g7skpJnDWM4FA==}
+
+  '@redstone-finance/oracles-smartweave-contracts@0.7.5':
+    resolution: {integrity: sha512-js9X7HbKqLAttbElOLQO9/kf6kU/pGMtfUyd2PuOPFWcLgSGWPBoXQgtGstJyeY91Uhzg2TveqgbrZow+4PstQ==}
+
+  '@redstone-finance/protocol@0.7.5':
+    resolution: {integrity: sha512-Yh/tCDqBM293JdDg84f1jPlmxHcg76UboDs5OnRwv3T0Ra0M5NH8GKydKNaAc83LVQhxbA7z829brPDaefbPLQ==}
+
+  '@redstone-finance/sdk@0.7.5':
+    resolution: {integrity: sha512-IAJDpHxsHg0hv5yW26Gocn5WScR/LRB/+mnSKZzUk72ILBq6vUkV9J9lE/zdgKYBBlMtzj7OElIkcDNjkR2xKQ==}
+
+  '@redstone-finance/utils@0.7.5':
+    resolution: {integrity: sha512-hldeC00/V397GMn/UHtYQ9ybbUET9bAM2sinlyK0bnLNx+nLlPAV9ePltqh56V5/7Bn+BDYYDDkRSGy7cj9X5w==}
+
   '@scure/base@1.1.9':
     resolution: {integrity: sha512-8YKhl8GHiNI/pU2VMaofa2Tor7PJRAjwQLBBuilkJ9L5+13yVbC7JO/wS7piioAvPSwR3JKM1IJ/u4xQzbcXKg==}
 
@@ -635,6 +658,9 @@ packages:
 
   '@types/bn.js@5.1.6':
     resolution: {integrity: sha512-Xh8vSwUeMKeYYrj3cX4lGQgFSF/N03r+tv4AiLl1SucqV+uTQpxRcnM8AkXKHwYP9ZPXOYXRr2KPXpVlIvqh9w==}
+
+  '@types/lodash@4.17.15':
+    resolution: {integrity: sha512-w/P33JFeySuhN6JLkysYUK2gEmy9kHHFN7E8ro0tkfmlDOgxBDzWEZ/J8cWA+fHqFevpswDTFZnDx+R9lbL6xw==}
 
   '@types/lru-cache@5.1.1':
     resolution: {integrity: sha512-ssE3Vlrys7sdIzs5LOxCzTVMsU7i9oa/IaW92wF32JFb3CVczqOkru2xspuKczHEbG3nvmPY7IFqVmGGHdNbYw==}
@@ -964,6 +990,9 @@ packages:
   compare-func@2.0.0:
     resolution: {integrity: sha512-zHig5N+tPWARooBnb0Zx1MFcdfpyJrfTJ3Y5L+IFvUm8rM74hHz66z0gw0x4tijh5CorKkKUCnW82R2vmpeCRA==}
 
+  consola@2.15.3:
+    resolution: {integrity: sha512-9vAdYbHj6x2fLKC4+oPH0kFzY/orMZyG2Aj+kNylHxKGJ/Ed4dpNyAQYwJOdqO4zdM7XpVHmyejQDcQHrnuXbw==}
+
   conventional-changelog-angular@6.0.0:
     resolution: {integrity: sha512-6qLgrBF4gueoC7AFVHu51nHL9pF9FRjXrH+ceVf7WmAfH3gs+gEYOkvxhjMPjZu57I4AGUGoNTY8V7Hrgf1uqg==}
     engines: {node: '>=14'}
@@ -1016,6 +1045,9 @@ packages:
     resolution: {integrity: sha512-2iy1EkLdlBzQGvbweYRFxmFath8+K7+AKB0TlhHWkNuH+TmovaMH/Wp7V7R4u7f4SnX3OgLsU9t1NI9ioDnUpg==}
     engines: {node: '>=8'}
 
+  date-fns@4.1.0:
+    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
+
   debug@4.3.4:
     resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
     engines: {node: '>=6.0'}
@@ -1045,6 +1077,9 @@ packages:
   decamelize@4.0.0:
     resolution: {integrity: sha512-9iE1PgSik9HeIIw2JO94IidnE3eBoQrFJ3w7sFuzSX4DpmZ3v5sZpUiV5Swcf6mQEF+Y0ru8Neo+p+nyh2J+hQ==}
     engines: {node: '>=10'}
+
+  decimal.js-light@2.5.1:
+    resolution: {integrity: sha512-qIMFpTMZmny+MMIitAB6D7iVPEorVw6YQRWkvarTkT4tBeSLLiHzcwj6q0MmYSFCiVpiqPJTJEYIrpcPzVEIvg==}
 
   decimal.js@10.4.3:
     resolution: {integrity: sha512-VBBaLc1MgL5XpzgIP7ny5Z6Nx3UrRkIViUkPUdtl9aya5amy3De1gsUUSB1g3+3sExYNjCAsAznmukyxCb1GRA==}
@@ -1909,6 +1944,10 @@ packages:
 
   secp256k1@4.0.4:
     resolution: {integrity: sha512-6JfvwvjUOn8F/jUoBY2Q1v5WY5XS+rj8qSe0v8Y4ezH4InLgTEeOOPQsRll9OV429Pvo6BCHGavIyJfr3TAhsw==}
+    engines: {node: '>=18.0.0'}
+
+  secp256k1@5.0.1:
+    resolution: {integrity: sha512-lDFs9AAIaWP9UCdtWrotXWWF9t8PWgQDcxqgAnpM9rMqxb3Oaq2J0thzPVSxBwdJgyQtkU/sYtFtbM1RSt/iYA==}
     engines: {node: '>=18.0.0'}
 
   semver@5.7.2:
@@ -2839,6 +2878,22 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  '@gearbox-protocol/sdk@3.0.0-vfour.190(axios@1.7.9)(typescript@5.7.3)(zod@3.24.1)':
+    dependencies:
+      '@redstone-finance/evm-connector': 0.7.5
+      '@redstone-finance/protocol': 0.7.5
+      abitype: 1.0.8(typescript@5.7.3)(zod@3.24.1)
+      axios: 1.7.9
+      date-fns: 4.1.0
+      decimal.js-light: 2.5.1
+      viem: 2.22.10(typescript@5.7.3)(zod@3.24.1)
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - typescript
+      - utf-8-validate
+      - zod
+
   '@jridgewell/resolve-uri@3.1.2': {}
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
@@ -2997,6 +3052,62 @@ snapshots:
       - debug
       - utf-8-validate
 
+  '@redstone-finance/evm-connector@0.7.5':
+    dependencies:
+      '@chainlink/contracts': 0.6.1(ethers@5.7.2)
+      '@openzeppelin/contracts': 4.9.6
+      '@redstone-finance/protocol': 0.7.5
+      '@redstone-finance/sdk': 0.7.5
+      '@redstone-finance/utils': 0.7.5
+      axios: 1.7.9
+      ethers: 5.7.2
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+
+  '@redstone-finance/oracles-smartweave-contracts@0.7.5': {}
+
+  '@redstone-finance/protocol@0.7.5':
+    dependencies:
+      decimal.js: 10.4.3
+      ethers: 5.7.2
+      secp256k1: 5.0.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@redstone-finance/sdk@0.7.5':
+    dependencies:
+      '@ethersproject/bytes': 5.7.0
+      '@ethersproject/strings': 5.7.0
+      '@redstone-finance/oracles-smartweave-contracts': 0.7.5
+      '@redstone-finance/protocol': 0.7.5
+      '@redstone-finance/utils': 0.7.5
+      '@types/lodash': 4.17.15
+      axios: 1.7.9
+      ethers: 5.7.2
+      lodash: 4.17.21
+      zod: 3.24.1
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+
+  '@redstone-finance/utils@0.7.5':
+    dependencies:
+      '@types/lodash': 4.17.15
+      axios: 1.7.9
+      consola: 2.15.3
+      decimal.js: 10.4.3
+      ethers: 5.7.2
+      lodash: 4.17.21
+      zod: 3.24.1
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+
   '@scure/base@1.1.9': {}
 
   '@scure/base@1.2.4': {}
@@ -3098,6 +3209,8 @@ snapshots:
   '@types/bn.js@5.1.6':
     dependencies:
       '@types/node': 22.10.7
+
+  '@types/lodash@4.17.15': {}
 
   '@types/lru-cache@5.1.1': {}
 
@@ -3439,6 +3552,8 @@ snapshots:
       array-ify: 1.0.0
       dot-prop: 5.3.0
 
+  consola@2.15.3: {}
+
   conventional-changelog-angular@6.0.0:
     dependencies:
       compare-func: 2.0.0
@@ -3501,6 +3616,8 @@ snapshots:
 
   dargs@7.0.0: {}
 
+  date-fns@4.1.0: {}
+
   debug@4.3.4:
     dependencies:
       ms: 2.1.2
@@ -3519,6 +3636,8 @@ snapshots:
   decamelize@1.2.0: {}
 
   decamelize@4.0.0: {}
+
+  decimal.js-light@2.5.1: {}
 
   decimal.js@10.4.3: {}
 
@@ -4508,6 +4627,12 @@ snapshots:
   scrypt-js@3.0.1: {}
 
   secp256k1@4.0.4:
+    dependencies:
+      elliptic: 6.6.1
+      node-addon-api: 5.1.0
+      node-gyp-build: 4.8.4
+
+  secp256k1@5.0.1:
     dependencies:
       elliptic: 6.6.1
       node-addon-api: 5.1.0
