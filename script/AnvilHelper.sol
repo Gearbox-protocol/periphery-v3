@@ -13,7 +13,7 @@ contract AnvilHelper is Script {
     }
 
     function _autoImpersonate(bool autoImpersonate) internal {
-        vm.rpc("anvil_autoImpersonateAccount", string.concat("[", autoImpersonate ? "true" : "false", "]"));
+        vm.rpc("anvil_autoImpersonateAccount", string.concat("[", vm.toString(autoImpersonate), "]"));
     }
 
     function _impersonate(address account) internal {

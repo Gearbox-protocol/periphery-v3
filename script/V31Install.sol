@@ -65,6 +65,7 @@ import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interface
 import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
 import {IMarketConfiguratorFactory} from
     "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
+import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
 
 import {AnvilHelper} from "./AnvilHelper.sol";
 
@@ -132,7 +133,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
 
         vm.stopBroadcast();
 
-        _exportJson();
+        _saveAddresses(vm.envOr("OUT_DIR", string(".")));
     }
 
     function _connectLegacyContracts() internal returns (address gear, address weth, address treasury) {
@@ -360,5 +361,31 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             emergencyLiquidators: emergencyLiquidators,
             bots: bots
         });
+    }
+
+    function _saveAddresses(string memory path) internal {
+        address addressProvider = instanceManager.addressProvider();
+
+        string memory json = vm.serializeAddress("addresses", "instanceManager", address(instanceManager));
+        json = vm.serializeAddress("addresses", "bytecodeRepository", address(bytecodeRepository));
+        json = vm.serializeAddress("addresses", "multisig", address(multisig));
+        json = vm.serializeAddress("addresses", "addressProvider", addressProvider);
+
+        address marketConfiguratorFactory =
+            IAddressProvider(addressProvider).getAddressOrRevert(AP_MARKET_CONFIGURATOR_FACTORY, NO_VERSION_CONTROL);
+        address[] memory marketConfigurators =
+            IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
+        for (uint256 i; i < marketConfigurators.length; ++i) {
+            json = vm.serializeAddress(
+                "addresses",
+                string.concat(
+                    "market-configurator-",
+                    vm.replace(vm.toLowercase(IMarketConfigurator(marketConfigurators[i]).curatorName()), " ", "-")
+                ),
+                marketConfigurators[i]
+            );
+        }
+
+        vm.writeJson(json, string.concat(path, "/addresses.json"));
     }
 }
