@@ -1,6 +1,8 @@
 #!/bin/bash
 
-ANVIL_URL=${1:-http://localhost:8545}
+if [ -z "$ANVIL_URL" ]; then
+    ANVIL_URL="http://127.0.0.1:8545"
+fi
 
 forge script script/V30Fix.sol:V30Fix --rpc-url ${ANVIL_URL} --unlocked --sender 0x0000000000000000000000000000000000000000 --ffi --broadcast
 forge script script/V31Install.sol:V31Install --rpc-url ${ANVIL_URL} --broadcast

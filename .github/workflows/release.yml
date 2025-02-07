@@ -58,8 +58,7 @@ jobs:
             ghcr.io/gearbox-protocol/periphery-v3
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}},value=${{ steps.semantic.outputs.new_release_git_tag }}
-            type=semver,pattern={{major}},value=${{ steps.semantic.outputs.new_release_git_tag }}
+            type=ref,event=tag
   
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
