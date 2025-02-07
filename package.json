@@ -13,20 +13,19 @@
     "prettier": "forge fmt",
     "prettier:ci": "forge fmt"
   },
+  "dependencies": {},
   "devDependencies": {
     "@1inch/solidity-utils": "^2.2.27",
     "@chainlink/contracts": "^0.4.0",
     "@commitlint/cli": "^17.6.3",
     "@commitlint/config-conventional": "17.6.0",
     "@gearbox-protocol/sdk-gov": "^2.18.2",
+    "@gearbox-protocol/sdk": "3.0.0-vfour.190",
     "@openzeppelin/contracts": "^4.9.3",
     "@redstone-finance/evm-connector": "^0.2.5",
     "@wagmi/cli": "^2.2.0",
-    "@gearbox-protocol/sdk": "3.0.0-vfour.190",
     "ds-test": "dapphub/ds-test",
-    "forge-std": "foundry-rs/forge-std"
-  },
-  "dependencies": {
+    "forge-std": "foundry-rs/forge-std",
     "husky": "^8.0.3",
     "lint-staged": "^13.0.3",
     "prettier": "^3.0.3",

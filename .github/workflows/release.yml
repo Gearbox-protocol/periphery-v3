@@ -20,8 +20,13 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: setup corepack for pnpm
-        run: corepack enable
+      - name: Use Latest Corepack
+        run: |
+          echo "Before: corepack version => $(corepack --version || echo 'not installed')"
+          npm install -g corepack@latest
+          echo "After : corepack version => $(corepack --version)"
+          corepack enable
+          pnpm --version
 
       - name: Setup node.js
         uses: actions/setup-node@v4
@@ -42,3 +47,39 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        if: ${{ steps.semantic.outputs.new_release_published == 'true'}}
+        uses: docker/metadata-action@v5
+        with:
+          flavor: |
+            latest=${{ github.ref_name == 'main' }}
+          images: |
+            ghcr.io/gearbox-protocol/periphery-v3
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}},value=${{ steps.semantic.outputs.new_release_git_tag }}
+            type=semver,pattern={{major}},value=${{ steps.semantic.outputs.new_release_git_tag }}
+  
+      - name: Set up Docker Buildx
+        if: ${{ steps.semantic.outputs.new_release_published == 'true' }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        if: ${{ steps.semantic.outputs.new_release_published == 'true' }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push docker image
+        uses: docker/build-push-action@v5
+        if: ${{ steps.semantic.outputs.new_release_published == 'true' }}
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
