@@ -7,22 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      husky:
-        specifier: ^8.0.3
-        version: 8.0.3
-      lint-staged:
-        specifier: ^13.0.3
-        version: 13.3.0(enquirer@2.4.1)
-      prettier:
-        specifier: ^3.0.3
-        version: 3.4.2
-      tsx:
-        specifier: ^4.19.2
-        version: 4.19.2
-      typescript:
-        specifier: ^5
-        version: 5.7.3
     devDependencies:
       '@1inch/solidity-utils':
         specifier: ^2.2.27
@@ -57,6 +41,21 @@ importers:
       forge-std:
         specifier: foundry-rs/forge-std
         version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/726a6ee5fc8427a0013d6f624e486c9130c0e336
+      husky:
+        specifier: ^8.0.3
+        version: 8.0.3
+      lint-staged:
+        specifier: ^13.0.3
+        version: 13.3.0(enquirer@2.4.1)
+      prettier:
+        specifier: ^3.0.3
+        version: 3.4.2
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: ^5
+        version: 5.7.3
 
 packages:
 
