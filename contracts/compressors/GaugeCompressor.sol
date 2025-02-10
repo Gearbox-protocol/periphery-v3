@@ -71,9 +71,8 @@ contract GaugeCompressor is IGaugeCompressor {
             }
         }
 
-        assembly {
-            mstore(result, validGauges)
-        }
+        return _trim(result, validGauges);
+
     }
 
     /// @dev Returns gauge info for a specific gauge
@@ -188,5 +187,14 @@ contract GaugeCompressor is IGaugeCompressor {
             if (array[i] == value) return true;
         }
         return false;
+    }
+
+    function _trim(GaugeInfo[] memory array, uint256 validGauges) internal pure returns (GaugeInfo[] memory result) {
+        result = new GaugeInfo[](validGauges);
+
+        for (uint256 i = 0; i < validGauges; ++i) {
+            result[i] = array[i];
+        }
+        return result;
     }
 }
