@@ -110,7 +110,7 @@ contract GaugeCompressor is IGaugeCompressor {
         gaugeInfo.underlying = IPoolV3(pool).asset();
         gaugeInfo.voter = IGaugeV3(gauge).voter();
 
-        gaugeInfo.currentEpoch = IGearStakingV3(gauge).getCurrentEpoch();
+        gaugeInfo.currentEpoch = IGearStakingV3(gaugeInfo.voter).getCurrentEpoch();
         gaugeInfo.epochLastUpdate = IGaugeV3(gauge).epochLastUpdate();
         gaugeInfo.epochFrozen = IGaugeV3(gauge).epochFrozen();
 
