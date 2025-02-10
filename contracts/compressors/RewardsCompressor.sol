@@ -130,12 +130,16 @@ contract RewardsCompressor is IRewardsCompressor {
         IBaseRewardPool rewardPool,
         address stakedPhantomToken
     ) internal view returns (RewardInfo[] memory rewards) {
-        address[4] memory extraRewards = [
-            convexAdapter.extraReward1(),
-            convexAdapter.extraReward2(),
-            convexAdapter.extraReward3(),
-            convexAdapter.extraReward4()
-        ];
+        address[4] memory extraRewards =
+            [convexAdapter.extraReward1(), convexAdapter.extraReward2(), address(0), address(0)];
+
+        try convexAdapter.extraReward3() returns (address extraReward3) {
+            extraRewards[2] = extraReward3;
+        } catch {}
+
+        try convexAdapter.extraReward4() returns (address extraReward4) {
+            extraRewards[3] = extraReward4;
+        } catch {}
 
         uint256 extraRewardsLength = rewardPool.extraRewardsLength();
         rewards = new RewardInfo[](0);
