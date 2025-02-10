@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ -z "$ANVIL_URL" ]; then
     ANVIL_URL="http://127.0.0.1:8545"
 fi
