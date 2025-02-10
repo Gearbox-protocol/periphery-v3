@@ -3,6 +3,7 @@
 // (c) Gearbox Holdings, 2024
 pragma solidity ^0.8.23;
 
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {PoolV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IGaugeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IGaugeV3.sol";
@@ -164,7 +165,12 @@ contract PoolCompressor {
     function getRateKeeperState(address rateKeeper) external view returns (RateKeeperState memory result) {
         IRateKeeper _rateKeeper = IRateKeeper(rateKeeper);
 
-        result.baseParams = BaseLib.getBaseParams(rateKeeper, "RATE_KEEPER::GAUGE", gaugeSerializer);
+        address serializer;
+        try IVersion(rateKeeper).contractType() {}
+        catch {
+            serializer = gaugeSerializer;
+        }
+        result.baseParams = BaseLib.getBaseParams(rateKeeper, "RATE_KEEPER::GAUGE", serializer);
 
         IPoolQuotaKeeperV3 _pqk = IPoolQuotaKeeperV3(PoolV3(_rateKeeper.pool()).poolQuotaKeeper());
 
@@ -180,8 +186,13 @@ contract PoolCompressor {
         }
     }
 
-    function getInterestRateModelState(address addr) public view returns (BaseState memory) {
-        return BaseLib.getBaseState(addr, "IRM::LINEAR", linearInterestRateModelSerializer);
+    function getInterestRateModelState(address irm) public view returns (BaseState memory) {
+        address serializer;
+        try IVersion(irm).contractType() {}
+        catch {
+            serializer = linearInterestRateModelSerializer;
+        }
+        return BaseLib.getBaseState(irm, "IRM::LINEAR", serializer);
     }
 
     function getLossPolicyState(address lossPolicy) public view returns (BaseState memory) {
