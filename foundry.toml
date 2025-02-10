@@ -9,7 +9,7 @@ solc_version = '0.8.23'
 block_base_fee_per_gas = 100000000 
 block_number = 120000 
 block_timestamp = 1640000000 
-evm_version = 'shanghai' 
+evm_version = 'cancun' 
 fs_permissions = [{access = "read-write", path = "./"}] 
 gas_limit = 9223372036854775807 # the gas limit in tests
 bytecode_hash="none"
