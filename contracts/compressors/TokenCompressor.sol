@@ -8,6 +8,8 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {LibString} from "@solady/utils/LibString.sol";
 import {ITokenCompressor} from "../interfaces/ITokenCompressor.sol";
 
+address constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
 /// @title Token compressor 3.0.
 /// @notice Helper contract to fetch ERC20 token metadata
 contract TokenCompressor is ITokenCompressor {
@@ -16,6 +18,10 @@ contract TokenCompressor is ITokenCompressor {
     bytes32 public constant override contractType = "TOKEN_COMPRESSOR";
 
     function getTokenInfo(address token) public view returns (TokenData memory result) {
+        if (token == ETH_ADDRESS) {
+            return TokenData({addr: ETH_ADDRESS, decimals: 18, symbol: "ETH", name: "Ether"});
+        }
+
         result.addr = token;
         result.decimals = IERC20Metadata(token).decimals();
 
