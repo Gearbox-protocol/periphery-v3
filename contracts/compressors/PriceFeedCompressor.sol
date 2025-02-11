@@ -14,7 +14,6 @@ import {BaseLib} from "../libraries/BaseLib.sol";
 import {AP_PRICE_FEED_COMPRESSOR} from "../libraries/Literals.sol";
 
 import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
-import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
 import {NestedPriceFeeds} from "../libraries/NestedPriceFeeds.sol";
 import {BoundedPriceFeedSerializer} from "../serializers/oracles/BoundedPriceFeedSerializer.sol";
 import {BPTWeightedPriceFeedSerializer} from "../serializers/oracles/BPTWeightedPriceFeedSerializer.sol";
