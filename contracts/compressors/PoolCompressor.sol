@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Holdings, 2024
+// (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.23;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
@@ -18,28 +18,29 @@ import {RateKeeperState, Rate} from "../types/RateKeeperState.sol";
 import {RAY} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 import {IRateKeeper} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IRateKeeper.sol";
 
-// Serializers
+import {IPoolCompressor} from "../interfaces/IPoolCompressor.sol";
 import {BaseLib} from "../libraries/BaseLib.sol";
+import {AP_POOL_COMPRESSOR} from "../libraries/Literals.sol";
 import {GaugeSerializer} from "../serializers/pool/GaugeSerializer.sol";
 import {LinearInterestRateModelSerializer} from "../serializers/pool/LinearInterestRateModelSerializer.sol";
 
 /// @title Pool compressor
 /// @notice Collects data from pool related contracts
 /// Do not use for data from data compressor for state-changing functions
-contract PoolCompressor {
+contract PoolCompressor is IPoolCompressor {
     // Contract version
-    uint256 public constant version = 3_10;
-    bytes32 public constant contractType = "POOL_COMPRESSOR";
+    uint256 public constant override version = 3_10;
+    bytes32 public constant override contractType = AP_POOL_COMPRESSOR;
 
-    address public immutable gaugeSerializer;
-    address public immutable linearInterestRateModelSerializer;
+    address internal immutable _gaugeSerializer;
+    address internal immutable _linearInterestRateModelSerializer;
 
     constructor() {
-        gaugeSerializer = address(new GaugeSerializer());
-        linearInterestRateModelSerializer = address(new LinearInterestRateModelSerializer());
+        _gaugeSerializer = address(new GaugeSerializer());
+        _linearInterestRateModelSerializer = address(new LinearInterestRateModelSerializer());
     }
 
-    function getPoolState(address pool) public view returns (PoolState memory result) {
+    function getPoolState(address pool) external view override returns (PoolState memory result) {
         PoolV3 _pool = PoolV3(pool);
         //
         // CONTRACT PARAMETERS
@@ -130,10 +131,15 @@ contract PoolCompressor {
         result.isPaused = _pool.paused();
     }
 
-    function getPoolQuotaKeeperState(address pqk) external view returns (PoolQuotaKeeperState memory result) {
-        IPoolQuotaKeeperV3 _pqk = IPoolQuotaKeeperV3(pqk);
+    function getPoolQuotaKeeperState(address quotaKeeper)
+        external
+        view
+        override
+        returns (PoolQuotaKeeperState memory result)
+    {
+        IPoolQuotaKeeperV3 _pqk = IPoolQuotaKeeperV3(quotaKeeper);
 
-        result.baseParams = BaseLib.getBaseParams(pqk, "POOL_QUOTA_KEEPER", address(0));
+        result.baseParams = BaseLib.getBaseParams(quotaKeeper, "POOL_QUOTA_KEEPER", address(0));
 
         // address rateKeeper;
         result.rateKeeper = _pqk.gauge();
@@ -162,13 +168,13 @@ contract PoolCompressor {
         result.lastQuotaRateUpdate = _pqk.lastQuotaRateUpdate();
     }
 
-    function getRateKeeperState(address rateKeeper) external view returns (RateKeeperState memory result) {
+    function getRateKeeperState(address rateKeeper) external view override returns (RateKeeperState memory result) {
         IRateKeeper _rateKeeper = IRateKeeper(rateKeeper);
 
         address serializer;
         try IVersion(rateKeeper).contractType() {}
         catch {
-            serializer = gaugeSerializer;
+            serializer = _gaugeSerializer;
         }
         result.baseParams = BaseLib.getBaseParams(rateKeeper, "RATE_KEEPER::GAUGE", serializer);
 
@@ -186,16 +192,16 @@ contract PoolCompressor {
         }
     }
 
-    function getInterestRateModelState(address irm) public view returns (BaseState memory) {
+    function getInterestRateModelState(address interestRateModel) external view override returns (BaseState memory) {
         address serializer;
-        try IVersion(irm).contractType() {}
+        try IVersion(interestRateModel).contractType() {}
         catch {
-            serializer = linearInterestRateModelSerializer;
+            serializer = _linearInterestRateModelSerializer;
         }
-        return BaseLib.getBaseState(irm, "IRM::LINEAR", serializer);
+        return BaseLib.getBaseState(interestRateModel, "IRM::LINEAR", serializer);
     }
 
-    function getLossPolicyState(address lossPolicy) public view returns (BaseState memory) {
+    function getLossPolicyState(address lossPolicy) public view override returns (BaseState memory) {
         return BaseLib.getBaseState(lossPolicy, "LOSS_POLICY::DEFAULT", address(0));
     }
 }
