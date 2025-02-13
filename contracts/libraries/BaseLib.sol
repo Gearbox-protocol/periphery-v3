@@ -4,8 +4,8 @@
 pragma solidity ^0.8.17;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
+import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IStateSerializer.sol";
 import {BaseParams, BaseState} from "../types/BaseState.sol";
-import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
 import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
 
 library BaseLib {

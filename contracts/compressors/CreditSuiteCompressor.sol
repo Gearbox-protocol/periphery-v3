@@ -7,40 +7,43 @@ import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfa
 import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {BaseLib} from "../libraries/BaseLib.sol";
-
 import {BaseParams, BaseState} from "../types/BaseState.sol";
 import {CreditFacadeState} from "../types/CreditFacadeState.sol";
 import {CollateralToken, CreditManagerState} from "../types/CreditManagerState.sol";
 import {CreditSuiteData} from "../types/CreditSuiteData.sol";
 
 import {AdapterCompressor} from "./AdapterCompressor.sol";
+import {ICreditSuiteCompressor} from "../interfaces/ICreditSuiteCompressor.sol";
 
+import {BaseLib} from "../libraries/BaseLib.sol";
 import {AP_CREDIT_SUITE_COMPRESSOR} from "../libraries/Literals.sol";
 
-contract CreditSuiteCompressor {
-    AdapterCompressor adapterCompressor;
+contract CreditSuiteCompressor is ICreditSuiteCompressor {
+    uint256 public constant override version = 3_10;
+    bytes32 public constant override contractType = AP_CREDIT_SUITE_COMPRESSOR;
 
-    uint256 public constant version = 3_10;
-    bytes32 public constant contractType = AP_CREDIT_SUITE_COMPRESSOR;
+    AdapterCompressor internal immutable _adapterCompressor;
 
     constructor() {
-        adapterCompressor = new AdapterCompressor();
+        // FIXME: this one should be read from the address provider
+        // but it must be deployed before CreditSuiteCompressor then, which is a bit tricky
+        // QUESTION: shall we allow to update it maybe? because it's kinda volatile
+        _adapterCompressor = new AdapterCompressor();
     }
 
-    function getCreditSuiteData(address creditManager) public view returns (CreditSuiteData memory result) {
+    function getCreditSuiteData(address creditManager) external view override returns (CreditSuiteData memory result) {
         result.creditManager = getCreditManagerState(creditManager);
         result.creditFacade = getCreditFacadeState(ICreditManagerV3(creditManager).creditFacade());
         result.creditConfigurator = BaseLib.getBaseState(
             ICreditManagerV3(creditManager).creditConfigurator(), "CREDIT_CONFIGURATOR", address(0)
         );
 
-        result.adapters = adapterCompressor.getAdapters(creditManager);
+        result.adapters = _adapterCompressor.getAdapters(creditManager);
     }
 
     /// @dev Returns CreditManagerData for a particular _cm
     /// @param _cm CreditManager address
-    function getCreditManagerState(address _cm) public view returns (CreditManagerState memory result) {
+    function getCreditManagerState(address _cm) public view override returns (CreditManagerState memory result) {
         ICreditManagerV3 creditManager = ICreditManagerV3(_cm);
         ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
         CreditFacadeV3 creditFacade = CreditFacadeV3(creditManager.creditFacade());
@@ -80,7 +83,7 @@ contract CreditSuiteCompressor {
 
     /// @dev Returns CreditManagerData for a particular _cm
     /// @param _cf CreditFacade address
-    function getCreditFacadeState(address _cf) public view returns (CreditFacadeState memory result) {
+    function getCreditFacadeState(address _cf) public view override returns (CreditFacadeState memory result) {
         CreditFacadeV3 creditFacade = CreditFacadeV3(_cf);
 
         result.baseParams = BaseLib.getBaseParams(_cf, "CREDIT_FACADE", address(0));

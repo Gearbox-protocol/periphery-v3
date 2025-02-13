@@ -4,12 +4,12 @@
 pragma solidity ^0.8.17;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
+import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IStateSerializer.sol";
 import {AdapterType} from "@gearbox-protocol/sdk-gov/contracts/AdapterType.sol";
 import {AdapterState} from "../types/CreditSuiteData.sol";
 import {IAdapterCompressor} from "../interfaces/IAdapterCompressor.sol";
 import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
-import {IStateSerializer} from "../interfaces/IStateSerializer.sol";
 import {AP_ADAPTER_COMPRESSOR} from "../libraries/Literals.sol";
 
 interface ILegacyAdapter {
