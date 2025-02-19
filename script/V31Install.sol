@@ -130,10 +130,10 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
         _submitProposalAndSign("Activate instance", calls);
 
         if (vm.envOr("CONNECT_CHAOS_LABS", true)) {
-            _connectLegacyMarketConfigurator("Chaos Labs", _getChaosLabsLegacyParams());
+            _connectLegacyMarketConfigurator("Chaos Labs", _getChaosLabsMainnetLegacyParams());
         }
         if (vm.envOr("CONNECT_NEXO", false)) {
-            _connectLegacyMarketConfigurator("Nexo", _getNexoLegacyParams());
+            _connectLegacyMarketConfigurator("Nexo", _getNexoMainnetLegacyParams());
         }
 
         vm.stopBroadcast();
@@ -314,7 +314,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
         _submitProposalAndSign(string.concat("Connect legacy market configurator for ", curatorName), calls);
     }
 
-    function _getChaosLabsLegacyParams() internal pure returns (LegacyParams memory) {
+    function _getChaosLabsMainnetLegacyParams() internal pure returns (LegacyParams memory) {
         // NOTE: when writing an actual migration script, make sure to check that all values are correct,
         // don't just copy-paste from here
         address acl = 0x523dA3a8961E4dD4f6206DBf7E6c749f51796bb3;
@@ -368,7 +368,89 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
         });
     }
 
-    function _getNexoLegacyParams() internal pure returns (LegacyParams memory) {
+    function _getChaosLabsOptimismLegacyParams() internal pure returns (LegacyParams memory) {
+        address acl = 0x6a2994Af133e0F87D9b665bFCe821dC917e8347D;
+        address contractsRegister = 0x949F9899bDaDcC7831Ca422f115fe61f4211a30b;
+        address gearStaking = 0x8D2622f1CA3B42b637e2ff6753E6b69D3ab9Adfd;
+        address zapperRegister = 0x5f49A919d67378290f5aeb359928E0020cD90Bae;
+
+        address[] memory pausableAdmins = new address[](6);
+        pausableAdmins[0] = 0x148DD932eCe1155c11006F5650c6Ff428f8D374A;
+        pausableAdmins[1] = 0x44c01002ef0955A4DBD86D90dDD27De6eeE37aA3;
+        pausableAdmins[2] = 0x65b384cEcb12527Da51d52f15b4140ED7FaD7308;
+        pausableAdmins[3] = 0xD5C96E5c1E1C84dFD293473fC195BbE7FC8E4840;
+        pausableAdmins[4] = 0x8bA8cd6D00919ceCc19D9B4A2c8669a524883C4c;
+        pausableAdmins[5] = 0x9744f76dc5239Eb4DC2CE8D5538e1BA89C8FA90f;
+
+        address[] memory unpausableAdmins = new address[](4);
+        unpausableAdmins[0] = 0x148DD932eCe1155c11006F5650c6Ff428f8D374A;
+        unpausableAdmins[1] = 0x44c01002ef0955A4DBD86D90dDD27De6eeE37aA3;
+        unpausableAdmins[2] = 0x8bA8cd6D00919ceCc19D9B4A2c8669a524883C4c;
+        unpausableAdmins[3] = 0x9744f76dc5239Eb4DC2CE8D5538e1BA89C8FA90f;
+
+        address[] memory emergencyLiquidators = new address[](2);
+        emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
+        emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
+
+        address[] memory bots = new address[](4);
+        bots[0] = 0x0A12a15F359FdefD36c9fA8bd3193940A8B344eF;
+        bots[1] = 0x383562873F3c3A75ec5CEC6F9b91B5F04d44465c;
+        bots[2] = 0x7B84Db149430fbB158c67E0F08B162a746A757bd;
+        bots[3] = 0x08952Ea9cEA25781C5b7F9B5fD8a534aC614DD37;
+
+        return LegacyParams({
+            acl: acl,
+            contractsRegister: contractsRegister,
+            gearStaking: gearStaking,
+            zapperRegister: zapperRegister,
+            pausableAdmins: pausableAdmins,
+            unpausableAdmins: unpausableAdmins,
+            emergencyLiquidators: emergencyLiquidators,
+            bots: bots
+        });
+    }
+
+    function _getChaosLabsArbitrumLegacyParams() internal pure returns (LegacyParams memory) {
+        address acl = 0xb2FA6c1a629Ed72BF99fbB24f75E5D130A5586F1;
+        address contractsRegister = 0xc3e00cdA97D5779BFC8f17588d55b4544C8a6c47;
+        address gearStaking = 0xf3599BEfe8E79169Afd5f0b7eb0A1aA322F193D9;
+        address zapperRegister = 0xFFadb168E3ACB881DE164aDdfc77d92dbc2D4C16;
+
+        address[] memory pausableAdmins = new address[](5);
+        pausableAdmins[0] = 0x148DD932eCe1155c11006F5650c6Ff428f8D374A;
+        pausableAdmins[1] = 0xf9E344ADa2181A4104a7DC6092A92A1bC67A52c9;
+        pausableAdmins[2] = 0x65b384cEcb12527Da51d52f15b4140ED7FaD7308;
+        pausableAdmins[3] = 0xD5C96E5c1E1C84dFD293473fC195BbE7FC8E4840;
+        pausableAdmins[4] = 0x746fb3AcAfF6Bfe246206EC2E51F587d2E57abb6;
+
+        address[] memory unpausableAdmins = new address[](3);
+        unpausableAdmins[0] = 0x148DD932eCe1155c11006F5650c6Ff428f8D374A;
+        unpausableAdmins[1] = 0xf9E344ADa2181A4104a7DC6092A92A1bC67A52c9;
+        unpausableAdmins[2] = 0x746fb3AcAfF6Bfe246206EC2E51F587d2E57abb6;
+
+        address[] memory emergencyLiquidators = new address[](2);
+        emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
+        emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
+
+        address[] memory bots = new address[](4);
+        bots[0] = 0x938094B41dDaC7bD3f21fC962D424E1a84ac4a85;
+        bots[1] = 0x44A9fDEF7307AE8C0997a1A339588a1C073930a7;
+        bots[2] = 0x8A35C229ff4f96e8b7A4f9168B22b9F7DF6b82f3;
+        bots[3] = 0x538d66d6cA2607673ceC8af3cA3933476f361633;
+
+        return LegacyParams({
+            acl: acl,
+            contractsRegister: contractsRegister,
+            gearStaking: gearStaking,
+            zapperRegister: zapperRegister,
+            pausableAdmins: pausableAdmins,
+            unpausableAdmins: unpausableAdmins,
+            emergencyLiquidators: emergencyLiquidators,
+            bots: bots
+        });
+    }
+
+    function _getNexoMainnetLegacyParams() internal pure returns (LegacyParams memory) {
         address acl = 0xd98D75da123813D73c54bCF910BBd7FC0afF24d4;
         address contractsRegister = 0xFC1952052dC1f439ccF0cBd9af5A02748b0cc1db;
         address gearStaking = 0x2fcbD02d5B1D52FC78d4c02890D7f4f47a459c33;
