@@ -15,11 +15,14 @@ library BaseLib {
         returns (BaseParams memory baseParams)
     {
         baseParams.addr = addr;
+
+        try IVersion(addr).version() returns (uint256 version) {
+            baseParams.version = version;
+        } catch {}
+
         try IVersion(addr).contractType() returns (bytes32 contractType) {
-            baseParams.version = IVersion(addr).version();
             baseParams.contractType = contractType;
         } catch {
-            baseParams.version = 3_00;
             baseParams.contractType = defaultContractType;
         }
 
