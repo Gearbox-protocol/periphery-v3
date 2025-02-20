@@ -78,81 +78,72 @@ interface IAddressProviderLegacy {
     function getAddressOrRevert(bytes32 key, uint256 version) external view returns (address);
 }
 
-contract V31Install is Script, GlobalSetup, AnvilHelper {
+contract LegacyMigration {
     using LibString for bytes32;
 
-    constructor() GlobalSetup() {
-        _setPeripheryContracts();
-        _autoImpersonate(false);
+    struct ChainInfo {
+        uint256 chainId;
+        string name;
+        address weth;
+        address gear;
+        string curatorName;
+        LegacyParams legacyParams;
     }
 
-    function run() public {
-        vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
-        _fundActors();
+    ChainInfo[3] chains = [
+        ChainInfo({
+            chainId: 1,
+            name: "Ethereum",
+            weth: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
+            gear: 0xBa3335588D9403515223F109EdC4eB7269a9Ab5D,
+            curatorName: "Chaos Labs",
+            legacyParams: _getChaosLabsMainnetLegacyParams()
+        }),
+        ChainInfo({
+            chainId: 10,
+            name: "Optimism",
+            weth: 0x4200000000000000000000000000000000000006,
+            gear: 0x39E6C2E1757ae4354087266E2C3EA9aC4257C1eb,
+            curatorName: "Chaos Labs",
+            legacyParams: _getChaosLabsOptimismLegacyParams()
+        }),
+        ChainInfo({
+            chainId: 42161,
+            name: "Arbitrum",
+            weth: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
+            gear: 0x2F26337576127efabEEc1f62BE79dB1bcA9148A4,
+            curatorName: "Chaos Labs",
+            legacyParams: _getChaosLabsArbitrumLegacyParams()
+        })
+    ];
 
-        _setUpGlobalContracts();
-
-        DeploySystemContractCall[10] memory deployCalls = [
-            DeploySystemContractCall({contractType: AP_TOKEN_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_CREDIT_ACCOUNT_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_PRICE_FEED_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_CREDIT_SUITE_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_POOL_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_MARKET_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_PERIPHERY_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_REWARDS_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_ADAPTER_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_GAUGE_COMPRESSOR, version: 3_10, saveVersion: true})
-        ];
-
-        uint256 len = deployCalls.length;
-
-        CrossChainCall[] memory calls = new CrossChainCall[](len);
-        for (uint256 i = 0; i < len; ++i) {
-            calls[i] = _generateDeploySystemContractCall(
-                deployCalls[i].contractType, deployCalls[i].version, deployCalls[i].saveVersion
-            );
-        }
-
-        _submitProposalAndSign("Deploy periphery contracts", calls);
-
-        (address gear, address weth, address treasury) = _connectLegacyContracts();
-
-        address[3] chains = [1, 10, 42161];
-        string[3] chainNames = ["Ethereum", "Optimism", "Arbitrum"];
-        address[3] weths = [
-            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
-            0x4200000000000000000000000000000000000006,
-            0x82aF49447D8a07e3bd95BD0d56f35241523fBab1
-        ];
-
-        address[3] gears = [
-            0xBa3335588D9403515223F109EdC4eB7269a9Ab5D,
-            0x39E6C2E1757ae4354087266E2C3EA9aC4257C1eb,
-            0x2F26337576127efabEEc1f62BE79dB1bcA9148A4
-        ];
-
+    function _activeLegacyInstances(address instanceOwner, address treasury) internal {
         for (uint256 i; i < chains.length; ++i) {
-            calls = new CrossChainCall[](1);
+            CrossChainCall[] memory calls = new CrossChainCall[](1);
             calls[0] = _generateActivateCall({
-                _chainId: chains[i],
+                _chainId: chains[i].chainId,
                 _instanceOwner: instanceOwner,
                 _treasury: treasury,
-                _weth: weths[i],
-                _gear: gears[i]
+                _weth: chains[i].weth,
+                _gear: chains[i].gear
             });
 
-            _submitProposalAndSign(string.concat("Activate instance on ", chainNames[i]), calls);
+            _submitProposalAndSign(string.concat("Activate instance on ", chains[i].name), calls);
+
+            if (chains[i].chainId == 1) {
+                if (vm.envOr("CONNECT_CHAOS_LABS", true)) {
+                    _connectLegacyMarketConfigurator("Chaos Labs", _getChaosLabsMainnetLegacyParams());
+                    _connectLegacy(
+                        chains[i].chainId, AP_MARKET_CONFIGURATOR_FACTORY, chains[i].curatorName, chains[i].legacyParams
+                    );
+                }
+                if (vm.envOr("CONNECT_NEXO", false)) {
+                    _connectLegacyMarketConfigurator("Nexo", _getNexoMainnetLegacyParams());
+                }
+            } else {}
         }
 
         // Add legacy market configurators
-
-        if (vm.envOr("CONNECT_CHAOS_LABS", true)) {
-            _connectLegacyMarketConfigurator("Chaos Labs", _getChaosLabsMainnetLegacyParams());
-        }
-        if (vm.envOr("CONNECT_NEXO", false)) {
-            _connectLegacyMarketConfigurator("Nexo", _getNexoMainnetLegacyParams());
-        }
 
         vm.stopBroadcast();
 
@@ -225,87 +216,6 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
         gear = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_GEAR_TOKEN, 0);
         weth = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_WETH_TOKEN, 0);
         treasury = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_TREASURY, 0);
-    }
-
-    function _setPeripheryContracts() internal {
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(TokenCompressor).creationCode,
-                contractType: AP_TOKEN_COMPRESSOR,
-                version: 3_10
-            })
-        );
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(CreditAccountCompressor).creationCode,
-                contractType: AP_CREDIT_ACCOUNT_COMPRESSOR,
-                version: 3_10
-            })
-        );
-
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(PriceFeedCompressor).creationCode,
-                contractType: AP_PRICE_FEED_COMPRESSOR,
-                version: 3_10
-            })
-        );
-
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(CreditSuiteCompressor).creationCode,
-                contractType: AP_CREDIT_SUITE_COMPRESSOR,
-                version: 3_10
-            })
-        );
-
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(PoolCompressor).creationCode,
-                contractType: AP_POOL_COMPRESSOR,
-                version: 3_10
-            })
-        );
-
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(MarketCompressor).creationCode,
-                contractType: AP_MARKET_COMPRESSOR,
-                version: 3_10
-            })
-        );
-
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(PeripheryCompressor).creationCode,
-                contractType: AP_PERIPHERY_COMPRESSOR,
-                version: 3_10
-            })
-        );
-
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(RewardsCompressor).creationCode,
-                contractType: AP_REWARDS_COMPRESSOR,
-                version: 3_10
-            })
-        );
-
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(AdapterCompressor).creationCode,
-                contractType: AP_ADAPTER_COMPRESSOR,
-                version: 3_10
-            })
-        );
-
-        contractsToUpload.push(
-            UploadableContract({
-                initCode: type(GaugeCompressor).creationCode,
-                contractType: AP_GAUGE_COMPRESSOR,
-                version: 3_10
-            })
-        );
     }
 
     function _computeMCAddress(string memory curatorName, LegacyParams memory legacyParams)
@@ -539,31 +449,5 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             emergencyLiquidators: emergencyLiquidators,
             bots: bots
         });
-    }
-
-    function _saveAddresses(string memory path) internal {
-        address addressProvider = instanceManager.addressProvider();
-
-        string memory json = vm.serializeAddress("addresses", "instanceManager", address(instanceManager));
-        json = vm.serializeAddress("addresses", "bytecodeRepository", address(bytecodeRepository));
-        json = vm.serializeAddress("addresses", "multisig", address(multisig));
-        json = vm.serializeAddress("addresses", "addressProvider", addressProvider);
-
-        address marketConfiguratorFactory =
-            IAddressProvider(addressProvider).getAddressOrRevert(AP_MARKET_CONFIGURATOR_FACTORY, NO_VERSION_CONTROL);
-        address[] memory marketConfigurators =
-            IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
-        for (uint256 i; i < marketConfigurators.length; ++i) {
-            json = vm.serializeAddress(
-                "addresses",
-                string.concat(
-                    "market-configurator-",
-                    vm.replace(vm.toLowercase(IMarketConfigurator(marketConfigurators[i]).curatorName()), " ", "-")
-                ),
-                marketConfigurators[i]
-            );
-        }
-
-        vm.writeJson(json, string.concat(path, "/addresses.json"));
     }
 }
