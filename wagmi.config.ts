@@ -10,7 +10,6 @@ export default defineConfig({
         "IAdapterCompressor.sol/**.json",
         "ICreditAccountCompressor.sol/**.json",
         "ICreditSuiteCompressor.sol/**.json",
-        "IDataCompressorV3.sol/**.json",
         "IGaugeCompressor.sol/**.json",
         "IMarketCompressor.sol/**.json",
         "IPeripheryCompressor.sol/**.json",
