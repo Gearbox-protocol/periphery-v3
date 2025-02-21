@@ -4,13 +4,15 @@
 pragma solidity ^0.8.23;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
-import {BotState, ZapperState} from "../types/PeripheryState.sol";
+import {BotState, ConnectedBotState, ZapperState} from "../types/PeripheryState.sol";
 
 interface IPeripheryCompressor is IVersion {
     function getZappers(address marketConfigurator, address pool) external view returns (ZapperState[] memory);
 
-    function getActiveBots(address marketConfigurator, address creditAccount)
+    function getBots(address marketConfigurator) external view returns (BotState[] memory);
+
+    function getConnectedBots(address marketConfigurator, address creditAccount)
         external
         view
-        returns (BotState[] memory);
+        returns (ConnectedBotState[] memory);
 }

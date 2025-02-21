@@ -114,7 +114,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             );
         }
 
-        _submitProposalAndSign("Deploy periphery contracts", calls);
+        _submitBatchAndSign("Deploy periphery contracts", calls);
 
         (address gear, address weth, address treasury) = _connectLegacyContracts();
 
@@ -142,7 +142,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
                 _gear: gears[i]
             });
 
-            _submitProposalAndSign(string.concat("Activate instance on ", chainNames[i]), calls);
+            _submitBatchAndSign(string.concat("Activate instance on ", chainNames[i]), calls);
         }
 
         // Add legacy market configurators
@@ -179,7 +179,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
     function _connectLegacyContracts() internal returns (address gear, address weth, address treasury) {
         address addressProviderLegacy = vm.envAddress("ADDRESS_PROVIDER_LEGACY");
 
-        APMigration[16] memory migrations = [
+        APMigration[12] memory migrations = [
             APMigration({name: "ACCOUNT_FACTORY", version: 0}),
             APMigration({name: AP_BOT_LIST, version: 300}),
             APMigration({name: AP_DEGEN_DISTRIBUTOR, version: 0}),
@@ -191,11 +191,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             APMigration({name: AP_ROUTER, version: 302}),
             APMigration({name: AP_WETH_TOKEN, version: 0}),
             APMigration({name: AP_ZAPPER_REGISTER, version: 300}),
-            APMigration({name: AP_ZERO_PRICE_FEED, version: 0}),
-            APMigration({name: "PARTIAL_LIQUIDATION_BOT", version: 300}),
-            APMigration({name: "DELEVERAGE_BOT_PEGGED", version: 300}),
-            APMigration({name: "DELEVERAGE_BOT_LV", version: 300}),
-            APMigration({name: "DELEVERAGE_BOT_HV", version: 300})
+            APMigration({name: AP_ZERO_PRICE_FEED, version: 0})
         ];
 
         uint256 len = migrations.length;
@@ -220,7 +216,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             }
         }
 
-        _submitProposalAndSign("Migrate legacy contracts", calls);
+        _submitBatchAndSign("Migrate legacy contracts", calls);
 
         gear = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_GEAR_TOKEN, 0);
         weth = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_WETH_TOKEN, 0);
@@ -366,7 +362,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
         //     callData: abi.encodeCall(IMarketConfiguratorFactory.addMarketConfigurator, (address(marketConfigurator)))
         // });
 
-        // _submitProposalAndSign(string.concat("Connect legacy market configurator for ", curatorName), calls);
+        // _submitBatchAndSign(string.concat("Connect legacy market configurator for ", curatorName), calls);
     }
 
     function _getChaosLabsMainnetLegacyParams() internal pure returns (LegacyParams memory) {
@@ -522,12 +518,11 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
         // emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
         // emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
 
-        // NOTE: these are the PL bot (the only one with special permissions) and three deleverage bots
         address[] memory bots = new address[](4);
-        bots[0] = 0x0f06c2bD612Ee7D52d4bC76Ce3BD7E95247AF2a9;
-        bots[1] = 0x53fDA9a509020Fc534EfF938Fd01dDa5fFe8560c;
-        bots[2] = 0x82b0adfA8f09b20BB4ed066Bcd4b2a84BEf73D5E;
-        bots[3] = 0x519906cD00222b4a81bf14A7A11fA5FCF455Af42;
+        bots[0] = 0x223D666828A6a9DFd91081614d18f45bFe8B489B;
+        bots[1] = 0xfF54A8876d6526359961f6171740E6a08B68ac5D;
+        bots[2] = 0xD58931fAC75C6D763580253Fa028A427AD0f591f;
+        bots[3] = 0x35756306F36378447bb959592F33f8b13Ce40833;
 
         return LegacyParams({
             acl: acl,

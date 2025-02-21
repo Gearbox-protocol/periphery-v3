@@ -5,7 +5,7 @@ pragma solidity ^0.8.17;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 
 import {DataCompressorV3} from "../data/DataCompressorV3.sol";
 import {IDataCompressorV3} from "../interfaces/IDataCompressorV3.sol";
