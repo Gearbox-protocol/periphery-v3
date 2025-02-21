@@ -72,7 +72,6 @@ contract GaugeCompressor is IGaugeCompressor {
         }
 
         return _trim(result, validGauges);
-
     }
 
     /// @dev Returns gauge info for a specific gauge
