@@ -3,6 +3,7 @@
 // (c) Gearbox Foundaiton, 2024.
 pragma solidity ^0.8.23;
 
+import {IBot} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IBot.sol";
 import {IZapper} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IZapper.sol";
 import {IBotListV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IBotListV3.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
@@ -23,7 +24,7 @@ import {ITokenCompressor} from "../interfaces/ITokenCompressor.sol";
 import {IPeripheryCompressor} from "../interfaces/IPeripheryCompressor.sol";
 import {BaseLib} from "../libraries/BaseLib.sol";
 import {AP_PERIPHERY_COMPRESSOR, AP_TOKEN_COMPRESSOR} from "../libraries/Literals.sol";
-import {BotState, ZapperState} from "../types/PeripheryState.sol";
+import {BotState, ConnectedBotState, ZapperState} from "../types/PeripheryState.sol";
 
 interface IBotListV30x {
     function getBotStatus(address bot, address creditManager, address creditAccount)
@@ -80,23 +81,36 @@ contract PeripheryCompressor is IPeripheryCompressor {
         }
     }
 
-    function getActiveBots(address marketConfigurator, address creditAccount)
+    function getBots(address marketConfigurator) external view override returns (BotState[] memory botStates) {
+        address[] memory bots = IMarketConfigurator(marketConfigurator).getPeripheryContracts(DOMAIN_BOT);
+        uint256 numBots = bots.length;
+        botStates = new BotState[](numBots);
+        for (uint256 i; i < numBots; ++i) {
+            address bot = bots[i];
+            botStates[i].baseParams = BaseLib.getBaseParams(bot, "BOT::UNKNOWN", address(0));
+            try IBot(bot).requiredPermissions() returns (uint192 requiredPermissions) {
+                botStates[i].requiredPermissions = requiredPermissions;
+            } catch {}
+        }
+    }
+
+    function getConnectedBots(address marketConfigurator, address creditAccount)
         external
         view
         override
-        returns (BotState[] memory bots)
+        returns (ConnectedBotState[] memory botStates)
     {
         address creditManager = ICreditAccountV3(creditAccount).creditManager();
         address botList = ICreditFacadeV3(ICreditManagerV3(creditManager).creditFacade()).botList();
         uint256 botListVersion = IBotListV3(botList).version();
 
-        address[] memory allBots = IMarketConfigurator(marketConfigurator).getPeripheryContracts(DOMAIN_BOT);
-        uint256 numBots = allBots.length;
-        bots = new BotState[](numBots);
+        address[] memory bots = IMarketConfigurator(marketConfigurator).getPeripheryContracts(DOMAIN_BOT);
+        uint256 numBots = bots.length;
+        botStates = new ConnectedBotState[](numBots);
         uint256 num;
         for (uint256 i; i < numBots; ++i) {
-            address bot = allBots[i];
-            BotState memory botState;
+            address bot = bots[i];
+            ConnectedBotState memory botState;
             if (botListVersion < 3_10) {
                 (botState.permissions, botState.forbidden,) =
                     IBotListV30x(botList).getBotStatus(bot, creditManager, creditAccount);
@@ -105,7 +119,11 @@ contract PeripheryCompressor is IPeripheryCompressor {
             }
             if (botState.permissions != 0) {
                 botState.baseParams = BaseLib.getBaseParams(bot, "BOT::UNKNOWN", address(0));
-                bots[num++] = botState;
+                botState.creditAccount = creditAccount;
+                try IBot(bot).requiredPermissions() returns (uint192 requiredPermissions) {
+                    botState.requiredPermissions = requiredPermissions;
+                } catch {}
+                botStates[num++] = botState;
             }
         }
         assembly {

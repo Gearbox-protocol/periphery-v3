@@ -467,12 +467,12 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
         // emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
         // emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
 
-        // NOTE: these are the PL bot (the only one with special permissions) and three deleverage bots
-        address[] memory bots = new address[](4);
-        bots[0] = 0x0f06c2bD612Ee7D52d4bC76Ce3BD7E95247AF2a9;
-        bots[1] = 0x53fDA9a509020Fc534EfF938Fd01dDa5fFe8560c;
-        bots[2] = 0x82b0adfA8f09b20BB4ed066Bcd4b2a84BEf73D5E;
-        bots[3] = 0x519906cD00222b4a81bf14A7A11fA5FCF455Af42;
+        // NOTE: these are the PL bot (the only one with special permissions) and three deleverage bots for Nexo
+        address[] memory bots = new address[](1);
+        bots[0] = 0x223D666828A6a9DFd91081614d18f45bFe8B489B;
+        // bots[1] = 0x53fDA9a509020Fc534EfF938Fd01dDa5fFe8560c;
+        // bots[2] = 0x82b0adfA8f09b20BB4ed066Bcd4b2a84BEf73D5E;
+        // bots[3] = 0x519906cD00222b4a81bf14A7A11fA5FCF455Af42;
 
         return LegacyParams({
             acl: acl,
