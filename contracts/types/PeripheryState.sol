@@ -8,6 +8,13 @@ import {TokenData} from "./TokenData.sol";
 
 struct BotState {
     BaseParams baseParams;
+    uint192 requiredPermissions;
+}
+
+struct ConnectedBotState {
+    BaseParams baseParams;
+    uint192 requiredPermissions;
+    address creditAccount;
     uint192 permissions;
     bool forbidden;
 }
