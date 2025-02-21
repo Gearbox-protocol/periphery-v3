@@ -1,93 +1,32 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {Script} from "forge-std/Script.sol";
-import {console} from "forge-std/console.sol";
-
+import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
-import {AdapterCompressor} from "../contracts/compressors/AdapterCompressor.sol";
-import {GaugeCompressor} from "../contracts/compressors/GaugeCompressor.sol";
-import {PriceFeedCompressor} from "../contracts/compressors/PriceFeedCompressor.sol";
-import {TokenCompressor} from "../contracts/compressors/TokenCompressor.sol";
-import {MarketCompressor} from "../contracts/compressors/MarketCompressor.sol";
-import {CreditAccountCompressor} from "../contracts/compressors/CreditAccountCompressor.sol";
-import {PoolCompressor} from "../contracts/compressors/PoolCompressor.sol";
-import {CreditSuiteCompressor} from "../contracts/compressors/CreditSuiteCompressor.sol";
-import {PeripheryCompressor} from "../contracts/compressors/PeripheryCompressor.sol";
-import {RewardsCompressor} from "../contracts/compressors/RewardsCompressor.sol";
-
-import {
-    GlobalSetup,
-    UploadableContract,
-    DeploySystemContractCall
-} from "@gearbox-protocol/governance/contracts/test/helpers/GlobalSetup.sol";
-
+import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
+import {IInstanceManager} from "@gearbox-protocol/governance/contracts/interfaces/IInstanceManager.sol";
+import {IMarketConfiguratorFactory} from
+    "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
 import {CrossChainCall} from "@gearbox-protocol/governance/contracts/interfaces/Types.sol";
-import {
-    AP_BOT_LIST,
-    AP_CONTRACTS_REGISTER,
-    AP_DEGEN_DISTRIBUTOR,
-    AP_DEGEN_NFT,
-    AP_GEAR_STAKING,
-    AP_GEAR_TOKEN,
-    AP_INFLATION_ATTACK_BLOCKER,
-    AP_MARKET_CONFIGURATOR_FACTORY,
-    AP_MULTI_PAUSE,
-    AP_ROUTER,
-    AP_TREASURY,
-    AP_WETH_TOKEN,
-    AP_ZAPPER_REGISTER,
-    AP_ZERO_PRICE_FEED,
-    AP_TREASURY,
-    NO_VERSION_CONTROL
-} from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
-
-import {
-    AP_ADAPTER_COMPRESSOR,
-    AP_GAUGE_COMPRESSOR,
-    AP_MARKET_COMPRESSOR,
-    AP_POOL_COMPRESSOR,
-    AP_TOKEN_COMPRESSOR,
-    AP_PRICE_FEED_COMPRESSOR,
-    AP_CREDIT_ACCOUNT_COMPRESSOR,
-    AP_CREDIT_SUITE_COMPRESSOR,
-    AP_PERIPHERY_COMPRESSOR,
-    AP_REWARDS_COMPRESSOR
-} from "../contracts/libraries/Literals.sol";
-
-import {InstanceManager} from "@gearbox-protocol/governance/contracts/instance/InstanceManager.sol";
 import {
     LegacyParams,
     MarketConfiguratorLegacy
 } from "@gearbox-protocol/governance/contracts/market/legacy/MarketConfiguratorLegacy.sol";
-import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
-import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
-import {IMarketConfiguratorFactory} from
-    "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
-import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
 
-import {AnvilHelper} from "./AnvilHelper.sol";
-
-struct APMigration {
-    bytes32 name;
-    uint256 version;
-}
-
-interface IAddressProviderLegacy {
-    function getAddressOrRevert(bytes32 key, uint256 version) external view returns (address);
-}
-
-contract LegacyMigration {
+contract LegacyHelper {
     using LibString for bytes32;
+
+    // ------------------- //
+    // INSTANCE ACTIVATION //
+    // ------------------- //
 
     struct ChainInfo {
         uint256 chainId;
         string name;
         address weth;
         address gear;
-        string curatorName;
-        LegacyParams legacyParams;
+        address treasury;
     }
 
     ChainInfo[3] chains = [
@@ -96,130 +35,149 @@ contract LegacyMigration {
             name: "Ethereum",
             weth: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
             gear: 0xBa3335588D9403515223F109EdC4eB7269a9Ab5D,
-            curatorName: "Chaos Labs",
-            legacyParams: _getChaosLabsMainnetLegacyParams()
+            treasury: 0x3E965117A51186e41c2BB58b729A1e518A715e5F
         }),
         ChainInfo({
             chainId: 10,
             name: "Optimism",
             weth: 0x4200000000000000000000000000000000000006,
             gear: 0x39E6C2E1757ae4354087266E2C3EA9aC4257C1eb,
-            curatorName: "Chaos Labs",
-            legacyParams: _getChaosLabsOptimismLegacyParams()
+            treasury: 0x1ACc5BC353f23B901801f3Ba48e1E51a14263808
         }),
         ChainInfo({
             chainId: 42161,
             name: "Arbitrum",
             weth: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
             gear: 0x2F26337576127efabEEc1f62BE79dB1bcA9148A4,
-            curatorName: "Chaos Labs",
+            treasury: 0x2c31eFFE426765E68A43163A96DD13DF70B53C14
+        })
+    ];
+
+    function _getActivateInstanceCalls(address instanceManager, address instanceOwner, ChainInfo memory chainInfo)
+        internal
+        pure
+        returns (CrossChainCall[] memory calls)
+    {
+        calls = new CrossChainCall[](1);
+        calls[0] = CrossChainCall({
+            chainId: chainInfo.chainId,
+            target: instanceManager,
+            callData: abi.encodeCall(
+                IInstanceManager.activate, (instanceOwner, chainInfo.treasury, chainInfo.weth, chainInfo.gear)
+            )
+        });
+    }
+
+    // ---------------- //
+    // LEGACY ADDRESSES //
+    // ---------------- //
+
+    // TODO: this section should be removed in favor of storing contracts either as periphery contracts of the
+    // market configurator (e.g., DegenNFT or MultiPause) or as local contracts per instance (e.g., Router)
+
+    struct LegacyAddr {
+        uint256 chainId;
+        bytes32 name;
+        uint256 version;
+        address addr;
+    }
+
+    LegacyAddr[12] legacyAddresses = [
+        LegacyAddr({chainId: 1, name: "DEGEN_DISTRIBUTOR", version: 0, addr: 0x6cA68adc7eC07a4bD97c97e8052510FBE6b67d10}),
+        LegacyAddr({chainId: 1, name: "DEGEN_NFT", version: 1, addr: 0xB829a5b349b01fc71aFE46E50dD6Ec0222A6E599}),
+        LegacyAddr({chainId: 1, name: "MULTI_PAUSE", version: 0, addr: 0x3F185f4ec14fCfB522bC499d790a9608A05E64F6}),
+        LegacyAddr({chainId: 1, name: "ROUTER", version: 302, addr: 0xA6FCd1fE716aD3801C71F2DE4E7A15f3a6994835}),
+        LegacyAddr({chainId: 10, name: "DEGEN_DISTRIBUTOR", version: 0, addr: 0x0106b15Dd9FB263B76d6F917cB19555d2a25cd76}),
+        LegacyAddr({chainId: 10, name: "DEGEN_NFT", version: 1, addr: 0xC07aA1e2D2a262E5DA35D21d01b6C5f372226dBC}),
+        LegacyAddr({chainId: 10, name: "MULTI_PAUSE", version: 0, addr: 0x44c01002ef0955A4DBD86D90dDD27De6eeE37aA3}),
+        LegacyAddr({chainId: 10, name: "ROUTER", version: 302, addr: 0x89f2E8F1c8d6D7cb276c81dd89128D08fc8E3363}),
+        LegacyAddr({chainId: 42161, name: "DEGEN_DISTRIBUTOR", version: 0, addr: 0x79a6FcdDDe1918D6a5b1D9757f29a338C942d547}),
+        LegacyAddr({chainId: 42161, name: "DEGEN_NFT", version: 1, addr: 0x32D72d4AB2A6066A2f301EEc0515d04B282aC06A}),
+        LegacyAddr({chainId: 42161, name: "MULTI_PAUSE", version: 0, addr: 0xf9E344ADa2181A4104a7DC6092A92A1bC67A52c9}),
+        LegacyAddr({chainId: 42161, name: "ROUTER", version: 302, addr: 0xF26186465964ED3564EdFE0046eE65502a6Ac34D})
+    ];
+
+    function _getSetLegacyAddressCalls(address instanceManager) internal view returns (CrossChainCall[] memory calls) {
+        uint256 len = legacyAddresses.length;
+        calls = new CrossChainCall[](len);
+        for (uint256 i; i < len; ++i) {
+            string memory key = legacyAddresses[i].name.fromSmallString();
+
+            calls[i] = CrossChainCall({
+                chainId: legacyAddresses[i].chainId,
+                target: instanceManager,
+                callData: abi.encodeCall(
+                    IInstanceManager.setLegacyAddress, (key, legacyAddresses[i].addr, legacyAddresses[i].version != 0)
+                )
+            });
+        }
+    }
+
+    struct CuratorInfo {
+        uint256 chainId;
+        string name;
+        address admin;
+        address emergencyAdmin;
+        bool deployGovernor;
+        LegacyParams legacyParams;
+    }
+
+    // --------------------------- //
+    // LEGACY MARKET CONFIGURATORS //
+    // --------------------------- //
+
+    CuratorInfo[4] curators = [
+        CuratorInfo({
+            chainId: 1,
+            name: "Chaos Labs",
+            admin: address(0),
+            emergencyAdmin: address(0),
+            deployGovernor: false,
+            legacyParams: _getChaosLabsMainnetLegacyParams()
+        }),
+        CuratorInfo({
+            chainId: 1,
+            name: "Nexo",
+            admin: address(0),
+            emergencyAdmin: address(0),
+            deployGovernor: false,
+            legacyParams: _getNexoMainnetLegacyParams()
+        }),
+        CuratorInfo({
+            chainId: 10,
+            name: "Chaos Labs",
+            admin: address(0),
+            emergencyAdmin: address(0),
+            deployGovernor: false,
+            legacyParams: _getChaosLabsOptimismLegacyParams()
+        }),
+        CuratorInfo({
+            chainId: 42161,
+            name: "Chaos Labs",
+            admin: address(0),
+            emergencyAdmin: address(0),
+            deployGovernor: false,
             legacyParams: _getChaosLabsArbitrumLegacyParams()
         })
     ];
 
-    function _activeLegacyInstances(address instanceOwner, address treasury) internal {
-        for (uint256 i; i < chains.length; ++i) {
-            CrossChainCall[] memory calls = new CrossChainCall[](1);
-            calls[0] = _generateActivateCall({
-                _chainId: chains[i].chainId,
-                _instanceOwner: instanceOwner,
-                _treasury: treasury,
-                _weth: chains[i].weth,
-                _gear: chains[i].gear
-            });
-
-            _submitProposalAndSign(string.concat("Activate instance on ", chains[i].name), calls);
-
-            if (chains[i].chainId == 1) {
-                if (vm.envOr("CONNECT_CHAOS_LABS", true)) {
-                    _connectLegacyMarketConfigurator("Chaos Labs", _getChaosLabsMainnetLegacyParams());
-                    _connectLegacy(
-                        chains[i].chainId, AP_MARKET_CONFIGURATOR_FACTORY, chains[i].curatorName, chains[i].legacyParams
-                    );
-                }
-                if (vm.envOr("CONNECT_NEXO", false)) {
-                    _connectLegacyMarketConfigurator("Nexo", _getNexoMainnetLegacyParams());
-                }
-            } else {}
-        }
-
-        // Add legacy market configurators
-
-        vm.stopBroadcast();
-
-        _saveAddresses(vm.envOr("OUT_DIR", string(".")));
-    }
-
-    function _connectLegacy(
-        uint256 chainId,
+    function _getAddLegacyMarketConfiguratorCalls(
+        address addressProvider,
         address marketConfiguratorFactory,
-        string memory curatorName,
-        LegacyParams memory legacyParams
-    ) internal {
-        address marketConfigurator = _computeMCAddress(curatorName, legacyParams);
-        CrossChainCall[] memory calls = new CrossChainCall[](1);
+        CuratorInfo memory curatorInfo
+    ) internal view returns (CrossChainCall[] memory calls) {
+        calls = new CrossChainCall[](1);
+        address marketConfigurator = _computeLegacyMarketConfiguratorAddress(addressProvider, curatorInfo);
         calls[0] = CrossChainCall({
-            chainId: chainId,
-            target: address(marketConfiguratorFactory),
-            callData: abi.encodeCall(IMarketConfiguratorFactory.addMarketConfigurator, (address(marketConfigurator)))
+            chainId: curatorInfo.chainId,
+            target: marketConfiguratorFactory,
+            callData: abi.encodeCall(IMarketConfiguratorFactory.addMarketConfigurator, (marketConfigurator))
         });
-
-        _submitProposalAndSign(string.concat("Connect legacy market configurator for ", curatorName), calls);
     }
 
-    function _connectLegacyContracts() internal returns (address gear, address weth, address treasury) {
-        address addressProviderLegacy = vm.envAddress("ADDRESS_PROVIDER_LEGACY");
-
-        APMigration[16] memory migrations = [
-            APMigration({name: "ACCOUNT_FACTORY", version: 0}),
-            APMigration({name: AP_BOT_LIST, version: 300}),
-            APMigration({name: AP_DEGEN_DISTRIBUTOR, version: 0}),
-            APMigration({name: AP_DEGEN_NFT, version: 1}),
-            APMigration({name: AP_GEAR_STAKING, version: 300}),
-            APMigration({name: AP_GEAR_TOKEN, version: 0}),
-            APMigration({name: AP_INFLATION_ATTACK_BLOCKER, version: 300}),
-            APMigration({name: AP_MULTI_PAUSE, version: 0}),
-            APMigration({name: AP_ROUTER, version: 302}),
-            APMigration({name: AP_WETH_TOKEN, version: 0}),
-            APMigration({name: AP_ZAPPER_REGISTER, version: 300}),
-            APMigration({name: AP_ZERO_PRICE_FEED, version: 0}),
-            APMigration({name: "PARTIAL_LIQUIDATION_BOT", version: 300}),
-            APMigration({name: "DELEVERAGE_BOT_PEGGED", version: 300}),
-            APMigration({name: "DELEVERAGE_BOT_LV", version: 300}),
-            APMigration({name: "DELEVERAGE_BOT_HV", version: 300})
-        ];
-
-        uint256 len = migrations.length;
-
-        CrossChainCall[] memory calls = new CrossChainCall[](len);
-        for (uint256 i; i < len; ++i) {
-            string memory key = migrations[i].name.fromSmallString();
-
-            try IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(
-                migrations[i].name, migrations[i].version
-            ) returns (address oldAddress) {
-                console.log("migrating", key, oldAddress);
-                calls[i] = CrossChainCall({
-                    chainId: block.chainid,
-                    target: address(instanceManager),
-                    callData: abi.encodeCall(
-                        InstanceManager.setLegacyAddress, (key, oldAddress, migrations[i].version != 0)
-                    )
-                });
-            } catch {
-                console.log("Failed to migrate", key);
-            }
-        }
-
-        _submitProposalAndSign("Migrate legacy contracts", calls);
-
-        gear = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_GEAR_TOKEN, 0);
-        weth = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_WETH_TOKEN, 0);
-        treasury = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_TREASURY, 0);
-    }
-
-    function _computeMCAddress(string memory curatorName, LegacyParams memory legacyParams)
+    function _computeLegacyMarketConfiguratorAddress(address addressProvider, CuratorInfo memory curatorInfo)
         internal
+        view
         returns (address)
     {
         bytes32 salt = bytes32("SALT");
@@ -227,28 +185,25 @@ contract LegacyMigration {
             type(MarketConfiguratorLegacy).creationCode,
             abi.encode(
                 addressProvider,
-                address(0), // admin
-                address(0), // emergencyAdmin
-                curatorName,
-                false, // deployGovernor
-                legacyParams
+                curatorInfo.admin,
+                curatorInfo.emergencyAdmin,
+                curatorInfo.name,
+                curatorInfo.deployGovernor,
+                curatorInfo.legacyParams
             )
         );
         bytes32 bytecodeHash = keccak256(initCode);
         return Create2.computeAddress(salt, bytecodeHash);
     }
 
-    function _connectLegacyMarketConfigurator(string memory curatorName, LegacyParams memory legacyParams) internal {
-        address addressProvider = instanceManager.addressProvider();
-
+    function _deployLegacyMarketConfigurator(address addressProvider, CuratorInfo memory curatorInfo) internal {
         MarketConfiguratorLegacy marketConfigurator = new MarketConfiguratorLegacy{salt: "SALT"}({
             addressProvider_: addressProvider,
-            // QUESTION: who?
-            admin_: address(0),
-            emergencyAdmin_: address(0),
-            curatorName_: curatorName,
-            deployGovernor_: false, // NOTE: only for testing
-            legacyParams_: legacyParams
+            admin_: curatorInfo.admin,
+            emergencyAdmin_: curatorInfo.emergencyAdmin,
+            curatorName_: curatorInfo.name,
+            deployGovernor_: curatorInfo.deployGovernor,
+            legacyParams_: curatorInfo.legacyParams
         });
 
         address contractsRegister = marketConfigurator.contractsRegister();
@@ -264,24 +219,9 @@ contract LegacyMigration {
             address creditManager = creditManagers[i];
             marketConfigurator.initializeCreditSuite(creditManager);
         }
-
-        // TODO: will need to transfer ACL ownership and call `marketConfigurator.finalizeMigration()`
-
-        // address marketConfiguratorFactory =
-        //     IAddressProvider(addressProvider).getAddressOrRevert(AP_MARKET_CONFIGURATOR_FACTORY, NO_VERSION_CONTROL);
-        // CrossChainCall[] memory calls = new CrossChainCall[](1);
-        // calls[0] = CrossChainCall({
-        //     chainId: block.chainid,
-        //     target: address(marketConfiguratorFactory),
-        //     callData: abi.encodeCall(IMarketConfiguratorFactory.addMarketConfigurator, (address(marketConfigurator)))
-        // });
-
-        // _submitProposalAndSign(string.concat("Connect legacy market configurator for ", curatorName), calls);
     }
 
     function _getChaosLabsMainnetLegacyParams() internal pure returns (LegacyParams memory) {
-        // NOTE: when writing an actual migration script, make sure to check that all values are correct,
-        // don't just copy-paste from here
         address acl = 0x523dA3a8961E4dD4f6206DBf7E6c749f51796bb3;
         address contractsRegister = 0xA50d4E7D8946a7c90652339CDBd262c375d54D99;
         address gearStaking = 0x2fcbD02d5B1D52FC78d4c02890D7f4f47a459c33;
@@ -314,7 +254,6 @@ contract LegacyMigration {
         emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
         emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
 
-        // NOTE: these are the PL bot (the only one with special permissions) and three deleverage bots
         address[] memory bots = new address[](4);
         bots[0] = 0x0f06c2bD612Ee7D52d4bC76Ce3BD7E95247AF2a9;
         bots[1] = 0x53fDA9a509020Fc534EfF938Fd01dDa5fFe8560c;
@@ -421,23 +360,18 @@ contract LegacyMigration {
         address gearStaking = 0x2fcbD02d5B1D52FC78d4c02890D7f4f47a459c33;
         address zapperRegister = 0x3E75276548a7722AbA517a35c35FB43CF3B0E723;
 
-        // TODO: add proper values
+        // TODO: add proper values for pausableAdmins, unpausableAdmins and emergencyLiquidators
         address[] memory pausableAdmins = new address[](0);
-        // pausableAdmins[0] = 0xD5C96E5c1E1C84dFD293473fC195BbE7FC8E4840;
 
         address[] memory unpausableAdmins = new address[](0);
-        // unpausableAdmins[0] = 0xD5C96E5c1E1C84dFD293473fC195BbE7FC8E4840;
 
         address[] memory emergencyLiquidators = new address[](0);
-        // emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
-        // emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
 
-        // NOTE: these are the PL bot (the only one with special permissions) and three deleverage bots
         address[] memory bots = new address[](4);
-        bots[0] = 0x0f06c2bD612Ee7D52d4bC76Ce3BD7E95247AF2a9;
-        bots[1] = 0x53fDA9a509020Fc534EfF938Fd01dDa5fFe8560c;
-        bots[2] = 0x82b0adfA8f09b20BB4ed066Bcd4b2a84BEf73D5E;
-        bots[3] = 0x519906cD00222b4a81bf14A7A11fA5FCF455Af42;
+        bots[0] = 0x223D666828A6a9DFd91081614d18f45bFe8B489B;
+        bots[1] = 0xfF54A8876d6526359961f6171740E6a08B68ac5D;
+        bots[2] = 0xD58931fAC75C6D763580253Fa028A427AD0f591f;
+        bots[3] = 0x35756306F36378447bb959592F33f8b13Ce40833;
 
         return LegacyParams({
             acl: acl,
