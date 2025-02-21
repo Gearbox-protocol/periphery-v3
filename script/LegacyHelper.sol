@@ -17,6 +17,12 @@ import {
 contract LegacyHelper {
     using LibString for bytes32;
 
+    constructor() {
+        _setupChains();
+        _setupLegacyAddresses();
+        _setupCurators();
+    }
+
     // ------------------- //
     // INSTANCE ACTIVATION //
     // ------------------- //
@@ -29,29 +35,36 @@ contract LegacyHelper {
         address treasury;
     }
 
-    ChainInfo[3] chains = [
-        ChainInfo({
-            chainId: 1,
-            name: "Ethereum",
-            weth: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
-            gear: 0xBa3335588D9403515223F109EdC4eB7269a9Ab5D,
-            treasury: 0x3E965117A51186e41c2BB58b729A1e518A715e5F
-        }),
-        ChainInfo({
-            chainId: 10,
-            name: "Optimism",
-            weth: 0x4200000000000000000000000000000000000006,
-            gear: 0x39E6C2E1757ae4354087266E2C3EA9aC4257C1eb,
-            treasury: 0x1ACc5BC353f23B901801f3Ba48e1E51a14263808
-        }),
-        ChainInfo({
-            chainId: 42161,
-            name: "Arbitrum",
-            weth: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
-            gear: 0x2F26337576127efabEEc1f62BE79dB1bcA9148A4,
-            treasury: 0x2c31eFFE426765E68A43163A96DD13DF70B53C14
-        })
-    ];
+    ChainInfo[] chains;
+
+    function _setupChains() internal {
+        ChainInfo[3] memory chains_ = [
+            ChainInfo({
+                chainId: 1,
+                name: "Ethereum",
+                weth: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
+                gear: 0xBa3335588D9403515223F109EdC4eB7269a9Ab5D,
+                treasury: 0x3E965117A51186e41c2BB58b729A1e518A715e5F
+            }),
+            ChainInfo({
+                chainId: 10,
+                name: "Optimism",
+                weth: 0x4200000000000000000000000000000000000006,
+                gear: 0x39E6C2E1757ae4354087266E2C3EA9aC4257C1eb,
+                treasury: 0x1ACc5BC353f23B901801f3Ba48e1E51a14263808
+            }),
+            ChainInfo({
+                chainId: 42161,
+                name: "Arbitrum",
+                weth: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
+                gear: 0x2F26337576127efabEEc1f62BE79dB1bcA9148A4,
+                treasury: 0x2c31eFFE426765E68A43163A96DD13DF70B53C14
+            })
+        ];
+        for (uint256 i; i < chains_.length; ++i) {
+            chains.push(chains_[i]);
+        }
+    }
 
     function _getActivateInstanceCalls(address instanceManager, address instanceOwner, ChainInfo memory chainInfo)
         internal
@@ -82,20 +95,37 @@ contract LegacyHelper {
         address addr;
     }
 
-    LegacyAddr[12] legacyAddresses = [
-        LegacyAddr({chainId: 1, name: "DEGEN_DISTRIBUTOR", version: 0, addr: 0x6cA68adc7eC07a4bD97c97e8052510FBE6b67d10}),
-        LegacyAddr({chainId: 1, name: "DEGEN_NFT", version: 1, addr: 0xB829a5b349b01fc71aFE46E50dD6Ec0222A6E599}),
-        LegacyAddr({chainId: 1, name: "MULTI_PAUSE", version: 0, addr: 0x3F185f4ec14fCfB522bC499d790a9608A05E64F6}),
-        LegacyAddr({chainId: 1, name: "ROUTER", version: 302, addr: 0xA6FCd1fE716aD3801C71F2DE4E7A15f3a6994835}),
-        LegacyAddr({chainId: 10, name: "DEGEN_DISTRIBUTOR", version: 0, addr: 0x0106b15Dd9FB263B76d6F917cB19555d2a25cd76}),
-        LegacyAddr({chainId: 10, name: "DEGEN_NFT", version: 1, addr: 0xC07aA1e2D2a262E5DA35D21d01b6C5f372226dBC}),
-        LegacyAddr({chainId: 10, name: "MULTI_PAUSE", version: 0, addr: 0x44c01002ef0955A4DBD86D90dDD27De6eeE37aA3}),
-        LegacyAddr({chainId: 10, name: "ROUTER", version: 302, addr: 0x89f2E8F1c8d6D7cb276c81dd89128D08fc8E3363}),
-        LegacyAddr({chainId: 42161, name: "DEGEN_DISTRIBUTOR", version: 0, addr: 0x79a6FcdDDe1918D6a5b1D9757f29a338C942d547}),
-        LegacyAddr({chainId: 42161, name: "DEGEN_NFT", version: 1, addr: 0x32D72d4AB2A6066A2f301EEc0515d04B282aC06A}),
-        LegacyAddr({chainId: 42161, name: "MULTI_PAUSE", version: 0, addr: 0xf9E344ADa2181A4104a7DC6092A92A1bC67A52c9}),
-        LegacyAddr({chainId: 42161, name: "ROUTER", version: 302, addr: 0xF26186465964ED3564EdFE0046eE65502a6Ac34D})
-    ];
+    LegacyAddr[] legacyAddresses;
+
+    function _setupLegacyAddresses() internal {
+        LegacyAddr[12] memory legacyAddresses_ = [
+            LegacyAddr({chainId: 1, name: "DEGEN_DISTRIBUTOR", version: 0, addr: 0x6cA68adc7eC07a4bD97c97e8052510FBE6b67d10}),
+            LegacyAddr({chainId: 1, name: "DEGEN_NFT", version: 1, addr: 0xB829a5b349b01fc71aFE46E50dD6Ec0222A6E599}),
+            LegacyAddr({chainId: 1, name: "MULTI_PAUSE", version: 0, addr: 0x3F185f4ec14fCfB522bC499d790a9608A05E64F6}),
+            LegacyAddr({chainId: 1, name: "ROUTER", version: 302, addr: 0xA6FCd1fE716aD3801C71F2DE4E7A15f3a6994835}),
+            LegacyAddr({
+                chainId: 10,
+                name: "DEGEN_DISTRIBUTOR",
+                version: 0,
+                addr: 0x0106b15Dd9FB263B76d6F917cB19555d2a25cd76
+            }),
+            LegacyAddr({chainId: 10, name: "DEGEN_NFT", version: 1, addr: 0xC07aA1e2D2a262E5DA35D21d01b6C5f372226dBC}),
+            LegacyAddr({chainId: 10, name: "MULTI_PAUSE", version: 0, addr: 0x44c01002ef0955A4DBD86D90dDD27De6eeE37aA3}),
+            LegacyAddr({chainId: 10, name: "ROUTER", version: 302, addr: 0x89f2E8F1c8d6D7cb276c81dd89128D08fc8E3363}),
+            LegacyAddr({
+                chainId: 42161,
+                name: "DEGEN_DISTRIBUTOR",
+                version: 0,
+                addr: 0x79a6FcdDDe1918D6a5b1D9757f29a338C942d547
+            }),
+            LegacyAddr({chainId: 42161, name: "DEGEN_NFT", version: 1, addr: 0x32D72d4AB2A6066A2f301EEc0515d04B282aC06A}),
+            LegacyAddr({chainId: 42161, name: "MULTI_PAUSE", version: 0, addr: 0xf9E344ADa2181A4104a7DC6092A92A1bC67A52c9}),
+            LegacyAddr({chainId: 42161, name: "ROUTER", version: 302, addr: 0xF26186465964ED3564EdFE0046eE65502a6Ac34D})
+        ];
+        for (uint256 i; i < legacyAddresses_.length; ++i) {
+            legacyAddresses.push(legacyAddresses_[i]);
+        }
+    }
 
     function _getSetLegacyAddressCalls(address instanceManager) internal view returns (CrossChainCall[] memory calls) {
         uint256 len = legacyAddresses.length;
@@ -113,6 +143,10 @@ contract LegacyHelper {
         }
     }
 
+    // --------------------------- //
+    // LEGACY MARKET CONFIGURATORS //
+    // --------------------------- //
+
     struct CuratorInfo {
         uint256 chainId;
         string name;
@@ -122,44 +156,47 @@ contract LegacyHelper {
         LegacyParams legacyParams;
     }
 
-    // --------------------------- //
-    // LEGACY MARKET CONFIGURATORS //
-    // --------------------------- //
+    CuratorInfo[] curators;
 
-    CuratorInfo[4] curators = [
-        CuratorInfo({
-            chainId: 1,
-            name: "Chaos Labs",
-            admin: address(0),
-            emergencyAdmin: address(0),
-            deployGovernor: false,
-            legacyParams: _getChaosLabsMainnetLegacyParams()
-        }),
-        CuratorInfo({
-            chainId: 1,
-            name: "Nexo",
-            admin: address(0),
-            emergencyAdmin: address(0),
-            deployGovernor: false,
-            legacyParams: _getNexoMainnetLegacyParams()
-        }),
-        CuratorInfo({
-            chainId: 10,
-            name: "Chaos Labs",
-            admin: address(0),
-            emergencyAdmin: address(0),
-            deployGovernor: false,
-            legacyParams: _getChaosLabsOptimismLegacyParams()
-        }),
-        CuratorInfo({
-            chainId: 42161,
-            name: "Chaos Labs",
-            admin: address(0),
-            emergencyAdmin: address(0),
-            deployGovernor: false,
-            legacyParams: _getChaosLabsArbitrumLegacyParams()
-        })
-    ];
+    function _setupCurators() internal {
+        CuratorInfo[4] memory curators_ = [
+            CuratorInfo({
+                chainId: 1,
+                name: "Chaos Labs",
+                admin: address(0),
+                emergencyAdmin: address(0),
+                deployGovernor: false,
+                legacyParams: _getChaosLabsMainnetLegacyParams()
+            }),
+            CuratorInfo({
+                chainId: 1,
+                name: "Nexo",
+                admin: address(0),
+                emergencyAdmin: address(0),
+                deployGovernor: false,
+                legacyParams: _getNexoMainnetLegacyParams()
+            }),
+            CuratorInfo({
+                chainId: 10,
+                name: "Chaos Labs",
+                admin: address(0),
+                emergencyAdmin: address(0),
+                deployGovernor: false,
+                legacyParams: _getChaosLabsOptimismLegacyParams()
+            }),
+            CuratorInfo({
+                chainId: 42161,
+                name: "Chaos Labs",
+                admin: address(0),
+                emergencyAdmin: address(0),
+                deployGovernor: false,
+                legacyParams: _getChaosLabsArbitrumLegacyParams()
+            })
+        ];
+        for (uint256 i; i < curators_.length; ++i) {
+            curators.push(curators_[i]);
+        }
+    }
 
     function _getAddLegacyMarketConfiguratorCalls(
         address addressProvider,

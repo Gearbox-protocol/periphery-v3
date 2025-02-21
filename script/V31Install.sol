@@ -55,6 +55,8 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
     }
 
     function run() public {
+        if (block.chainid != 1) return;
+
         vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
 
         _fundActors();
@@ -83,7 +85,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
             if (curators[i].name.eq("Chaos Labs") && !connectChaosLabs) continue;
             if (curators[i].name.eq("Nexo") && !connectNexo) continue;
 
-            if (block.chainid == 1) _deployLegacyMarketConfigurator(addressProvider, curators[i]);
+            if (curators[i].chainId == 1) _deployLegacyMarketConfigurator(addressProvider, curators[i]);
 
             CrossChainCall[] memory addCalls =
                 _getAddLegacyMarketConfiguratorCalls(addressProvider, factory, curators[i]);
@@ -93,6 +95,24 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
         vm.stopBroadcast();
 
         _saveAddresses(vm.envOr("OUT_DIR", string(".")));
+    }
+
+    function deployLegacyMarketConfigurators() public {
+        if (block.chainid == 1) return;
+
+        vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
+
+        _attachGlobalContracts();
+
+        address addressProvider = instanceManager.addressProvider();
+        for (uint256 i; i < curators.length; ++i) {
+            if (curators[i].name.eq("Chaos Labs") && !connectChaosLabs) continue;
+            if (curators[i].name.eq("Nexo") && !connectNexo) continue;
+
+            if (curators[i].chainId == block.chainid) _deployLegacyMarketConfigurator(addressProvider, curators[i]);
+        }
+
+        vm.stopBroadcast();
     }
 
     function _setUpPeripheryContracts() internal {
