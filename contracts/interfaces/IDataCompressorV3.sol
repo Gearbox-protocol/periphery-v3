@@ -6,7 +6,7 @@ pragma solidity ^0.8.10;
 import {CreditAccountData, CreditManagerData, PoolData, GaugeInfo} from "../data/Types.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
-import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 
 interface IDataCompressorV3 is IVersion {
     /// @dev Returns CreditAccountData for all opened accounts for particular borrower

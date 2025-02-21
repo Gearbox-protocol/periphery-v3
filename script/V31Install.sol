@@ -114,7 +114,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             );
         }
 
-        _submitProposalAndSign("Deploy periphery contracts", calls);
+        _submitBatchAndSign("Deploy periphery contracts", calls);
 
         (address gear, address weth, address treasury) = _connectLegacyContracts();
 
@@ -127,7 +127,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             _gear: gear
         });
 
-        _submitProposalAndSign("Activate instance", calls);
+        _submitBatchAndSign("Activate instance", calls);
 
         if (vm.envOr("CONNECT_CHAOS_LABS", true)) {
             _connectLegacyMarketConfigurator("Chaos Labs", _getChaosLabsMainnetLegacyParams());
@@ -185,7 +185,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             }
         }
 
-        _submitProposalAndSign("Migrate legacy contracts", calls);
+        _submitBatchAndSign("Migrate legacy contracts", calls);
 
         gear = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_GEAR_TOKEN, 0);
         weth = IAddressProviderLegacy(addressProviderLegacy).getAddressOrRevert(AP_WETH_TOKEN, 0);
@@ -311,7 +311,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper {
             callData: abi.encodeCall(IMarketConfiguratorFactory.addMarketConfigurator, (address(marketConfigurator)))
         });
 
-        _submitProposalAndSign(string.concat("Connect legacy market configurator for ", curatorName), calls);
+        _submitBatchAndSign(string.concat("Connect legacy market configurator for ", curatorName), calls);
     }
 
     function _getChaosLabsMainnetLegacyParams() internal pure returns (LegacyParams memory) {

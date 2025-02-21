@@ -12,7 +12,7 @@ import {MarketData} from "../../types/MarketData.sol";
 import {CreditAccountData as CreditAccountDataOld, TokenBalance} from "../../data/Types.sol";
 import {CreditAccountData, TokenInfo} from "../../types/CreditAccountState.sol";
 import {MarketFilter, CreditAccountFilter} from "../../types/Filters.sol";
-import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 import {RedstonePriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/updatable/RedstonePriceFeed.sol";
 import {BaseParams} from "../../types/BaseState.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
