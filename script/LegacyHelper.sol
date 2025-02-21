@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
+import {console} from "forge-std/console.sol";
+
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
@@ -64,6 +66,13 @@ contract LegacyHelper {
         for (uint256 i; i < chains_.length; ++i) {
             chains.push(chains_[i]);
         }
+    }
+
+    function _getChainName(uint256 chainId) internal view returns (string memory) {
+        for (uint256 i; i < chains.length; ++i) {
+            if (chains[i].chainId == chainId) return chains[i].name;
+        }
+        revert("Chain not found");
     }
 
     function _getActivateInstanceCalls(address instanceManager, address instanceOwner, ChainInfo memory chainInfo)
@@ -230,7 +239,7 @@ contract LegacyHelper {
             )
         );
         bytes32 bytecodeHash = keccak256(initCode);
-        return Create2.computeAddress(salt, bytecodeHash);
+        return Create2.computeAddress(salt, bytecodeHash, 0x4e59b44847b379578588920cA78FbF26c0B4956C);
     }
 
     function _deployLegacyMarketConfigurator(address addressProvider, CuratorInfo memory curatorInfo) internal {
@@ -256,6 +265,17 @@ contract LegacyHelper {
             address creditManager = creditManagers[i];
             marketConfigurator.initializeCreditSuite(creditManager);
         }
+
+        console.log(
+            string.concat(
+                "Deployed legacy market configurator for ",
+                curatorInfo.name,
+                " on ",
+                _getChainName(curatorInfo.chainId),
+                " at"
+            ),
+            address(marketConfigurator)
+        );
     }
 
     function _getChaosLabsMainnetLegacyParams() internal pure returns (LegacyParams memory) {

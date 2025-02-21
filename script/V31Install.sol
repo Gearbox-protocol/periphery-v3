@@ -89,7 +89,12 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
 
             CrossChainCall[] memory addCalls =
                 _getAddLegacyMarketConfiguratorCalls(addressProvider, factory, curators[i]);
-            _submitBatchAndSign(string.concat("Add legacy market configurator ", curators[i].name), addCalls);
+            _submitBatchAndSign(
+                string.concat(
+                    "Add legacy market configurator for ", curators[i].name, " on ", _getChainName(curators[i].chainId)
+                ),
+                addCalls
+            );
         }
 
         vm.stopBroadcast();
@@ -105,6 +110,8 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
         _attachGlobalContracts();
 
         address addressProvider = instanceManager.addressProvider();
+        bool connectChaosLabs = vm.envOr("CONNECT_CHAOS_LABS", true);
+        bool connectNexo = vm.envOr("CONNECT_NEXO", false);
         for (uint256 i; i < curators.length; ++i) {
             if (curators[i].name.eq("Chaos Labs") && !connectChaosLabs) continue;
             if (curators[i].name.eq("Nexo") && !connectNexo) continue;
