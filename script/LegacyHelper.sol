@@ -33,7 +33,7 @@ contract LegacyHelper {
         address router;
     }
 
-    function _getChains() internal view returns (ChainInfo[] memory chains) {
+    function _getChains() internal pure returns (ChainInfo[] memory chains) {
         ChainInfo[3] memory chains_ = [
             ChainInfo({
                 chainId: 1,
@@ -95,7 +95,7 @@ contract LegacyHelper {
         LegacyParams legacyParams;
     }
 
-    function _getCurators() internal view returns (CuratorInfo[] memory curators) {
+    function _getCurators() internal pure returns (CuratorInfo[] memory curators) {
         CuratorInfo[4] memory curators_ = [
             CuratorInfo({
                 chainId: 1,
@@ -211,6 +211,7 @@ contract LegacyHelper {
         address acl = 0x523dA3a8961E4dD4f6206DBf7E6c749f51796bb3;
         address contractsRegister = 0xA50d4E7D8946a7c90652339CDBd262c375d54D99;
         address gearStaking = 0x2fcbD02d5B1D52FC78d4c02890D7f4f47a459c33;
+        address priceOracle = 0x599f585D1042A14aAb194AC8031b2048dEFdFB85;
         address zapperRegister = 0x3E75276548a7722AbA517a35c35FB43CF3B0E723;
 
         address[] memory pausableAdmins = new address[](16);
@@ -253,6 +254,7 @@ contract LegacyHelper {
             acl: acl,
             contractsRegister: contractsRegister,
             gearStaking: gearStaking,
+            priceOracle: priceOracle,
             zapperRegister: zapperRegister,
             pausableAdmins: pausableAdmins,
             unpausableAdmins: unpausableAdmins,
@@ -265,6 +267,7 @@ contract LegacyHelper {
         address acl = 0x6a2994Af133e0F87D9b665bFCe821dC917e8347D;
         address contractsRegister = 0x949F9899bDaDcC7831Ca422f115fe61f4211a30b;
         address gearStaking = 0x8D2622f1CA3B42b637e2ff6753E6b69D3ab9Adfd;
+        address priceOracle = 0xbb3970A9E68ce2e2Dc39fE702A3ad82cfD0eDE7F;
         address zapperRegister = 0x5f49A919d67378290f5aeb359928E0020cD90Bae;
 
         address[] memory pausableAdmins = new address[](6);
@@ -298,6 +301,7 @@ contract LegacyHelper {
             acl: acl,
             contractsRegister: contractsRegister,
             gearStaking: gearStaking,
+            priceOracle: priceOracle,
             zapperRegister: zapperRegister,
             pausableAdmins: pausableAdmins,
             unpausableAdmins: unpausableAdmins,
@@ -310,6 +314,7 @@ contract LegacyHelper {
         address acl = 0xb2FA6c1a629Ed72BF99fbB24f75E5D130A5586F1;
         address contractsRegister = 0xc3e00cdA97D5779BFC8f17588d55b4544C8a6c47;
         address gearStaking = 0xf3599BEfe8E79169Afd5f0b7eb0A1aA322F193D9;
+        address priceOracle = 0xF6C709a419e18819dea30248f59c95cA20fd83d5;
         address zapperRegister = 0xFFadb168E3ACB881DE164aDdfc77d92dbc2D4C16;
 
         address[] memory pausableAdmins = new address[](5);
@@ -341,6 +346,7 @@ contract LegacyHelper {
             acl: acl,
             contractsRegister: contractsRegister,
             gearStaking: gearStaking,
+            priceOracle: priceOracle,
             zapperRegister: zapperRegister,
             pausableAdmins: pausableAdmins,
             unpausableAdmins: unpausableAdmins,
@@ -353,6 +359,7 @@ contract LegacyHelper {
         address acl = 0xd98D75da123813D73c54bCF910BBd7FC0afF24d4;
         address contractsRegister = 0xFC1952052dC1f439ccF0cBd9af5A02748b0cc1db;
         address gearStaking = 0x2fcbD02d5B1D52FC78d4c02890D7f4f47a459c33;
+        address priceOracle = 0x599f585D1042A14aAb194AC8031b2048dEFdFB85;
         address zapperRegister = 0x3E75276548a7722AbA517a35c35FB43CF3B0E723;
 
         // TODO: add proper values for pausableAdmins, unpausableAdmins and emergencyLiquidators
@@ -372,6 +379,7 @@ contract LegacyHelper {
             acl: acl,
             contractsRegister: contractsRegister,
             gearStaking: gearStaking,
+            priceOracle: priceOracle,
             zapperRegister: zapperRegister,
             pausableAdmins: pausableAdmins,
             unpausableAdmins: unpausableAdmins,
