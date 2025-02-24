@@ -486,7 +486,7 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait {
         }
     }
 
-    function _updatePrices(address creditManager, PriceUpdate[] memory priceUpdates) internal {
+    function _updatePrices(address, PriceUpdate[] memory priceUpdates) internal {
         for (uint256 i; i < priceUpdates.length; ++i) {
             IUpdatablePriceFeed(priceUpdates[i].priceFeed).updatePrice(priceUpdates[i].data);
         }

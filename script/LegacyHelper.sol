@@ -13,17 +13,12 @@ import {IMarketConfiguratorFactory} from
 import {CrossChainCall} from "@gearbox-protocol/governance/contracts/interfaces/Types.sol";
 import {
     LegacyParams,
-    MarketConfiguratorLegacy
+    MarketConfiguratorLegacy,
+    PeripheryContract
 } from "@gearbox-protocol/governance/contracts/market/legacy/MarketConfiguratorLegacy.sol";
 
 contract LegacyHelper {
     using LibString for bytes32;
-
-    constructor() {
-        _setupChains();
-        _setupLegacyAddresses();
-        _setupCurators();
-    }
 
     // ------------------- //
     // INSTANCE ACTIVATION //
@@ -35,44 +30,40 @@ contract LegacyHelper {
         address weth;
         address gear;
         address treasury;
+        address router;
     }
 
-    ChainInfo[] chains;
-
-    function _setupChains() internal {
+    function _getChains() internal pure returns (ChainInfo[] memory chains) {
         ChainInfo[3] memory chains_ = [
             ChainInfo({
                 chainId: 1,
                 name: "Ethereum",
                 weth: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
                 gear: 0xBa3335588D9403515223F109EdC4eB7269a9Ab5D,
-                treasury: 0x3E965117A51186e41c2BB58b729A1e518A715e5F
+                treasury: 0x3E965117A51186e41c2BB58b729A1e518A715e5F,
+                router: 0xA6FCd1fE716aD3801C71F2DE4E7A15f3a6994835
             }),
             ChainInfo({
                 chainId: 10,
                 name: "Optimism",
                 weth: 0x4200000000000000000000000000000000000006,
                 gear: 0x39E6C2E1757ae4354087266E2C3EA9aC4257C1eb,
-                treasury: 0x1ACc5BC353f23B901801f3Ba48e1E51a14263808
+                treasury: 0x1ACc5BC353f23B901801f3Ba48e1E51a14263808,
+                router: 0x89f2E8F1c8d6D7cb276c81dd89128D08fc8E3363
             }),
             ChainInfo({
                 chainId: 42161,
                 name: "Arbitrum",
                 weth: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
                 gear: 0x2F26337576127efabEEc1f62BE79dB1bcA9148A4,
-                treasury: 0x2c31eFFE426765E68A43163A96DD13DF70B53C14
+                treasury: 0x2c31eFFE426765E68A43163A96DD13DF70B53C14,
+                router: 0xF26186465964ED3564EdFE0046eE65502a6Ac34D
             })
         ];
+        chains = new ChainInfo[](chains_.length);
         for (uint256 i; i < chains_.length; ++i) {
-            chains.push(chains_[i]);
+            chains[i] = chains_[i];
         }
-    }
-
-    function _getChainName(uint256 chainId) internal view returns (string memory) {
-        for (uint256 i; i < chains.length; ++i) {
-            if (chains[i].chainId == chainId) return chains[i].name;
-        }
-        revert("Chain not found");
     }
 
     function _getActivateInstanceCalls(address instanceManager, address instanceOwner, ChainInfo memory chainInfo)
@@ -90,74 +81,13 @@ contract LegacyHelper {
         });
     }
 
-    // ---------------- //
-    // LEGACY ADDRESSES //
-    // ---------------- //
-
-    // TODO: this section should be removed in favor of storing contracts either as periphery contracts of the
-    // market configurator (e.g., DegenNFT or MultiPause) or as local contracts per instance (e.g., Router)
-
-    struct LegacyAddr {
-        uint256 chainId;
-        bytes32 name;
-        uint256 version;
-        address addr;
-    }
-
-    LegacyAddr[] legacyAddresses;
-
-    function _setupLegacyAddresses() internal {
-        LegacyAddr[12] memory legacyAddresses_ = [
-            LegacyAddr({chainId: 1, name: "DEGEN_DISTRIBUTOR", version: 0, addr: 0x6cA68adc7eC07a4bD97c97e8052510FBE6b67d10}),
-            LegacyAddr({chainId: 1, name: "DEGEN_NFT", version: 1, addr: 0xB829a5b349b01fc71aFE46E50dD6Ec0222A6E599}),
-            LegacyAddr({chainId: 1, name: "MULTI_PAUSE", version: 0, addr: 0x3F185f4ec14fCfB522bC499d790a9608A05E64F6}),
-            LegacyAddr({chainId: 1, name: "ROUTER", version: 302, addr: 0xA6FCd1fE716aD3801C71F2DE4E7A15f3a6994835}),
-            LegacyAddr({
-                chainId: 10,
-                name: "DEGEN_DISTRIBUTOR",
-                version: 0,
-                addr: 0x0106b15Dd9FB263B76d6F917cB19555d2a25cd76
-            }),
-            LegacyAddr({chainId: 10, name: "DEGEN_NFT", version: 1, addr: 0xC07aA1e2D2a262E5DA35D21d01b6C5f372226dBC}),
-            LegacyAddr({chainId: 10, name: "MULTI_PAUSE", version: 0, addr: 0x44c01002ef0955A4DBD86D90dDD27De6eeE37aA3}),
-            LegacyAddr({chainId: 10, name: "ROUTER", version: 302, addr: 0x89f2E8F1c8d6D7cb276c81dd89128D08fc8E3363}),
-            LegacyAddr({
-                chainId: 42161,
-                name: "DEGEN_DISTRIBUTOR",
-                version: 0,
-                addr: 0x79a6FcdDDe1918D6a5b1D9757f29a338C942d547
-            }),
-            LegacyAddr({chainId: 42161, name: "DEGEN_NFT", version: 1, addr: 0x32D72d4AB2A6066A2f301EEc0515d04B282aC06A}),
-            LegacyAddr({chainId: 42161, name: "MULTI_PAUSE", version: 0, addr: 0xf9E344ADa2181A4104a7DC6092A92A1bC67A52c9}),
-            LegacyAddr({chainId: 42161, name: "ROUTER", version: 302, addr: 0xF26186465964ED3564EdFE0046eE65502a6Ac34D})
-        ];
-        for (uint256 i; i < legacyAddresses_.length; ++i) {
-            legacyAddresses.push(legacyAddresses_[i]);
-        }
-    }
-
-    function _getSetLegacyAddressCalls(address instanceManager) internal view returns (CrossChainCall[] memory calls) {
-        uint256 len = legacyAddresses.length;
-        calls = new CrossChainCall[](len);
-        for (uint256 i; i < len; ++i) {
-            string memory key = legacyAddresses[i].name.fromSmallString();
-
-            calls[i] = CrossChainCall({
-                chainId: legacyAddresses[i].chainId,
-                target: instanceManager,
-                callData: abi.encodeCall(
-                    IInstanceManager.setLegacyAddress, (key, legacyAddresses[i].addr, legacyAddresses[i].version != 0)
-                )
-            });
-        }
-    }
-
     // --------------------------- //
     // LEGACY MARKET CONFIGURATORS //
     // --------------------------- //
 
     struct CuratorInfo {
         uint256 chainId;
+        string chainName;
         string name;
         address admin;
         address emergencyAdmin;
@@ -165,12 +95,11 @@ contract LegacyHelper {
         LegacyParams legacyParams;
     }
 
-    CuratorInfo[] curators;
-
-    function _setupCurators() internal {
+    function _getCurators() internal pure returns (CuratorInfo[] memory curators) {
         CuratorInfo[4] memory curators_ = [
             CuratorInfo({
                 chainId: 1,
+                chainName: "Ethereum",
                 name: "Chaos Labs",
                 admin: address(0),
                 emergencyAdmin: address(0),
@@ -179,6 +108,7 @@ contract LegacyHelper {
             }),
             CuratorInfo({
                 chainId: 1,
+                chainName: "Ethereum",
                 name: "Nexo",
                 admin: address(0),
                 emergencyAdmin: address(0),
@@ -187,6 +117,7 @@ contract LegacyHelper {
             }),
             CuratorInfo({
                 chainId: 10,
+                chainName: "Optimism",
                 name: "Chaos Labs",
                 admin: address(0),
                 emergencyAdmin: address(0),
@@ -195,6 +126,7 @@ contract LegacyHelper {
             }),
             CuratorInfo({
                 chainId: 42161,
+                chainName: "Arbitrum",
                 name: "Chaos Labs",
                 admin: address(0),
                 emergencyAdmin: address(0),
@@ -202,8 +134,9 @@ contract LegacyHelper {
                 legacyParams: _getChaosLabsArbitrumLegacyParams()
             })
         ];
+        curators = new CuratorInfo[](curators_.length);
         for (uint256 i; i < curators_.length; ++i) {
-            curators.push(curators_[i]);
+            curators[i] = curators_[i];
         }
     }
 
@@ -211,7 +144,7 @@ contract LegacyHelper {
         address addressProvider,
         address marketConfiguratorFactory,
         CuratorInfo memory curatorInfo
-    ) internal view returns (CrossChainCall[] memory calls) {
+    ) internal pure returns (CrossChainCall[] memory calls) {
         calls = new CrossChainCall[](1);
         address marketConfigurator = _computeLegacyMarketConfiguratorAddress(addressProvider, curatorInfo);
         calls[0] = CrossChainCall({
@@ -223,7 +156,7 @@ contract LegacyHelper {
 
     function _computeLegacyMarketConfiguratorAddress(address addressProvider, CuratorInfo memory curatorInfo)
         internal
-        view
+        pure
         returns (address)
     {
         bytes32 salt = bytes32("SALT");
@@ -268,11 +201,7 @@ contract LegacyHelper {
 
         console.log(
             string.concat(
-                "Deployed legacy market configurator for ",
-                curatorInfo.name,
-                " on ",
-                _getChainName(curatorInfo.chainId),
-                " at"
+                "Deployed legacy market configurator for ", curatorInfo.name, " on ", curatorInfo.chainName, " at"
             ),
             address(marketConfigurator)
         );
@@ -282,6 +211,7 @@ contract LegacyHelper {
         address acl = 0x523dA3a8961E4dD4f6206DBf7E6c749f51796bb3;
         address contractsRegister = 0xA50d4E7D8946a7c90652339CDBd262c375d54D99;
         address gearStaking = 0x2fcbD02d5B1D52FC78d4c02890D7f4f47a459c33;
+        address priceOracle = 0x599f585D1042A14aAb194AC8031b2048dEFdFB85;
         address zapperRegister = 0x3E75276548a7722AbA517a35c35FB43CF3B0E723;
 
         address[] memory pausableAdmins = new address[](16);
@@ -311,21 +241,25 @@ contract LegacyHelper {
         emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
         emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
 
-        address[] memory bots = new address[](4);
-        bots[0] = 0x0f06c2bD612Ee7D52d4bC76Ce3BD7E95247AF2a9;
-        bots[1] = 0x53fDA9a509020Fc534EfF938Fd01dDa5fFe8560c;
-        bots[2] = 0x82b0adfA8f09b20BB4ed066Bcd4b2a84BEf73D5E;
-        bots[3] = 0x519906cD00222b4a81bf14A7A11fA5FCF455Af42;
+        PeripheryContract[] memory peripheryContracts = new PeripheryContract[](7);
+        peripheryContracts[0] = PeripheryContract("DEGEN_NFT", 0xB829a5b349b01fc71aFE46E50dD6Ec0222A6E599);
+        peripheryContracts[1] = PeripheryContract("MULTI_PAUSE", 0x3F185f4ec14fCfB522bC499d790a9608A05E64F6);
+        peripheryContracts[2] = PeripheryContract("DEGEN_DISTRIBUTOR", 0x6cA68adc7eC07a4bD97c97e8052510FBE6b67d10);
+        peripheryContracts[3] = PeripheryContract("BOT", 0x0f06c2bD612Ee7D52d4bC76Ce3BD7E95247AF2a9);
+        peripheryContracts[4] = PeripheryContract("BOT", 0x53fDA9a509020Fc534EfF938Fd01dDa5fFe8560c);
+        peripheryContracts[5] = PeripheryContract("BOT", 0x82b0adfA8f09b20BB4ed066Bcd4b2a84BEf73D5E);
+        peripheryContracts[6] = PeripheryContract("BOT", 0x519906cD00222b4a81bf14A7A11fA5FCF455Af42);
 
         return LegacyParams({
             acl: acl,
             contractsRegister: contractsRegister,
             gearStaking: gearStaking,
+            priceOracle: priceOracle,
             zapperRegister: zapperRegister,
             pausableAdmins: pausableAdmins,
             unpausableAdmins: unpausableAdmins,
             emergencyLiquidators: emergencyLiquidators,
-            bots: bots
+            peripheryContracts: peripheryContracts
         });
     }
 
@@ -333,6 +267,7 @@ contract LegacyHelper {
         address acl = 0x6a2994Af133e0F87D9b665bFCe821dC917e8347D;
         address contractsRegister = 0x949F9899bDaDcC7831Ca422f115fe61f4211a30b;
         address gearStaking = 0x8D2622f1CA3B42b637e2ff6753E6b69D3ab9Adfd;
+        address priceOracle = 0xbb3970A9E68ce2e2Dc39fE702A3ad82cfD0eDE7F;
         address zapperRegister = 0x5f49A919d67378290f5aeb359928E0020cD90Bae;
 
         address[] memory pausableAdmins = new address[](6);
@@ -353,21 +288,25 @@ contract LegacyHelper {
         emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
         emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
 
-        address[] memory bots = new address[](4);
-        bots[0] = 0x0A12a15F359FdefD36c9fA8bd3193940A8B344eF;
-        bots[1] = 0x383562873F3c3A75ec5CEC6F9b91B5F04d44465c;
-        bots[2] = 0x7B84Db149430fbB158c67E0F08B162a746A757bd;
-        bots[3] = 0x08952Ea9cEA25781C5b7F9B5fD8a534aC614DD37;
+        PeripheryContract[] memory peripheryContracts = new PeripheryContract[](7);
+        peripheryContracts[0] = PeripheryContract("DEGEN_NFT", 0xC07aA1e2D2a262E5DA35D21d01b6C5f372226dBC);
+        peripheryContracts[1] = PeripheryContract("MULTI_PAUSE", 0x44c01002ef0955A4DBD86D90dDD27De6eeE37aA3);
+        peripheryContracts[2] = PeripheryContract("DEGEN_DISTRIBUTOR", 0x0106b15Dd9FB263B76d6F917cB19555d2a25cd76);
+        peripheryContracts[3] = PeripheryContract("BOT", 0x0A12a15F359FdefD36c9fA8bd3193940A8B344eF);
+        peripheryContracts[4] = PeripheryContract("BOT", 0x383562873F3c3A75ec5CEC6F9b91B5F04d44465c);
+        peripheryContracts[5] = PeripheryContract("BOT", 0x7B84Db149430fbB158c67E0F08B162a746A757bd);
+        peripheryContracts[6] = PeripheryContract("BOT", 0x08952Ea9cEA25781C5b7F9B5fD8a534aC614DD37);
 
         return LegacyParams({
             acl: acl,
             contractsRegister: contractsRegister,
             gearStaking: gearStaking,
+            priceOracle: priceOracle,
             zapperRegister: zapperRegister,
             pausableAdmins: pausableAdmins,
             unpausableAdmins: unpausableAdmins,
             emergencyLiquidators: emergencyLiquidators,
-            bots: bots
+            peripheryContracts: peripheryContracts
         });
     }
 
@@ -375,6 +314,7 @@ contract LegacyHelper {
         address acl = 0xb2FA6c1a629Ed72BF99fbB24f75E5D130A5586F1;
         address contractsRegister = 0xc3e00cdA97D5779BFC8f17588d55b4544C8a6c47;
         address gearStaking = 0xf3599BEfe8E79169Afd5f0b7eb0A1aA322F193D9;
+        address priceOracle = 0xF6C709a419e18819dea30248f59c95cA20fd83d5;
         address zapperRegister = 0xFFadb168E3ACB881DE164aDdfc77d92dbc2D4C16;
 
         address[] memory pausableAdmins = new address[](5);
@@ -393,21 +333,25 @@ contract LegacyHelper {
         emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
         emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
 
-        address[] memory bots = new address[](4);
-        bots[0] = 0x938094B41dDaC7bD3f21fC962D424E1a84ac4a85;
-        bots[1] = 0x44A9fDEF7307AE8C0997a1A339588a1C073930a7;
-        bots[2] = 0x8A35C229ff4f96e8b7A4f9168B22b9F7DF6b82f3;
-        bots[3] = 0x538d66d6cA2607673ceC8af3cA3933476f361633;
+        PeripheryContract[] memory peripheryContracts = new PeripheryContract[](7);
+        peripheryContracts[0] = PeripheryContract("DEGEN_NFT", 0x32D72d4AB2A6066A2f301EEc0515d04B282aC06A);
+        peripheryContracts[1] = PeripheryContract("MULTI_PAUSE", 0xf9E344ADa2181A4104a7DC6092A92A1bC67A52c9);
+        peripheryContracts[2] = PeripheryContract("DEGEN_DISTRIBUTOR", 0x79a6FcdDDe1918D6a5b1D9757f29a338C942d547);
+        peripheryContracts[3] = PeripheryContract("BOT", 0x938094B41dDaC7bD3f21fC962D424E1a84ac4a85);
+        peripheryContracts[4] = PeripheryContract("BOT", 0x44A9fDEF7307AE8C0997a1A339588a1C073930a7);
+        peripheryContracts[5] = PeripheryContract("BOT", 0x8A35C229ff4f96e8b7A4f9168B22b9F7DF6b82f3);
+        peripheryContracts[6] = PeripheryContract("BOT", 0x538d66d6cA2607673ceC8af3cA3933476f361633);
 
         return LegacyParams({
             acl: acl,
             contractsRegister: contractsRegister,
             gearStaking: gearStaking,
+            priceOracle: priceOracle,
             zapperRegister: zapperRegister,
             pausableAdmins: pausableAdmins,
             unpausableAdmins: unpausableAdmins,
             emergencyLiquidators: emergencyLiquidators,
-            bots: bots
+            peripheryContracts: peripheryContracts
         });
     }
 
@@ -415,6 +359,7 @@ contract LegacyHelper {
         address acl = 0xd98D75da123813D73c54bCF910BBd7FC0afF24d4;
         address contractsRegister = 0xFC1952052dC1f439ccF0cBd9af5A02748b0cc1db;
         address gearStaking = 0x2fcbD02d5B1D52FC78d4c02890D7f4f47a459c33;
+        address priceOracle = 0x599f585D1042A14aAb194AC8031b2048dEFdFB85;
         address zapperRegister = 0x3E75276548a7722AbA517a35c35FB43CF3B0E723;
 
         // TODO: add proper values for pausableAdmins, unpausableAdmins and emergencyLiquidators
@@ -424,21 +369,22 @@ contract LegacyHelper {
 
         address[] memory emergencyLiquidators = new address[](0);
 
-        address[] memory bots = new address[](4);
-        bots[0] = 0x223D666828A6a9DFd91081614d18f45bFe8B489B;
-        bots[1] = 0xfF54A8876d6526359961f6171740E6a08B68ac5D;
-        bots[2] = 0xD58931fAC75C6D763580253Fa028A427AD0f591f;
-        bots[3] = 0x35756306F36378447bb959592F33f8b13Ce40833;
+        PeripheryContract[] memory peripheryContracts = new PeripheryContract[](4);
+        peripheryContracts[0] = PeripheryContract("BOT", 0x223D666828A6a9DFd91081614d18f45bFe8B489B);
+        peripheryContracts[1] = PeripheryContract("BOT", 0xfF54A8876d6526359961f6171740E6a08B68ac5D);
+        peripheryContracts[2] = PeripheryContract("BOT", 0xD58931fAC75C6D763580253Fa028A427AD0f591f);
+        peripheryContracts[3] = PeripheryContract("BOT", 0x35756306F36378447bb959592F33f8b13Ce40833);
 
         return LegacyParams({
             acl: acl,
             contractsRegister: contractsRegister,
             gearStaking: gearStaking,
+            priceOracle: priceOracle,
             zapperRegister: zapperRegister,
             pausableAdmins: pausableAdmins,
             unpausableAdmins: unpausableAdmins,
             emergencyLiquidators: emergencyLiquidators,
-            bots: bots
+            peripheryContracts: peripheryContracts
         });
     }
 }
