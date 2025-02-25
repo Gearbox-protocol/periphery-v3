@@ -40,6 +40,7 @@ export default defineConfig([
         },
         include: [
           "IAddressProvider.sol/IAddressProvider.json",
+          "IBotListV3.sol/IBotListV3.json",
           "ICreditConfiguratorV3.sol/ICreditConfiguratorV3.json",
           "ICreditFacadeV3.sol/ICreditFacadeV3.json",
           "ICreditFacadeV3Multicall.sol/ICreditFacadeV3Multicall.json",
