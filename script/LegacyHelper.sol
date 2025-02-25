@@ -34,7 +34,7 @@ contract LegacyHelper {
     }
 
     function _getChains() internal pure returns (ChainInfo[] memory chains) {
-        ChainInfo[3] memory chains_ = [
+        ChainInfo[4] memory chains_ = [
             ChainInfo({
                 chainId: 1,
                 name: "Ethereum",
@@ -50,6 +50,14 @@ contract LegacyHelper {
                 gear: 0x39E6C2E1757ae4354087266E2C3EA9aC4257C1eb,
                 treasury: 0x1ACc5BC353f23B901801f3Ba48e1E51a14263808,
                 router: 0x89f2E8F1c8d6D7cb276c81dd89128D08fc8E3363
+            }),
+            ChainInfo({
+                chainId: 146,
+                name: "Sonic",
+                weth: 0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38,
+                gear: 0x0fDbce271bea0d9819034cd09021e0bBE94be3Fd,
+                treasury: 0x74028Cf1cBa6A4513c9a27137E7d0F3847833795,
+                router: 0x9Fae6aA45aF0fcf94819fCE4f40416C76ce0928b
             }),
             ChainInfo({
                 chainId: 42161,
@@ -123,6 +131,15 @@ contract LegacyHelper {
                 emergencyAdmin: address(0),
                 deployGovernor: false,
                 legacyParams: _getChaosLabsOptimismLegacyParams()
+            }),
+            CuratorInfo({
+                chainId: 146,
+                chainName: "Sonic",
+                name: "Chaos Labs",
+                admin: address(0),
+                emergencyAdmin: address(0),
+                deployGovernor: false,
+                legacyParams: _getChaosLabsSonicLegacyParams()
             }),
             CuratorInfo({
                 chainId: 42161,
@@ -296,6 +313,51 @@ contract LegacyHelper {
         peripheryContracts[4] = PeripheryContract("BOT", 0x383562873F3c3A75ec5CEC6F9b91B5F04d44465c);
         peripheryContracts[5] = PeripheryContract("BOT", 0x7B84Db149430fbB158c67E0F08B162a746A757bd);
         peripheryContracts[6] = PeripheryContract("BOT", 0x08952Ea9cEA25781C5b7F9B5fD8a534aC614DD37);
+
+        return LegacyParams({
+            acl: acl,
+            contractsRegister: contractsRegister,
+            gearStaking: gearStaking,
+            priceOracle: priceOracle,
+            zapperRegister: zapperRegister,
+            pausableAdmins: pausableAdmins,
+            unpausableAdmins: unpausableAdmins,
+            emergencyLiquidators: emergencyLiquidators,
+            peripheryContracts: peripheryContracts
+        });
+    }
+
+    function _getChaosLabsSonicLegacyParams() internal pure returns (LegacyParams memory) {
+        address acl = 0xAd131da4BDdb40EbB5CEeaea87067553D4313895;
+        address contractsRegister = 0xF2b8E0f4705ceC47a8B8Eb7Dbc29B3322198058b;
+        address gearStaking = 0xe88846b6C85AA67688e453c7eaeeeb40F51e1F0a;
+        address priceOracle = 0x39Be03d0275292dF39439722C610E7db3F155d05;
+        address zapperRegister = 0x7e10482eEF36dA8e732e86C5de6282fF13B71Fe1;
+
+        address[] memory pausableAdmins = new address[](5);
+        pausableAdmins[0] = 0xAdbF876ce58CB65c99b18078353e1DCB16E69e84;
+        pausableAdmins[1] = 0x65b384cEcb12527Da51d52f15b4140ED7FaD7308;
+        pausableAdmins[2] = 0xD5C96E5c1E1C84dFD293473fC195BbE7FC8E4840;
+        pausableAdmins[3] = 0xacEB9dc6a81f1C9E2d8a86c3bFec3f6EF584139D;
+        pausableAdmins[4] = 0x393eC629b90389F957c5a2E4FC2F8F488e735BFC;
+
+        address[] memory unpausableAdmins = new address[](3);
+        unpausableAdmins[0] = 0xAdbF876ce58CB65c99b18078353e1DCB16E69e84;
+        unpausableAdmins[1] = 0xacEB9dc6a81f1C9E2d8a86c3bFec3f6EF584139D;
+        unpausableAdmins[2] = 0x393eC629b90389F957c5a2E4FC2F8F488e735BFC;
+
+        address[] memory emergencyLiquidators = new address[](2);
+        emergencyLiquidators[0] = 0x7BD9c8161836b1F402233E80F55E3CaE0Fde4d87;
+        emergencyLiquidators[1] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
+
+        PeripheryContract[] memory peripheryContracts = new PeripheryContract[](7);
+        peripheryContracts[0] = PeripheryContract("DEGEN_NFT", 0xf24411cB47918057587b793e98aC7fA9A8a710c2);
+        peripheryContracts[1] = PeripheryContract("MULTI_PAUSE", 0xaF1470dED2BE116dbBE6A5090078feC21B02F78E);
+        peripheryContracts[2] = PeripheryContract("DEGEN_DISTRIBUTOR", 0x1998956732cD652FF3d35134294Ad20aCB2CDA80);
+        peripheryContracts[3] = PeripheryContract("BOT", 0x47d2a88f32b630f6C8b107c37d0AF58a861d3406);
+        peripheryContracts[4] = PeripheryContract("BOT", 0x2A8446D5305499F5A9C8f3768104562eBD45e941);
+        peripheryContracts[5] = PeripheryContract("BOT", 0xEF74B1273FD4cb49109230EDa9b72f0B50031f5b);
+        peripheryContracts[6] = PeripheryContract("BOT", 0xd2D1E5afeE34abf1CfA27eA94af25d3AF8fFe31A);
 
         return LegacyParams({
             acl: acl,
