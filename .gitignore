@@ -20,4 +20,5 @@ docs/
 .DS_Store
 address-provider.json
 addresses.json
-generated.ts
+
+*.generated.ts
