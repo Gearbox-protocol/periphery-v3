@@ -104,7 +104,7 @@ contract LegacyHelper {
     }
 
     function _getCurators() internal pure returns (CuratorInfo[] memory curators) {
-        CuratorInfo[4] memory curators_ = [
+        CuratorInfo[5] memory curators_ = [
             CuratorInfo({
                 chainId: 1,
                 chainName: "Ethereum",

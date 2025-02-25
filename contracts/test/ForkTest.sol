@@ -43,13 +43,10 @@ abstract contract ForkTest is Test {
 
         addressProvider = IAddressProvider(vm.envAddress("FORK_ADDRESS_PROVIDER"));
 
-        acl = new ACL(address(this));
         aclLegacy = IACLLegacy(addressProvider.getAddressOrRevert(AP_ACL, NO_VERSION_CONTROL));
         register = IContractsRegister(addressProvider.getAddressOrRevert(AP_CONTRACTS_REGISTER, NO_VERSION_CONTROL));
         configurator = Ownable(address(aclLegacy)).owner();
-        acl.transferOwnership(configurator);
-        vm.prank(configurator);
-        acl.acceptOwnership();
+        acl = new ACL(configurator);
     }
 
     function _grantRole(bytes32 role, address account) internal {
