@@ -29,6 +29,7 @@ contract LegacyHelper {
         string name;
         address weth;
         address gear;
+        address usdt;
         address treasury;
         address router;
     }
@@ -40,6 +41,7 @@ contract LegacyHelper {
                 name: "Ethereum",
                 weth: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
                 gear: 0xBa3335588D9403515223F109EdC4eB7269a9Ab5D,
+                usdt: 0xdAC17F958D2ee523a2206206994597C13D831ec7,
                 treasury: 0x3E965117A51186e41c2BB58b729A1e518A715e5F,
                 router: 0xA6FCd1fE716aD3801C71F2DE4E7A15f3a6994835
             }),
@@ -48,6 +50,7 @@ contract LegacyHelper {
                 name: "Optimism",
                 weth: 0x4200000000000000000000000000000000000006,
                 gear: 0x39E6C2E1757ae4354087266E2C3EA9aC4257C1eb,
+                usdt: 0x0000000000000000000000000000000000000000,
                 treasury: 0x1ACc5BC353f23B901801f3Ba48e1E51a14263808,
                 router: 0x89f2E8F1c8d6D7cb276c81dd89128D08fc8E3363
             }),
@@ -56,6 +59,7 @@ contract LegacyHelper {
                 name: "Sonic",
                 weth: 0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38,
                 gear: 0x0fDbce271bea0d9819034cd09021e0bBE94be3Fd,
+                usdt: 0x0000000000000000000000000000000000000000,
                 treasury: 0x74028Cf1cBa6A4513c9a27137E7d0F3847833795,
                 router: 0x9Fae6aA45aF0fcf94819fCE4f40416C76ce0928b
             }),
@@ -64,6 +68,7 @@ contract LegacyHelper {
                 name: "Arbitrum",
                 weth: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
                 gear: 0x2F26337576127efabEEc1f62BE79dB1bcA9148A4,
+                usdt: 0x0000000000000000000000000000000000000000,
                 treasury: 0x2c31eFFE426765E68A43163A96DD13DF70B53C14,
                 router: 0xF26186465964ED3564EdFE0046eE65502a6Ac34D
             })
