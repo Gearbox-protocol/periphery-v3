@@ -6,6 +6,7 @@ import {Script} from "forge-std/Script.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
+import {IBytecodeRepository} from "@gearbox-protocol/governance/contracts/interfaces/IBytecodeRepository.sol";
 import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
 import {IMarketConfiguratorFactory} from
     "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
@@ -76,6 +77,23 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
         }
         _submitBatchAndSign("Set routers", setRouterCalls);
 
+        for (uint256 i; i < chains.length; ++i) {
+            if (chains[i].usdt == address(0)) continue;
+            CrossChainCall[] memory setUSDTPostfixCalls = new CrossChainCall[](1);
+
+            setUSDTPostfixCalls[0] = CrossChainCall({
+                chainId: chains[i].chainId,
+                target: address(instanceManager),
+                callData: abi.encodeCall(
+                    instanceManager.configureGlobal,
+                    (
+                        address(bytecodeRepository),
+                        abi.encodeCall(IBytecodeRepository.setTokenSpecificPostfix, (chains[i].usdt, "USDT"))
+                    )
+                )
+            });
+            _submitBatchAndSign(string.concat("Set USDT postfix on ", chains[i].name), setUSDTPostfixCalls);
+        }
         // activate instances
         for (uint256 i; i < chains.length; ++i) {
             CrossChainCall[] memory activateCalls =
