@@ -6,16 +6,16 @@ import {console} from "forge-std/console.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
-import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
-import {IInstanceManager} from "@gearbox-protocol/governance/contracts/interfaces/IInstanceManager.sol";
+import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/interfaces/IContractsRegister.sol";
+import {IInstanceManager} from "@gearbox-protocol/permissionless/contracts/interfaces/IInstanceManager.sol";
 import {IMarketConfiguratorFactory} from
-    "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
-import {CrossChainCall} from "@gearbox-protocol/governance/contracts/interfaces/Types.sol";
+    "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
+import {CrossChainCall} from "@gearbox-protocol/permissionless/contracts/interfaces/Types.sol";
 import {
     LegacyParams,
     MarketConfiguratorLegacy,
     PeripheryContract
-} from "@gearbox-protocol/governance/contracts/market/legacy/MarketConfiguratorLegacy.sol";
+} from "@gearbox-protocol/permissionless/contracts/market/legacy/MarketConfiguratorLegacy.sol";
 
 contract LegacyHelper {
     using LibString for bytes32;

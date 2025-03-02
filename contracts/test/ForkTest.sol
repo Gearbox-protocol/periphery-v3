@@ -7,16 +7,16 @@ import {Test} from "forge-std/Test.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
+import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
 
 import {
     AP_ACL,
     AP_CONTRACTS_REGISTER,
     NO_VERSION_CONTROL
-} from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
+} from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
 
-import {ACL} from "@gearbox-protocol/governance/contracts/market/ACL.sol";
-import {IACLLegacy} from "@gearbox-protocol/governance/contracts/market/legacy/MarketConfiguratorLegacy.sol";
+import {ACL} from "@gearbox-protocol/permissionless/contracts/market/ACL.sol";
+import {IACLLegacy} from "@gearbox-protocol/permissionless/contracts/market/legacy/MarketConfiguratorLegacy.sol";
 import {IContractsRegister} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IContractsRegister.sol";
 
 abstract contract ForkTest is Test {

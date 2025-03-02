@@ -10,15 +10,15 @@ import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 import {ICreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
-import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
+import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
+import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 import {
     AP_BOT_LIST,
     AP_MARKET_CONFIGURATOR_FACTORY,
     DOMAIN_BOT,
     DOMAIN_ZAPPER,
     NO_VERSION_CONTROL
-} from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
+} from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
 
 import {ITokenCompressor} from "../interfaces/ITokenCompressor.sol";
 import {IPeripheryCompressor} from "../interfaces/IPeripheryCompressor.sol";

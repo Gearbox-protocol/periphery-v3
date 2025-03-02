@@ -5,21 +5,21 @@ import {Script} from "forge-std/Script.sol";
 
 import {LibString} from "@solady/utils/LibString.sol";
 
-import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
-import {IBytecodeRepository} from "@gearbox-protocol/governance/contracts/interfaces/IBytecodeRepository.sol";
-import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
+import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
+import {IBytecodeRepository} from "@gearbox-protocol/permissionless/contracts/interfaces/IBytecodeRepository.sol";
+import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 import {IMarketConfiguratorFactory} from
-    "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
-import {CrossChainCall} from "@gearbox-protocol/governance/contracts/interfaces/Types.sol";
+    "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
+import {CrossChainCall} from "@gearbox-protocol/permissionless/contracts/interfaces/Types.sol";
 import {
     AP_MARKET_CONFIGURATOR_FACTORY,
     NO_VERSION_CONTROL
-} from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
+} from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
 import {
     GlobalSetup,
     UploadableContract,
     DeploySystemContractCall
-} from "@gearbox-protocol/governance/contracts/test/helpers/GlobalSetup.sol";
+} from "@gearbox-protocol/permissionless/contracts/test/helpers/GlobalSetup.sol";
 
 import {AdapterCompressor} from "../contracts/compressors/AdapterCompressor.sol";
 import {CreditAccountCompressor} from "../contracts/compressors/CreditAccountCompressor.sol";

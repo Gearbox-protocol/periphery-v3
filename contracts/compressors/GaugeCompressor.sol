@@ -10,15 +10,15 @@ import {IGearStakingV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IGe
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
-import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
-import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
+import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
+import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/interfaces/IContractsRegister.sol";
+import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 import {IMarketConfiguratorFactory} from
-    "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
+    "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
 import {
     AP_MARKET_CONFIGURATOR_FACTORY,
     NO_VERSION_CONTROL
-} from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
+} from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
 
 import {MarketFilter} from "../types/Filters.sol";
 import {GaugeQuotaParams, GaugeInfo} from "../types/RateKeeperState.sol";
