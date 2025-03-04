@@ -47,12 +47,64 @@ import {
 
 import {AnvilHelper} from "./AnvilHelper.sol";
 import {LegacyHelper} from "./LegacyHelper.sol";
+import {VmSafe} from "forge-std/Vm.sol";
+import {TestKeys} from "@gearbox-protocol/permissionless/contracts/test/helpers/TestKeys.sol";
 
 contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
     using LibString for string;
 
+    bool realDeploy = vm.envOr("REAL_DEPLOY", false);
+
+    // VmSafe.Wallet[] internal initialSigners;
+    address internal instanceOwner;
+    VmSafe.Wallet internal auditor;
+    VmSafe.Wallet internal author;
+
+    address[] sponsoredAddresses;
+
     constructor() GlobalSetup() {
-        _autoImpersonate(false);
+        realDeploy = vm.envOr("REAL_DEPLOY", false);
+
+        if (!realDeploy) {
+            _autoImpersonate(false);
+            TestKeys testKeys = new TestKeys();
+            for (uint256 i; i < testKeys.initialSigners().length; ++i) {
+                initialSigners.push(testKeys.initialSigners()[i]);
+            }
+
+            instanceOwner = testKeys.instanceOwner().addr;
+            auditor = testKeys.auditor();
+            author = testKeys.bytecodeAuthor();
+            dao = vm.rememberKey(testKeys.dao().privateKey);
+            testKeys.printKeys();
+        } else {
+            initialSigners.push(vm.createWallet(vm.envUint("INITIAL_SIGNER_PRIVATE_KEY")));
+            instanceOwner = vm.addr(vm.envUint("INSTANCE_OWNER_PRIVATE_KEY"));
+            auditor = vm.createWallet(vm.envUint("AUDITOR_PRIVATE_KEY"));
+            author = vm.createWallet(vm.envUint("AUTHOR_PRIVATE_KEY"));
+            dao = vm.rememberKey(vm.envUint("DAO_PRIVATE_KEY"));
+        }
+
+        uint256 len = initialSigners.length;
+        for (uint256 i; i < len; ++i) {
+            vm.rememberKey(initialSigners[i].privateKey);
+        }
+
+        sponsoredAddresses.push(initialSigners[len - 1].addr);
+        sponsoredAddresses.push(author.addr);
+        sponsoredAddresses.push(dao);
+
+        vm.rememberKey(auditor.privateKey);
+        vm.rememberKey(author.privateKey);
+    }
+
+    function _fundActors() internal {
+        address[] memory actors = new address[](sponsoredAddresses.length);
+        for (uint256 i; i < sponsoredAddresses.length; ++i) {
+            actors[i] = sponsoredAddresses[i];
+        }
+
+        _fundActors(actors, 200_000_000 gwei);
     }
 
     function run() public {
@@ -61,7 +113,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
         vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
 
         _fundActors();
-        _setUpGlobalContracts();
+        _deployGlobalContracts(initialSigners, author, auditor, "Initial Auditor", uint8(initialSigners.length), dao);
         _setUpPeripheryContracts();
 
         ChainInfo[] memory chains = _getChains();
@@ -133,7 +185,13 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
 
         vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
 
-        _attachGlobalContracts();
+        uint256 len = initialSigners.length;
+        address[] memory initialSignerAddresses = new address[](len);
+        for (uint256 i; i < len; ++i) {
+            initialSignerAddresses[i] = initialSigners[i].addr;
+        }
+
+        _attachGlobalContracts(initialSignerAddresses, uint8(len), dao);
 
         address addressProvider = instanceManager.addressProvider();
         bool connectChaosLabs = vm.envOr("CONNECT_CHAOS_LABS", true);
@@ -207,9 +265,13 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
         uint256 len = peripheryContracts.length;
         CrossChainCall[] memory calls = new CrossChainCall[](len);
         for (uint256 i = 0; i < len; ++i) {
-            bytes32 bytecodeHash = _uploadByteCodeAndSign(
-                peripheryContracts[i].initCode, peripheryContracts[i].contractType, peripheryContracts[i].version
-            );
+            bytes32 bytecodeHash = _uploadByteCodeAndSign({
+                _author: author,
+                _auditor: auditor,
+                _initCode: peripheryContracts[i].initCode,
+                _contractName: peripheryContracts[i].contractType,
+                _version: peripheryContracts[i].version
+            });
             calls[i] = _generateAllowSystemContractCall(bytecodeHash);
         }
 
