@@ -16,6 +16,7 @@ import {PoolQuotaKeeperState, QuotaTokenParams} from "../types/PoolQuotaKeeperSt
 import {RateKeeperState, Rate} from "../types/RateKeeperState.sol";
 
 import {RAY} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
+import {OptionalCall} from "@gearbox-protocol/core-v3/contracts/libraries/OptionalCall.sol";
 import {IRateKeeper} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IRateKeeper.sol";
 
 import {IPoolCompressor} from "../interfaces/IPoolCompressor.sol";
@@ -46,9 +47,12 @@ contract PoolCompressor is IPoolCompressor {
         // CONTRACT PARAMETERS
         //
         bytes32 defaultContractType = "POOL";
-        try IUSDT(_pool.underlyingToken()).basisPointsRate() {
-            defaultContractType = "POOL::USDT";
-        } catch {}
+        (bool success,) = OptionalCall.staticCallOptionalSafe({
+            target: _pool.underlyingToken(),
+            data: abi.encodeWithSelector(IUSDT.basisPointsRate.selector),
+            gasAllowance: 10000
+        });
+        if (success) defaultContractType = "POOL::USDT";
         result.baseParams = BaseLib.getBaseParams(pool, defaultContractType, address(0));
 
         //
