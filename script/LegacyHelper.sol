@@ -20,10 +20,6 @@ import {
 contract LegacyHelper {
     using LibString for bytes32;
 
-    // ------------------- //
-    // INSTANCE ACTIVATION //
-    // ------------------- //
-
     struct ChainInfo {
         uint256 chainId;
         string name;
@@ -108,14 +104,18 @@ contract LegacyHelper {
         LegacyParams legacyParams;
     }
 
-    function _getCurators() internal pure returns (CuratorInfo[] memory curators) {
+    function _getCurators(address admin, address emergencyAdmin)
+        internal
+        pure
+        returns (CuratorInfo[] memory curators)
+    {
         CuratorInfo[5] memory curators_ = [
             CuratorInfo({
                 chainId: 1,
                 chainName: "Ethereum",
                 name: "Chaos Labs",
-                admin: address(0),
-                emergencyAdmin: address(0),
+                admin: admin,
+                emergencyAdmin: emergencyAdmin,
                 deployGovernor: false,
                 legacyParams: _getChaosLabsMainnetLegacyParams()
             }),
@@ -132,8 +132,8 @@ contract LegacyHelper {
                 chainId: 10,
                 chainName: "Optimism",
                 name: "Chaos Labs",
-                admin: address(0),
-                emergencyAdmin: address(0),
+                admin: admin,
+                emergencyAdmin: emergencyAdmin,
                 deployGovernor: false,
                 legacyParams: _getChaosLabsOptimismLegacyParams()
             }),
@@ -141,8 +141,8 @@ contract LegacyHelper {
                 chainId: 146,
                 chainName: "Sonic",
                 name: "Chaos Labs",
-                admin: address(0),
-                emergencyAdmin: address(0),
+                admin: admin,
+                emergencyAdmin: emergencyAdmin,
                 deployGovernor: false,
                 legacyParams: _getChaosLabsSonicLegacyParams()
             }),
@@ -150,8 +150,8 @@ contract LegacyHelper {
                 chainId: 42161,
                 chainName: "Arbitrum",
                 name: "Chaos Labs",
-                admin: address(0),
-                emergencyAdmin: address(0),
+                admin: admin,
+                emergencyAdmin: emergencyAdmin,
                 deployGovernor: false,
                 legacyParams: _getChaosLabsArbitrumLegacyParams()
             })

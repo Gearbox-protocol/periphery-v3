@@ -7,7 +7,7 @@ if [ -z "$ANVIL_URL" ]; then
 fi
 
 # forge script script/V30Fix.sol:V30Fix --rpc-url ${ANVIL_URL} --unlocked --sender 0x0000000000000000000000000000000000000000 --ffi --broadcast
-forge script script/V31Install.sol:V31Install --rpc-url ${ANVIL_URL} --broadcast --gas-estimate-multiplier 130 
+forge script script/V31Install.sol:V31Install --rpc-url ${ANVIL_URL} --broadcast --gas-estimate-multiplier 130 --verify
 forge script script/FundsBack.sol:FundsBack --rpc-url ${ANVIL_URL} --broadcast 
 
 # SHARED_DIR is set on testnets

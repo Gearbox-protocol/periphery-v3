@@ -62,6 +62,9 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
 
     address[] sponsoredAddresses;
 
+    address internal admin;
+    address internal emergencyAdmin;
+
     constructor() GlobalSetup() {
         realDeploy = vm.envOr("REAL_DEPLOY", false);
 
@@ -83,6 +86,8 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
             auditor = vm.createWallet(vm.envUint("AUDITOR_PRIVATE_KEY"));
             author = vm.createWallet(vm.envUint("AUTHOR_PRIVATE_KEY"));
             dao = vm.rememberKey(vm.envUint("DAO_PRIVATE_KEY"));
+            admin = vm.addr(vm.envUint("ADMIN_PRIVATE_KEY"));
+            emergencyAdmin = vm.addr(vm.envUint("EMERGENCY_ADMIN_PRIVATE_KEY"));
         }
 
         uint256 len = initialSigners.length;
@@ -160,7 +165,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
 
         bool connectChaosLabs = vm.envOr("CONNECT_CHAOS_LABS", true);
         bool connectNexo = vm.envOr("CONNECT_NEXO", false);
-        CuratorInfo[] memory curators = _getCurators();
+        CuratorInfo[] memory curators = _getCurators(admin, emergencyAdmin);
         for (uint256 i; i < curators.length; ++i) {
             if (curators[i].name.eq("Chaos Labs") && !connectChaosLabs) continue;
             if (curators[i].name.eq("Nexo") && !connectNexo) continue;
@@ -196,7 +201,7 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
         address addressProvider = instanceManager.addressProvider();
         bool connectChaosLabs = vm.envOr("CONNECT_CHAOS_LABS", true);
         bool connectNexo = vm.envOr("CONNECT_NEXO", false);
-        CuratorInfo[] memory curators = _getCurators();
+        CuratorInfo[] memory curators = _getCurators(admin, emergencyAdmin);
         for (uint256 i; i < curators.length; ++i) {
             if (curators[i].name.eq("Chaos Labs") && !connectChaosLabs) continue;
             if (curators[i].name.eq("Nexo") && !connectNexo) continue;
