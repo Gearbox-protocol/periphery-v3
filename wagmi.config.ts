@@ -1,6 +1,21 @@
-import { defineConfig } from "@wagmi/cli";
-import { foundry } from "@wagmi/cli/plugins";
-import path from 'node:path';
+import { defineConfig, Plugin } from "@wagmi/cli";
+import { foundry, FoundryConfig } from "@wagmi/cli/plugins";
+
+const namingPlugin = (suffix = "V310", trim = "V3") => (config: FoundryConfig = {}): Plugin => {
+  const plugin = foundry(config);
+  return {
+    ...plugin,
+    contracts: async () => {
+      const contracts = await plugin.contracts();
+      return contracts.map((contract) => {
+        return {
+          ...contract,
+          name: contract.name.replaceAll(trim, "").concat(suffix),
+        };
+      });
+    },
+  };
+};
 
 export default defineConfig([
   {
@@ -31,7 +46,7 @@ export default defineConfig([
   {
     out: "./v310.generated.ts",
     plugins: [
-      foundry({
+      namingPlugin()({
         artifacts: "out",
         forge: {
           build: false,
