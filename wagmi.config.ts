@@ -44,6 +44,46 @@ export default defineConfig([
     ],
   },
   {
+    out: "./adapters.generated.ts",
+    plugins: [
+      foundry({
+        artifacts: "out",
+        forge: {
+          build: false,
+          clean: false,
+          rebuild: false,
+        },
+        include: [
+          "IAaveV2_LendingPoolAdapter.sol/**.json",
+          "IAaveV2_WrappedATokenAdapter.sol/**.json",
+          "IBalancerV2VaultAdapter.sol/**.json",
+          "IBalancerV3RouterAdapter.sol/**.json",
+          "ICamelotV3Adapter.sol/**.json",
+          "ICompoundV2_CTokenAdapter.sol/**.json",
+          "IConvexV1BaseRewardPoolAdapter.sol/**.json",
+          "IConvexV1BoosterAdapter.sol/**.json",
+          "ICurveV1Adapter.sol/**.json",
+          "ICurveV1_2AssetsAdapter.sol/**.json",
+          "ICurveV1_3AssetsAdapter.sol/**.json",
+          "ICurveV1_4AssetsAdapter.sol/**.json",
+          "ICurveV1_StableNGAdapter.sol/**.json",
+          "IEqualizerRouterAdapter.sol/**.json",
+          "IERC4626Adapter.sol/**.json",
+          "ILidoV1Adapter.sol/**.json",
+          "IwstETHV1Adapter.sol/**.json",
+          "IMellowVaultAdapter.sol/**.json",
+          "IPendleRouterAdapter.sol/**.json",
+          "IDaiUsdsAdapter.sol/**.json",
+          "IStakingRewardsAdapter.sol/**.json",
+          "IUniswapV2Adapter.sol/**.json",
+          "IUniswapV3Adapter.sol/**.json",
+          "IVelodromeV2RouterAdapter.sol/**.json",
+          "IYearnV2Adapter.sol/**.json",
+        ],
+      }),
+    ],
+  },
+  {
     out: "./v310.generated.ts",
     plugins: [
       namingPlugin()({
