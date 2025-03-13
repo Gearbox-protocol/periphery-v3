@@ -17,6 +17,9 @@ import {
     PeripheryContract
 } from "@gearbox-protocol/permissionless/contracts/market/legacy/MarketConfiguratorLegacy.sol";
 
+// TODO: make sure pausableAdmins, unpausableAdmins and emergencyLiquidators are set properly
+// e.g., in some cases multipause is not added to pausable admins, etc.
+
 contract LegacyHelper {
     using LibString for bytes32;
 
@@ -100,6 +103,7 @@ contract LegacyHelper {
         string name;
         address admin;
         address emergencyAdmin;
+        address feeSplitterAdmin;
         bool deployGovernor;
         LegacyParams legacyParams;
     }
@@ -116,6 +120,7 @@ contract LegacyHelper {
                 name: "Chaos Labs",
                 admin: admin,
                 emergencyAdmin: emergencyAdmin,
+                feeSplitterAdmin: address(0),
                 deployGovernor: false,
                 legacyParams: _getChaosLabsMainnetLegacyParams()
             }),
@@ -123,8 +128,9 @@ contract LegacyHelper {
                 chainId: 1,
                 chainName: "Ethereum",
                 name: "Nexo",
-                admin: address(0),
-                emergencyAdmin: address(0),
+                admin: admin,
+                emergencyAdmin: emergencyAdmin,
+                feeSplitterAdmin: 0x349e22baeB15Da6fad00093b3873D5E16d5Bb842,
                 deployGovernor: false,
                 legacyParams: _getNexoMainnetLegacyParams()
             }),
@@ -134,6 +140,7 @@ contract LegacyHelper {
                 name: "Chaos Labs",
                 admin: admin,
                 emergencyAdmin: emergencyAdmin,
+                feeSplitterAdmin: address(0),
                 deployGovernor: false,
                 legacyParams: _getChaosLabsOptimismLegacyParams()
             }),
@@ -143,6 +150,7 @@ contract LegacyHelper {
                 name: "Chaos Labs",
                 admin: admin,
                 emergencyAdmin: emergencyAdmin,
+                feeSplitterAdmin: address(0),
                 deployGovernor: false,
                 legacyParams: _getChaosLabsSonicLegacyParams()
             }),
@@ -152,6 +160,7 @@ contract LegacyHelper {
                 name: "Chaos Labs",
                 admin: admin,
                 emergencyAdmin: emergencyAdmin,
+                feeSplitterAdmin: address(0),
                 deployGovernor: false,
                 legacyParams: _getChaosLabsArbitrumLegacyParams()
             })
@@ -188,6 +197,7 @@ contract LegacyHelper {
                 addressProvider,
                 curatorInfo.admin,
                 curatorInfo.emergencyAdmin,
+                curatorInfo.feeSplitterAdmin,
                 curatorInfo.name,
                 curatorInfo.deployGovernor,
                 curatorInfo.legacyParams
@@ -202,6 +212,7 @@ contract LegacyHelper {
             addressProvider_: addressProvider,
             admin_: curatorInfo.admin,
             emergencyAdmin_: curatorInfo.emergencyAdmin,
+            feeSplitterAdmin_: curatorInfo.feeSplitterAdmin,
             curatorName_: curatorInfo.name,
             deployGovernor_: curatorInfo.deployGovernor,
             legacyParams_: curatorInfo.legacyParams
@@ -423,24 +434,40 @@ contract LegacyHelper {
     }
 
     function _getNexoMainnetLegacyParams() internal pure returns (LegacyParams memory) {
-        address acl = 0xd98D75da123813D73c54bCF910BBd7FC0afF24d4;
-        address contractsRegister = 0xFC1952052dC1f439ccF0cBd9af5A02748b0cc1db;
+        address acl = 0x83347DbF1DC98db2989BeEf5746790431B934614;
+        address contractsRegister = 0x0e1d8e931F0F3FE33FAdcA0bb517E5A8E1CD8E1B;
         address gearStaking = 0x2fcbD02d5B1D52FC78d4c02890D7f4f47a459c33;
         address priceOracle = 0x599f585D1042A14aAb194AC8031b2048dEFdFB85;
-        address zapperRegister = 0x3E75276548a7722AbA517a35c35FB43CF3B0E723;
+        address zapperRegister = 0x522c047660A2d81D8D831457770404B9621A6eD9;
 
-        // TODO: add proper values for pausableAdmins, unpausableAdmins and emergencyLiquidators
-        address[] memory pausableAdmins = new address[](0);
+        address[] memory pausableAdmins = new address[](5);
+        pausableAdmins[0] = 0x3655Ae71eB5437F8FbD0187C012e4619064F9B41;
+        pausableAdmins[1] = 0xdcC3FD83DBF480e8Ad74DD3A634CaE29B68b9814;
+        pausableAdmins[2] = 0xdD84A24eeddE63F10Ec3e928f1c8302A47538b6B;
+        pausableAdmins[3] = 0x043BBDf51239bC7F958D0bF6c6fA4E2A825621f6;
+        pausableAdmins[4] = 0x029De72Fa62A2AdB1E84E97A339F92ce4810e2a9;
 
-        address[] memory unpausableAdmins = new address[](0);
+        address[] memory unpausableAdmins = new address[](4);
+        unpausableAdmins[0] = 0x3655Ae71eB5437F8FbD0187C012e4619064F9B41;
+        unpausableAdmins[1] = 0xdcC3FD83DBF480e8Ad74DD3A634CaE29B68b9814;
+        unpausableAdmins[2] = 0xdD84A24eeddE63F10Ec3e928f1c8302A47538b6B;
+        unpausableAdmins[3] = 0x029De72Fa62A2AdB1E84E97A339F92ce4810e2a9;
 
-        address[] memory emergencyLiquidators = new address[](0);
+        address[] memory emergencyLiquidators = new address[](6);
+        emergencyLiquidators[0] = 0xbd796DdE46DEB00B1840e7be311eF469c375c940;
+        emergencyLiquidators[1] = 0x98b0EB10A3a2aaf72CA2C362f8D8360FE6037E8b;
+        emergencyLiquidators[2] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;
+        emergencyLiquidators[3] = 0x3c2E5548bCe88315D50eAB4f6b1Ffb2f1B8eBd7A;
+        emergencyLiquidators[4] = 0x1a396F9209BDbF7E1Bc95c488E7F1237DA796a03;
+        emergencyLiquidators[5] = 0x3d673C58eA3486E95943F4418932c3b1776B3c8c;
+        emergencyLiquidators[6] = 0x32D956b225b0F1C1E78E676a53C886552c38ed70;
 
-        PeripheryContract[] memory peripheryContracts = new PeripheryContract[](4);
-        peripheryContracts[0] = PeripheryContract("BOT", 0x223D666828A6a9DFd91081614d18f45bFe8B489B);
-        peripheryContracts[1] = PeripheryContract("BOT", 0xfF54A8876d6526359961f6171740E6a08B68ac5D);
-        peripheryContracts[2] = PeripheryContract("BOT", 0xD58931fAC75C6D763580253Fa028A427AD0f591f);
-        peripheryContracts[3] = PeripheryContract("BOT", 0x35756306F36378447bb959592F33f8b13Ce40833);
+        PeripheryContract[] memory peripheryContracts = new PeripheryContract[](5);
+        peripheryContracts[0] = PeripheryContract("MULTI_PAUSE", 0x029De72Fa62A2AdB1E84E97A339F92ce4810e2a9);
+        peripheryContracts[1] = PeripheryContract("BOT", 0xc82020f1922AE56CCF25d5F2E2d6155E44583ef9);
+        peripheryContracts[2] = PeripheryContract("BOT", 0x5397F95B1452EBEE91369c9b35149602d4ACBee2);
+        peripheryContracts[3] = PeripheryContract("BOT", 0xE5f56A2C92FAA510785d1dBe269774Cf815bCA4A);
+        peripheryContracts[4] = PeripheryContract("BOT", 0x3E3a906C8b286b6f95e61E7580E1Eb081BD1299D);
 
         return LegacyParams({
             acl: acl,
