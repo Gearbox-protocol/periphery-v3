@@ -28,7 +28,6 @@
 [submodule "lib/@solady"]
 	path = lib/@solady
 	url = https://github.com/Vectorized/solady
-[submodule "lib/@gearbox-protocol/governance"]
-	path = lib/@gearbox-protocol/governance
-	url = https://github.com/Gearbox-protocol/governance
-	branch = getter-updates
+[submodule "lib/@gearbox-protocol/permissionless"]
+	path = lib/@gearbox-protocol/permissionless
+	url = https://github.com/Gearbox-protocol/permissionless

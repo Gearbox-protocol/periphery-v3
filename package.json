@@ -11,7 +11,8 @@
   "scripts": {
     "prepare": "husky install",
     "prettier": "forge fmt",
-    "prettier:ci": "forge fmt"
+    "prettier:ci": "forge fmt",
+    "abi": "wagmi generate"
   },
   "dependencies": {},
   "devDependencies": {

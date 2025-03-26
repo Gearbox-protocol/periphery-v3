@@ -143,7 +143,6 @@ contract PoolsEquivalenceTest is Test {
                     "Quota isActive mismatch"
                 );
             }
-
         }
     }
 }

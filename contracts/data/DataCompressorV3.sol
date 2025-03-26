@@ -20,7 +20,9 @@ import {
 } from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {ICreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
-import {IPriceOracleV3, PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
+import {IUpdatablePriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
+import {IPriceOracleV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
@@ -484,8 +486,10 @@ contract DataCompressorV3 is IDataCompressorV3, ContractsRegisterTrait {
         }
     }
 
-    function _updatePrices(address creditManager, PriceUpdate[] memory priceUpdates) internal {
-        _getPriceOracle(creditManager).updatePrices(priceUpdates);
+    function _updatePrices(address, PriceUpdate[] memory priceUpdates) internal {
+        for (uint256 i; i < priceUpdates.length; ++i) {
+            IUpdatablePriceFeed(priceUpdates[i].priceFeed).updatePrice(priceUpdates[i].data);
+        }
     }
 
     function _getPriceFeedFailedList(address _cm, TokenBalance[] memory balances)

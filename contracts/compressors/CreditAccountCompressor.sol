@@ -19,15 +19,15 @@ import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/C
 import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
 import {ICreditAccountCompressor} from "../interfaces/ICreditAccountCompressor.sol";
 
-import {IContractsRegister} from "@gearbox-protocol/governance/contracts/interfaces/IContractsRegister.sol";
-import {IAddressProvider} from "@gearbox-protocol/governance/contracts/interfaces/IAddressProvider.sol";
-import {IMarketConfigurator} from "@gearbox-protocol/governance/contracts/interfaces/IMarketConfigurator.sol";
+import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/interfaces/IContractsRegister.sol";
+import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
+import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 import {IMarketConfiguratorFactory} from
-    "@gearbox-protocol/governance/contracts/interfaces/IMarketConfiguratorFactory.sol";
+    "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
 import {
     AP_MARKET_CONFIGURATOR_FACTORY,
     NO_VERSION_CONTROL
-} from "@gearbox-protocol/governance/contracts/libraries/ContractLiterals.sol";
+} from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
 
 import {CreditAccountData, TokenInfo} from "../types/CreditAccountState.sol";
 import {CreditAccountFilter, MarketFilter} from "../types/Filters.sol";

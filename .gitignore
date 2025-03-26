@@ -13,11 +13,12 @@ cache/
 docs/
 
 # Dotenv file
-.env
+.env*
 
 # Logs
 *.log
 .DS_Store
 address-provider.json
 addresses.json
-generated.ts
+
+*.generated.ts
