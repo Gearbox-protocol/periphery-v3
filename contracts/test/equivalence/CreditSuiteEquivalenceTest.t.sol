@@ -5,17 +5,16 @@ pragma solidity ^0.8.17;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Test} from "forge-std/Test.sol";
-import {DataCompressorV3} from "../../data/DataCompressorV3.sol";
+import {IDataCompressorV3, CreditManagerData} from "../interfaces/IDataCompressorV3.sol";
 import {MarketCompressor} from "../../compressors/MarketCompressor.sol";
 import {MarketData} from "../../types/MarketData.sol";
-import {CreditManagerData} from "../../data/Types.sol";
 import {MarketFilter} from "../../types/Filters.sol";
 import "forge-std/console.sol";
 
 contract CreditSuiteEquivalenceTest is Test {
     using Address for address;
 
-    DataCompressorV3 public dc3;
+    IDataCompressorV3 public dc3;
     MarketCompressor public mc;
 
     function _findCreditManager(address cmAddr, CreditManagerData[] memory creditManagersOld)
@@ -46,7 +45,7 @@ contract CreditSuiteEquivalenceTest is Test {
         }
 
         mc = MarketCompressor(marketCompressor);
-        dc3 = DataCompressorV3(dataCompressor);
+        dc3 = IDataCompressorV3(dataCompressor);
 
         MarketFilter memory filter =
             MarketFilter({configurators: new address[](0), pools: new address[](0), underlying: address(0)});

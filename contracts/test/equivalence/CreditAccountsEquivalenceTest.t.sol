@@ -5,11 +5,14 @@ pragma solidity ^0.8.17;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Test} from "forge-std/Test.sol";
-import {DataCompressorV3} from "../../data/DataCompressorV3.sol";
+import {
+    IDataCompressorV3,
+    CreditAccountData as CreditAccountDataOld,
+    TokenBalance
+} from "../interfaces/IDataCompressorV3.sol";
 import {MarketCompressor} from "../../compressors/MarketCompressor.sol";
 import {CreditAccountCompressor} from "../../compressors/CreditAccountCompressor.sol";
 import {MarketData} from "../../types/MarketData.sol";
-import {CreditAccountData as CreditAccountDataOld, TokenBalance} from "../../data/Types.sol";
 import {CreditAccountData, TokenInfo} from "../../types/CreditAccountState.sol";
 import {MarketFilter, CreditAccountFilter} from "../../types/Filters.sol";
 import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
@@ -21,7 +24,7 @@ import "forge-std/console.sol";
 contract CreditAccountsEquivalenceTest is Test {
     using Address for address;
 
-    DataCompressorV3 public dc3;
+    IDataCompressorV3 public dc3;
     MarketCompressor public mc;
     CreditAccountCompressor public cac;
 
@@ -53,7 +56,7 @@ contract CreditAccountsEquivalenceTest is Test {
         }
 
         mc = MarketCompressor(marketCompressor);
-        dc3 = DataCompressorV3(dataCompressor);
+        dc3 = IDataCompressorV3(dataCompressor);
         cac = CreditAccountCompressor(creditAccountCompressor);
 
         // Update all price feeds before running the test

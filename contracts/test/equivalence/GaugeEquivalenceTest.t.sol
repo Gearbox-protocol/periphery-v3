@@ -5,17 +5,16 @@ pragma solidity ^0.8.17;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Test} from "forge-std/Test.sol";
-import {DataCompressorV3} from "../../data/DataCompressorV3.sol";
+import {IDataCompressorV3, GaugeInfo as GaugeInfoOld} from "../interfaces/IDataCompressorV3.sol";
 import {GaugeCompressor} from "../../compressors/GaugeCompressor.sol";
 import {GaugeInfo} from "../../types/RateKeeperState.sol";
-import {GaugeInfo as GaugeInfoOld} from "../../data/Types.sol";
 import {MarketFilter} from "../../types/Filters.sol";
 import "forge-std/console.sol";
 
 contract GaugeCompressorEquivalenceTest is Test {
     using Address for address;
 
-    DataCompressorV3 public dc3;
+    IDataCompressorV3 public dc3;
     GaugeCompressor public gc;
 
     function test_GCE_01_GaugeCompressor_equivalence() public {
@@ -34,7 +33,7 @@ contract GaugeCompressorEquivalenceTest is Test {
         }
 
         gc = GaugeCompressor(gaugeCompressor);
-        dc3 = DataCompressorV3(dataCompressor);
+        dc3 = IDataCompressorV3(dataCompressor);
 
         MarketFilter memory filter =
             MarketFilter({configurators: new address[](0), pools: new address[](0), underlying: address(0)});
