@@ -188,7 +188,7 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
     /// @dev Returns the list of price feeds from `priceFeedMap`
     function _getPriceFeedsFromMap(PriceFeedMapEntry[] memory priceFeedMap)
         internal
-        view
+        pure
         returns (address[] memory priceFeeds)
     {
         uint256 len = priceFeedMap.length;
@@ -201,7 +201,7 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
     /// @dev Returns the list of updatable feeds from `priceFeedTree`
     function _getUpdatablePriceFeedsFromTree(PriceFeedTreeNode[] memory priceFeedTree)
         internal
-        view
+        pure
         returns (BaseParams[] memory priceFeeds)
     {
         priceFeeds = new BaseParams[](priceFeedTree.length);
