@@ -7,7 +7,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Test} from "forge-std/Test.sol";
 import {IDataCompressorV3, GaugeInfo as GaugeInfoOld} from "../interfaces/IDataCompressorV3.sol";
 import {GaugeCompressor} from "../../compressors/GaugeCompressor.sol";
-import {GaugeInfo} from "../../types/RateKeeperState.sol";
+import {GaugeInfo} from "../../types/GaugeInfo.sol";
 import {MarketFilter} from "../../types/Filters.sol";
 import "forge-std/console.sol";
 

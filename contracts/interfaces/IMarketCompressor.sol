@@ -1,22 +1,27 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Holdings, 2024
-pragma solidity ^0.8.10;
+// (c) Gearbox Foundation, 2025.
+pragma solidity ^0.8.23;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
-import {BaseParams} from "../types/BaseState.sol";
+import {BaseState} from "../types/BaseState.sol";
 import {MarketFilter} from "../types/Filters.sol";
-import {MarketData} from "../types/MarketData.sol";
+import {MarketData, PoolState, QuotaKeeperState, RateKeeperState} from "../types/MarketData.sol";
 
 interface IMarketCompressor is IVersion {
-    function getMarketData(address pool) external view returns (MarketData memory result);
+    function getMarkets(MarketFilter memory filter) external view returns (MarketData[] memory);
 
-    function getMarketData(address pool, address configurator) external view returns (MarketData memory result);
+    function getMarketData(address pool) external view returns (MarketData memory);
 
-    function getMarkets(MarketFilter memory filter) external view returns (MarketData[] memory result);
+    function getMarketData(address pool, address configurator) external view returns (MarketData memory);
 
-    function getUpdatablePriceFeeds(MarketFilter memory filter)
-        external
-        view
-        returns (BaseParams[] memory updatablePriceFeeds);
+    function getPoolState(address pool) external view returns (PoolState memory);
+
+    function getQuotaKeeperState(address quotaKeeper) external view returns (QuotaKeeperState memory);
+
+    function getRateKeeperState(address rateKeeper) external view returns (RateKeeperState memory);
+
+    function getInterestRateModelState(address interestRateModel) external view returns (BaseState memory);
+
+    function getLossPolicyState(address lossPolicy) external view returns (BaseState memory);
 }

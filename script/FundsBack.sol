@@ -21,25 +21,21 @@ import {
     DeploySystemContractCall
 } from "@gearbox-protocol/permissionless/contracts/test/helpers/GlobalSetup.sol";
 
-import {AdapterCompressor} from "../contracts/compressors/AdapterCompressor.sol";
 import {CreditAccountCompressor} from "../contracts/compressors/CreditAccountCompressor.sol";
 import {CreditSuiteCompressor} from "../contracts/compressors/CreditSuiteCompressor.sol";
 import {GaugeCompressor} from "../contracts/compressors/GaugeCompressor.sol";
 import {MarketCompressor} from "../contracts/compressors/MarketCompressor.sol";
 import {PeripheryCompressor} from "../contracts/compressors/PeripheryCompressor.sol";
-import {PoolCompressor} from "../contracts/compressors/PoolCompressor.sol";
 import {PriceFeedCompressor} from "../contracts/compressors/PriceFeedCompressor.sol";
 import {RewardsCompressor} from "../contracts/compressors/RewardsCompressor.sol";
 import {TokenCompressor} from "../contracts/compressors/TokenCompressor.sol";
 
 import {
-    AP_ADAPTER_COMPRESSOR,
     AP_CREDIT_ACCOUNT_COMPRESSOR,
     AP_CREDIT_SUITE_COMPRESSOR,
     AP_GAUGE_COMPRESSOR,
     AP_MARKET_COMPRESSOR,
     AP_PERIPHERY_COMPRESSOR,
-    AP_POOL_COMPRESSOR,
     AP_PRICE_FEED_COMPRESSOR,
     AP_REWARDS_COMPRESSOR,
     AP_TOKEN_COMPRESSOR

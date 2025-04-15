@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Foundation, 2024.
-pragma solidity ^0.8.17;
+// (c) Gearbox Foundation, 2025.
+pragma solidity ^0.8.23;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -15,56 +15,30 @@ import {
     ICreditManagerV3
 } from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
-import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
-import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
+
 import {ICreditAccountCompressor} from "../interfaces/ICreditAccountCompressor.sol";
 
-import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/interfaces/IContractsRegister.sol";
-import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
-import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
-import {IMarketConfiguratorFactory} from
-    "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
-import {
-    AP_MARKET_CONFIGURATOR_FACTORY,
-    NO_VERSION_CONTROL
-} from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
+import {AP_CREDIT_ACCOUNT_COMPRESSOR} from "../libraries/Literals.sol";
 
 import {CreditAccountData, TokenInfo} from "../types/CreditAccountState.sol";
-import {CreditAccountFilter, MarketFilter} from "../types/Filters.sol";
+import {CreditAccountFilter, CreditManagerFilter} from "../types/Filters.sol";
 
-import {Contains} from "../libraries/Contains.sol";
-import {AP_CREDIT_ACCOUNT_COMPRESSOR} from "../libraries/Literals.sol";
+import {BaseCompressor} from "./BaseCompressor.sol";
+
 /// @title  Credit account compressor
 /// @notice Allows to fetch data on all credit accounts matching certain criteria in an efficient manner
 /// @dev    The contract is not gas optimized and is thus not recommended for on-chain use
 /// @dev    Querying functions try to process as many accounts as possible and stop when they get close to gas limit
-
-contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
-    using Contains for address[];
-
+contract CreditAccountCompressor is BaseCompressor, ICreditAccountCompressor {
     /// @notice Contract version
     uint256 public constant override version = 3_10;
+
+    /// @notice Contract type
     bytes32 public constant override contractType = AP_CREDIT_ACCOUNT_COMPRESSOR;
-
-    /// @notice Address provider contract address
-    address public immutable addressProvider;
-
-    address public immutable marketConfiguratorFactory;
-
-    /// @notice Thrown when address provider is not a contract
-    error InvalidAddressProviderException();
 
     /// @notice Constructor
     /// @param  addressProvider_ Address provider contract address
-    constructor(address addressProvider_) nonZeroAddress(addressProvider_) {
-        if (addressProvider_.code.length == 0) {
-            revert InvalidAddressProviderException();
-        }
-
-        addressProvider = addressProvider_;
-        marketConfiguratorFactory =
-            IAddressProvider(addressProvider_).getAddressOrRevert(AP_MARKET_CONFIGURATOR_FACTORY, NO_VERSION_CONTROL);
-    }
+    constructor(address addressProvider_) BaseCompressor(addressProvider_) {}
 
     // -------- //
     // QUERYING //
@@ -76,26 +50,26 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         return _getCreditAccountData(creditAccount, creditManager);
     }
 
-    /// @notice Returns data for credit accounts that match `caFilter` in credit managers matching `marketFilter`
+    /// @notice Returns data for credit accounts that match `caFilter` in credit managers matching `cmFilter`
     /// @dev    The non-zero value of `nextOffset` return variable indicates that gas supplied with a call was
     ///         insufficient to process all the accounts and next iteration starting from this value is needed
-    function getCreditAccounts(MarketFilter memory marketFilter, CreditAccountFilter memory caFilter, uint256 offset)
+    function getCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter, uint256 offset)
         external
         view
         returns (CreditAccountData[] memory data, uint256 nextOffset)
     {
-        address[] memory creditManagers = _getCreditManagers(marketFilter);
+        address[] memory creditManagers = _getCreditManagers(cmFilter);
         return _getCreditAccounts(creditManagers, caFilter, offset, type(uint256).max);
     }
 
     /// @dev Same as above but with `limit` parameter that specifies the number of accounts to process
     function getCreditAccounts(
-        MarketFilter memory marketFilter,
+        CreditManagerFilter memory cmFilter,
         CreditAccountFilter memory caFilter,
         uint256 offset,
         uint256 limit
     ) public view returns (CreditAccountData[] memory data, uint256 nextOffset) {
-        address[] memory creditManagers = _getCreditManagers(marketFilter);
+        address[] memory creditManagers = _getCreditManagers(cmFilter);
         return _getCreditAccounts(creditManagers, caFilter, offset, limit);
     }
 
@@ -128,13 +102,13 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
     // COUNTING //
     // -------- //
 
-    /// @notice Counts credit accounts that match `caFilter` in credit managers matching `marketFilter`
-    function countCreditAccounts(MarketFilter memory marketFilter, CreditAccountFilter memory caFilter)
+    /// @notice Counts credit accounts that match `caFilter` in credit managers matching `cmFilter`
+    function countCreditAccounts(CreditManagerFilter memory cmFilter, CreditAccountFilter memory caFilter)
         external
         view
         returns (uint256)
     {
-        address[] memory creditManagers = _getCreditManagers(marketFilter);
+        address[] memory creditManagers = _getCreditManagers(cmFilter);
         return _countCreditAccounts(creditManagers, caFilter, 0, type(uint256).max);
     }
 
@@ -287,10 +261,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
             data.totalValueUSD = cdd_.totalValueUSD;
             data.twvUSD = cdd_.twvUSD;
             data.totalValue = cdd_.totalValue;
-
-            data.healthFactor = cdd_.twvUSD * PERCENTAGE_FACTOR >= type(uint16).max * cdd_.totalDebtUSD
-                ? type(uint16).max
-                : uint16((cdd_.twvUSD * PERCENTAGE_FACTOR) / cdd_.totalDebtUSD);
+            data.healthFactor = cdd_.twvUSD * 1e18 / cdd_.totalDebtUSD;
             data.success = true;
         } catch {}
 
@@ -357,9 +328,7 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
             try ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL)
             returns (CollateralDebtData memory cdd) {
                 if (filter.reverting) return false;
-                uint16 healthFactor = cdd.twvUSD * PERCENTAGE_FACTOR >= type(uint16).max * cdd.totalDebtUSD
-                    ? type(uint16).max
-                    : uint16((cdd.twvUSD * PERCENTAGE_FACTOR) / cdd.totalDebtUSD);
+                uint256 healthFactor = cdd.twvUSD * 1e18 / cdd.totalDebtUSD;
                 if (filter.minHealthFactor != 0 && healthFactor < filter.minHealthFactor) return false;
                 if (filter.maxHealthFactor != 0 && healthFactor > filter.maxHealthFactor) return false;
             } catch {
@@ -368,43 +337,5 @@ contract CreditAccountCompressor is ICreditAccountCompressor, SanityCheckTrait {
         }
 
         return true;
-    }
-
-    /// @dev Credit managers discovery
-    function _getCreditManagers(MarketFilter memory filter) internal view returns (address[] memory creditManagers) {
-        address[] memory configurators = filter.configurators.length != 0
-            ? filter.configurators
-            : IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
-
-        // rough estimate of maximum number of credit managers
-        uint256 max;
-        for (uint256 i; i < configurators.length; ++i) {
-            address cr = IMarketConfigurator(configurators[i]).contractsRegister();
-            max += IContractsRegister(cr).getCreditManagers().length;
-        }
-
-        // allocate the array with maximum potentially needed size (total number of credit managers can be assumed
-        // to be relatively small and the function is only called once, so memory expansion cost is not an issue)
-        creditManagers = new address[](max);
-        uint256 num;
-        for (uint256 i; i < configurators.length; ++i) {
-            address cr = IMarketConfigurator(configurators[i]).contractsRegister();
-            address[] memory managers = IContractsRegister(cr).getCreditManagers();
-            for (uint256 j; j < managers.length; ++j) {
-                address manager = managers[j];
-                // FIXME: there's room for optimization that allows to avoid scanning over all configurators
-                if (filter.pools.length != 0 && !filter.pools.contains(ICreditManagerV3(manager).pool())) continue;
-                if (filter.underlying != address(0) && ICreditManagerV3(manager).underlying() != filter.underlying) {
-                    continue;
-                }
-
-                creditManagers[num++] = manager;
-            }
-        }
-
-        // trim the array to its actual size
-        assembly {
-            mstore(creditManagers, num)
-        }
     }
 }

@@ -29,13 +29,11 @@ export default defineConfig([
           rebuild: false,
         },
         include: [
-          "IAdapterCompressor.sol/**.json",
           "ICreditAccountCompressor.sol/**.json",
           "ICreditSuiteCompressor.sol/**.json",
           "IGaugeCompressor.sol/**.json",
           "IMarketCompressor.sol/**.json",
           "IPeripheryCompressor.sol/**.json",
-          "IPoolCompressor.sol/**.json",
           "IPriceFeedCompressor.sol/**.json",
           "IRewardsCompressor.sol/**.json",
           "ITokenCompressor.sol/**.json",

@@ -31,3 +31,7 @@
 [submodule "lib/@gearbox-protocol/permissionless"]
 	path = lib/@gearbox-protocol/permissionless
 	url = https://github.com/Gearbox-protocol/permissionless
+[submodule "lib/@gearbox-protocol/bots-v3"]
+	path = lib/@gearbox-protocol/bots-v3
+	url = https://github.com/Gearbox-protocol/bots-v3
+	branch = next

@@ -1,46 +1,61 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Foundation, 2024.
+// (c) Gearbox Foundation, 2025.
 pragma solidity ^0.8.23;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
+
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
+import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
-import {
-    IRewardsCompressor,
-    RewardInfo,
-    RewardInfoLib,
-    IModifiedBooster,
-    IAuraL2Coordinator,
-    IConvexToken
-} from "../interfaces/IRewardsCompressor.sol";
 
-import {AdapterType} from "@gearbox-protocol/sdk-gov/contracts/AdapterType.sol";
-
-import {IConvexV1BaseRewardPoolAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/convex/IConvexV1BaseRewardPoolAdapter.sol";
-import {IStakingRewardsAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/sky/IStakingRewardsAdapter.sol";
 import {IBaseRewardPool} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/IBaseRewardPool.sol";
 import {IBooster} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/IBooster.sol";
+import {IConvexV1BaseRewardPoolAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/interfaces/convex/IConvexV1BaseRewardPoolAdapter.sol";
 import {IStakingRewards} from "@gearbox-protocol/integrations-v3/contracts/integrations/sky/IStakingRewards.sol";
+import {IStakingRewardsAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/interfaces/sky/IStakingRewardsAdapter.sol";
 
+import {IRewardsCompressor} from "../interfaces/IRewardsCompressor.sol";
+
+import {Legacy, ILegacyAdapter} from "../libraries/Legacy.sol";
 import {AP_REWARDS_COMPRESSOR} from "../libraries/Literals.sol";
+import {RewardInfoLib} from "../libraries/Rewards.sol";
 
-interface ILegacyAdapter {
-    function _gearboxAdapterVersion() external view returns (uint16);
-    function _gearboxAdapterType() external view returns (uint8);
+import {RewardInfo} from "../types/RewardInfo.sol";
+
+import {BaseCompressor} from "./BaseCompressor.sol";
+
+/// @title Modified Booster interface for Aura L1
+interface IModifiedBooster {
+    function getRewardMultipliers(address pool) external view returns (uint256);
+}
+
+/// @title L2 coordinator interface for Aura L2
+interface IAuraL2Coordinator {
+    function auraOFT() external view returns (address);
+    function mintRate() external view returns (uint256);
+}
+
+/// @title Convex/Aura token interface
+interface IConvexToken {
+    function totalSupply() external view returns (uint256);
+    function maxSupply() external view returns (uint256);
+    function reductionPerCliff() external view returns (uint256);
+    function totalCliffs() external view returns (uint256);
+    function EMISSIONS_MAX_SUPPLY() external view returns (uint256);
 }
 
 /// @title Rewards compressor
 /// @notice Compresses information about earned rewards for various staking adapters
-contract RewardsCompressor is IRewardsCompressor {
+contract RewardsCompressor is BaseCompressor, IRewardsCompressor {
     using RewardInfoLib for RewardInfo[];
 
     uint256 public constant override version = 3_10;
     bytes32 public constant override contractType = AP_REWARDS_COMPRESSOR;
+
+    constructor(address addressProvider_) BaseCompressor(addressProvider_) {}
 
     /// @notice Returns array of earned rewards for a credit account across all adapters
     /// @param creditAccount Address of the credit account to check
@@ -266,14 +281,7 @@ contract RewardsCompressor is IRewardsCompressor {
         try IVersion(adapter).contractType() returns (bytes32 adapterType) {
             return adapterType;
         } catch {
-            uint8 adapterType = ILegacyAdapter(adapter)._gearboxAdapterType();
-            if (adapterType == uint8(AdapterType.CONVEX_V1_BASE_REWARD_POOL)) {
-                return "ADAPTER::CVX_V1_BASE_REWARD_POOL";
-            } else if (adapterType == uint8(AdapterType.STAKING_REWARDS)) {
-                return "ADAPTER::STAKING_REWARDS";
-            } else {
-                return "ADAPTER::IRRELEVANT";
-            }
+            return Legacy.getAdapterType(ILegacyAdapter(adapter)._gearboxAdapterType());
         }
     }
 }

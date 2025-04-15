@@ -12,6 +12,7 @@ import {
 } from "../interfaces/IDataCompressorV3.sol";
 import {MarketCompressor} from "../../compressors/MarketCompressor.sol";
 import {CreditAccountCompressor} from "../../compressors/CreditAccountCompressor.sol";
+import {PriceFeedCompressor} from "../../compressors/PriceFeedCompressor.sol";
 import {MarketData} from "../../types/MarketData.sol";
 import {CreditAccountData, TokenInfo} from "../../types/CreditAccountState.sol";
 import {MarketFilter, CreditAccountFilter} from "../../types/Filters.sol";
@@ -27,12 +28,13 @@ contract CreditAccountsEquivalenceTest is Test {
     IDataCompressorV3 public dc3;
     MarketCompressor public mc;
     CreditAccountCompressor public cac;
+    PriceFeedCompressor public pfc;
 
     function _updateAllPriceFeeds() internal {
         MarketFilter memory filter =
             MarketFilter({configurators: new address[](0), pools: new address[](0), underlying: address(0)});
 
-        BaseParams[] memory updatablePriceFeeds = mc.getUpdatablePriceFeeds(filter);
+        BaseParams[] memory updatablePriceFeeds = pfc.getUpdatablePriceFeeds(filter);
         for (uint256 i = 0; i < updatablePriceFeeds.length; i++) {
             _refreshUpdatablePriceFeed(updatablePriceFeeds[i].addr, updatablePriceFeeds[i].contractType);
         }
@@ -42,15 +44,17 @@ contract CreditAccountsEquivalenceTest is Test {
         address marketCompressor = vm.envOr("MARKET_COMPRESSOR", address(0));
         address dataCompressor = vm.envOr("DATA_COMPRESSOR", address(0));
         address creditAccountCompressor = vm.envOr("CREDIT_ACCOUNT_COMPRESSOR", address(0));
+        address priceFeedCompressor = vm.envOr("PRICE_FEED_COMPRESSOR", address(0));
         address creditManager = vm.envOr("CREDIT_MANAGER", address(0));
 
         if (
             marketCompressor == address(0) || dataCompressor == address(0) || creditAccountCompressor == address(0)
-                || creditManager == address(0) || !marketCompressor.isContract() || !dataCompressor.isContract()
-                || !creditAccountCompressor.isContract() || !creditManager.isContract()
+                || priceFeedCompressor == address(0) || creditManager == address(0) || !marketCompressor.isContract()
+                || !dataCompressor.isContract() || !creditAccountCompressor.isContract()
+                || !priceFeedCompressor.isContract() || !creditManager.isContract()
         ) {
             console.log(
-                "MarketCompressor, DataCompressor, CreditAccountCompressor, or CreditManager not set, or not a contract. Skipping credit accounts equivalence test."
+                "MarketCompressor, DataCompressor, CreditAccountCompressor, PriceFeedCompressor or CreditManager not set, or not a contract. Skipping credit accounts equivalence test."
             );
             return;
         }
@@ -58,6 +62,7 @@ contract CreditAccountsEquivalenceTest is Test {
         mc = MarketCompressor(marketCompressor);
         dc3 = IDataCompressorV3(dataCompressor);
         cac = CreditAccountCompressor(creditAccountCompressor);
+        pfc = PriceFeedCompressor(priceFeedCompressor);
 
         // Update all price feeds before running the test
         _updateAllPriceFeeds();

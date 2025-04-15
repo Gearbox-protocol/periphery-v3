@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Foundation, 2024.
-pragma solidity ^0.8.17;
+// (c) Gearbox Foundation, 2025.
+pragma solidity ^0.8.23;
 
 /// @notice Credit account data
 /// @param  creditAccount Credit account address
@@ -18,7 +18,7 @@ pragma solidity ^0.8.17;
 /// @param  totalValueUSD Account's total value in USD
 /// @param  twvUSD Account's threshold-weighted value in USD
 /// @param  totalValue Account's total value in underlying
-/// @param  healthFactor Account's health factor, i.e. ratio of `twvUSD` to `totalDebtUSD`, in bps
+/// @param  healthFactor Account's health factor, i.e. ratio of `twvUSD` to `totalDebtUSD`, with 18 decimals precision
 /// @param  success Whether collateral calculation was successful
 /// @param  tokens Info on credit account's enabled tokens and tokens with non-zero balance, see `TokenInfo`
 /// @dev    Fields from `totalDebtUSD` through `healthFactor` are not filled if `success` is `false`
@@ -38,7 +38,7 @@ struct CreditAccountData {
     uint256 totalValueUSD;
     uint256 twvUSD;
     uint256 totalValue;
-    uint16 healthFactor;
+    uint256 healthFactor;
     bool success;
     TokenInfo[] tokens;
 }

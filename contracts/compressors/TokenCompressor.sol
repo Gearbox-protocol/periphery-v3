@@ -1,51 +1,44 @@
 // SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Foundation, 2024.
-pragma solidity ^0.8.17;
+// (c) Gearbox Foundation, 2025.
+pragma solidity ^0.8.23;
 
-import {TokenData} from "../types/TokenData.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 import {ITokenCompressor} from "../interfaces/ITokenCompressor.sol";
+import {AP_TOKEN_COMPRESSOR} from "../libraries/Literals.sol";
+import {TokenData} from "../types/TokenData.sol";
+import {BaseCompressor} from "./BaseCompressor.sol";
 
 address constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-/// @title Token compressor 3.0.
-/// @notice Helper contract to fetch ERC20 token metadata
-contract TokenCompressor is ITokenCompressor {
-    /// @notice Contract version
+contract TokenCompressor is BaseCompressor, ITokenCompressor {
     uint256 public constant override version = 3_10;
-    bytes32 public constant override contractType = "TOKEN_COMPRESSOR";
+    bytes32 public constant override contractType = AP_TOKEN_COMPRESSOR;
 
-    function getTokenInfo(address token) public view returns (TokenData memory result) {
-        if (token == ETH_ADDRESS) {
-            return TokenData({addr: ETH_ADDRESS, decimals: 18, symbol: "ETH", name: "Ether"});
+    constructor(address addressProvider_) BaseCompressor(addressProvider_) {}
+
+    function getTokens(address[] memory tokens) external view returns (TokenData[] memory result) {
+        result = new TokenData[](tokens.length);
+        for (uint256 i; i < tokens.length; ++i) {
+            result[i] = getTokenInfo(tokens[i]);
         }
+    }
 
-        result.addr = token;
-        result.decimals = IERC20Metadata(token).decimals();
+    function getTokenInfo(address token) public view returns (TokenData memory) {
+        if (token == ETH_ADDRESS) return TokenData({addr: ETH_ADDRESS, symbol: "ETH", name: "Ether", decimals: 18});
+        return TokenData({
+            addr: token,
+            symbol: _getStringField(token, "symbol()"),
+            name: _getStringField(token, "name()"),
+            decimals: ERC20(token).decimals()
+        });
+    }
 
-        // Fallback to low-level call to handle bytes32 symbol
-        (bool success, bytes memory data) = token.staticcall(abi.encodeWithSignature("symbol()"));
-        if (success) {
-            if (data.length == 32) {
-                result.symbol = LibString.fromSmallString(bytes32(data));
-            } else {
-                result.symbol = abi.decode(data, (string));
-            }
-        } else {
-            revert("symbol retrieval failed");
-        }
-
-        (success, data) = token.staticcall(abi.encodeWithSignature("name()"));
-        if (success) {
-            if (data.length == 32) {
-                result.name = LibString.fromSmallString(bytes32(data));
-            } else {
-                result.name = abi.decode(data, (string));
-            }
-        } else {
-            revert("name retrieval failed");
-        }
+    function _getStringField(address token, string memory signature) internal view returns (string memory) {
+        (bool success, bytes memory data) = token.staticcall(abi.encodeWithSignature(signature));
+        if (!success) revert(string.concat(signature, " call failed"));
+        // account for some non-standard ERC20 implementations that return bytes32 for symbol and name
+        return data.length == 32 ? LibString.fromSmallString(bytes32(data)) : abi.decode(data, (string));
     }
 }

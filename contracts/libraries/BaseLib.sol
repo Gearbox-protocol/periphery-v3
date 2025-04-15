@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Foundation, 2024.
-pragma solidity ^0.8.17;
+// (c) Gearbox Foundation, 2025.
+pragma solidity ^0.8.23;
 
-import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IStateSerializer.sol";
-import {BaseParams, BaseState} from "../types/BaseState.sol";
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
+import {BaseParams, BaseState} from "../types/BaseState.sol";
 
 library BaseLib {
     function getBaseParams(address addr, bytes32 defaultContractType, address legacySerializer)
@@ -30,7 +30,9 @@ library BaseLib {
             baseParams.serializedParams = serializedParams;
         } catch {
             if (legacySerializer != address(0)) {
-                baseParams.serializedParams = IStateSerializerLegacy(legacySerializer).serialize(addr);
+                try IStateSerializerLegacy(legacySerializer).serialize(addr) returns (bytes memory serializedParams) {
+                    baseParams.serializedParams = serializedParams;
+                } catch {}
             }
         }
     }

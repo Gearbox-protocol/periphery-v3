@@ -100,7 +100,7 @@ contract CreditSuiteEquivalenceTest is Test {
                     "Credit facade degenNFT mismatch"
                 );
                 assertEq(
-                    markets[i].creditManagers[j].creditFacade.forbiddenTokenMask,
+                    markets[i].creditManagers[j].creditFacade.forbiddenTokensMask,
                     creditManagersOld[cmIndex].forbiddenTokenMask,
                     "Credit facade forbidden token mask mismatch"
                 );

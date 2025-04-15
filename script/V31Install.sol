@@ -21,25 +21,21 @@ import {
     DeploySystemContractCall
 } from "@gearbox-protocol/permissionless/contracts/test/helpers/GlobalSetup.sol";
 
-import {AdapterCompressor} from "../contracts/compressors/AdapterCompressor.sol";
 import {CreditAccountCompressor} from "../contracts/compressors/CreditAccountCompressor.sol";
 import {CreditSuiteCompressor} from "../contracts/compressors/CreditSuiteCompressor.sol";
 import {GaugeCompressor} from "../contracts/compressors/GaugeCompressor.sol";
 import {MarketCompressor} from "../contracts/compressors/MarketCompressor.sol";
 import {PeripheryCompressor} from "../contracts/compressors/PeripheryCompressor.sol";
-import {PoolCompressor} from "../contracts/compressors/PoolCompressor.sol";
 import {PriceFeedCompressor} from "../contracts/compressors/PriceFeedCompressor.sol";
 import {RewardsCompressor} from "../contracts/compressors/RewardsCompressor.sol";
 import {TokenCompressor} from "../contracts/compressors/TokenCompressor.sol";
 
 import {
-    AP_ADAPTER_COMPRESSOR,
     AP_CREDIT_ACCOUNT_COMPRESSOR,
     AP_CREDIT_SUITE_COMPRESSOR,
     AP_GAUGE_COMPRESSOR,
     AP_MARKET_COMPRESSOR,
     AP_PERIPHERY_COMPRESSOR,
-    AP_POOL_COMPRESSOR,
     AP_PRICE_FEED_COMPRESSOR,
     AP_REWARDS_COMPRESSOR,
     AP_TOKEN_COMPRESSOR
@@ -213,98 +209,47 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
     }
 
     function _setUpPeripheryContracts() internal {
-        // Upload bytecode to the bytecode repository
-        UploadableContract[10] memory peripheryContracts = [
-            UploadableContract({
-                initCode: type(TokenCompressor).creationCode,
-                contractType: AP_TOKEN_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(CreditAccountCompressor).creationCode,
-                contractType: AP_CREDIT_ACCOUNT_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(PriceFeedCompressor).creationCode,
-                contractType: AP_PRICE_FEED_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(CreditSuiteCompressor).creationCode,
-                contractType: AP_CREDIT_SUITE_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(PoolCompressor).creationCode,
-                contractType: AP_POOL_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(MarketCompressor).creationCode,
-                contractType: AP_MARKET_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(PeripheryCompressor).creationCode,
-                contractType: AP_PERIPHERY_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(RewardsCompressor).creationCode,
-                contractType: AP_REWARDS_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(AdapterCompressor).creationCode,
-                contractType: AP_ADAPTER_COMPRESSOR,
-                version: 3_10
-            }),
-            UploadableContract({
-                initCode: type(GaugeCompressor).creationCode,
-                contractType: AP_GAUGE_COMPRESSOR,
-                version: 3_10
-            })
-        ];
+        address addressProvider = instanceManager.addressProvider();
 
-        uint256 len = peripheryContracts.length;
-        CrossChainCall[] memory calls = new CrossChainCall[](len);
-        for (uint256 i = 0; i < len; ++i) {
-            bytes32 bytecodeHash = _uploadByteCodeAndSign({
-                _author: author,
-                _auditor: auditor,
-                _initCode: peripheryContracts[i].initCode,
-                _contractName: peripheryContracts[i].contractType,
-                _version: peripheryContracts[i].version
-            });
-            calls[i] = _generateAllowSystemContractCall(bytecodeHash);
-        }
+        CrossChainCall[] memory calls = new CrossChainCall[](8);
+        calls[0] = _getSetGlobalAddressCall(
+            AP_CREDIT_ACCOUNT_COMPRESSOR, address(new CreditAccountCompressor{salt: bytes32(0)}(addressProvider)), true
+        );
+        calls[1] = _getSetGlobalAddressCall(
+            AP_CREDIT_SUITE_COMPRESSOR, address(new CreditSuiteCompressor{salt: bytes32(0)}(addressProvider)), true
+        );
+        calls[2] = _getSetGlobalAddressCall(
+            AP_GAUGE_COMPRESSOR, address(new GaugeCompressor{salt: bytes32(0)}(addressProvider)), true
+        );
+        calls[3] = _getSetGlobalAddressCall(
+            AP_MARKET_COMPRESSOR, address(new MarketCompressor{salt: bytes32(0)}(addressProvider)), true
+        );
+        calls[4] = _getSetGlobalAddressCall(
+            AP_PERIPHERY_COMPRESSOR, address(new PeripheryCompressor{salt: bytes32(0)}(addressProvider)), true
+        );
+        calls[5] = _getSetGlobalAddressCall(
+            AP_PRICE_FEED_COMPRESSOR, address(new PriceFeedCompressor{salt: bytes32(0)}(addressProvider)), true
+        );
+        calls[6] = _getSetGlobalAddressCall(
+            AP_REWARDS_COMPRESSOR, address(new RewardsCompressor{salt: bytes32(0)}(addressProvider)), true
+        );
+        calls[7] = _getSetGlobalAddressCall(
+            AP_TOKEN_COMPRESSOR, address(new TokenCompressor{salt: bytes32(0)}(addressProvider)), true
+        );
 
-        _submitBatchAndSign("Allow periphery system contracts", calls);
+        _submitBatchAndSign("Save compressors", calls);
+    }
 
-        // Deploy periphery contracts
-        DeploySystemContractCall[10] memory deployCalls = [
-            DeploySystemContractCall({contractType: AP_TOKEN_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_CREDIT_ACCOUNT_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_PRICE_FEED_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_CREDIT_SUITE_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_POOL_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_MARKET_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_PERIPHERY_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_REWARDS_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_ADAPTER_COMPRESSOR, version: 3_10, saveVersion: true}),
-            DeploySystemContractCall({contractType: AP_GAUGE_COMPRESSOR, version: 3_10, saveVersion: true})
-        ];
-
-        len = deployCalls.length;
-        calls = new CrossChainCall[](len);
-        for (uint256 i = 0; i < len; ++i) {
-            calls[i] = _generateDeploySystemContractCall(
-                deployCalls[i].contractType, deployCalls[i].version, deployCalls[i].saveVersion
-            );
-        }
-
-        _submitBatchAndSign("Deploy periphery system contracts", calls);
+    function _getSetGlobalAddressCall(bytes32 key, address addr, bool saveVersion)
+        internal
+        view
+        returns (CrossChainCall memory)
+    {
+        return CrossChainCall({
+            chainId: 0,
+            target: address(instanceManager),
+            callData: abi.encodeCall(instanceManager.setGlobalAddress, (key, addr, saveVersion))
+        });
     }
 
     function _saveAddresses(string memory path) internal {

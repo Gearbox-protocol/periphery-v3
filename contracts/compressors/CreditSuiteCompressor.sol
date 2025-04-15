@@ -1,75 +1,84 @@
 // SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Foundation, 2024.
+// (c) Gearbox Foundation, 2025.
 pragma solidity ^0.8.23;
 
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+
 import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
-import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
+import {ICreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
+import {IAdapter} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAdapter.sol";
 
-import {BaseParams, BaseState} from "../types/BaseState.sol";
-import {CreditFacadeState} from "../types/CreditFacadeState.sol";
-import {CollateralToken, CreditManagerState} from "../types/CreditManagerState.sol";
-import {CreditSuiteData} from "../types/CreditSuiteData.sol";
-
-import {AdapterCompressor} from "./AdapterCompressor.sol";
 import {ICreditSuiteCompressor} from "../interfaces/ICreditSuiteCompressor.sol";
 
 import {BaseLib} from "../libraries/BaseLib.sol";
 import {AP_CREDIT_SUITE_COMPRESSOR} from "../libraries/Literals.sol";
+import {ILegacyAdapter, Legacy} from "../libraries/Legacy.sol";
 
-contract CreditSuiteCompressor is ICreditSuiteCompressor {
+import {BaseState} from "../types/BaseState.sol";
+import {
+    AdapterState,
+    CollateralToken,
+    CreditFacadeState,
+    CreditManagerState,
+    CreditSuiteData
+} from "../types/CreditSuiteData.sol";
+import {CreditManagerFilter} from "../types/Filters.sol";
+
+import {BaseCompressor} from "./BaseCompressor.sol";
+
+contract CreditSuiteCompressor is BaseCompressor, ICreditSuiteCompressor {
+    using BaseLib for address;
+
     uint256 public constant override version = 3_10;
     bytes32 public constant override contractType = AP_CREDIT_SUITE_COMPRESSOR;
 
-    AdapterCompressor internal immutable _adapterCompressor;
+    constructor(address addressProvider_) BaseCompressor(addressProvider_) {}
 
-    constructor() {
-        // FIXME: this one should be read from the address provider
-        // but it must be deployed before CreditSuiteCompressor then, which is a bit tricky
-        // QUESTION: shall we allow to update it maybe? because it's kinda volatile
-        _adapterCompressor = new AdapterCompressor();
+    function getCreditSuites(CreditManagerFilter memory filter)
+        external
+        view
+        override
+        returns (CreditSuiteData[] memory result)
+    {
+        address[] memory creditManagers = _getCreditManagers(filter);
+        result = new CreditSuiteData[](creditManagers.length);
+        for (uint256 i; i < creditManagers.length; ++i) {
+            result[i] = getCreditSuiteData(creditManagers[i]);
+        }
     }
 
-    function getCreditSuiteData(address creditManager) external view override returns (CreditSuiteData memory result) {
+    function getCreditSuiteData(address creditManager) public view override returns (CreditSuiteData memory result) {
         result.creditManager = getCreditManagerState(creditManager);
-        result.creditFacade = getCreditFacadeState(ICreditManagerV3(creditManager).creditFacade());
-        result.creditConfigurator = BaseLib.getBaseState(
-            ICreditManagerV3(creditManager).creditConfigurator(), "CREDIT_CONFIGURATOR", address(0)
-        );
-
-        result.adapters = _adapterCompressor.getAdapters(creditManager);
+        result.creditFacade = getCreditFacadeState(result.creditManager.creditFacade);
+        result.creditConfigurator = getCreditConfiguratorState(result.creditManager.creditConfigurator);
+        result.accountFactory = getAccountFactoryState(result.creditManager.accountFactory);
+        result.adapters = getAdapters(creditManager);
     }
 
-    /// @dev Returns CreditManagerData for a particular _cm
-    /// @param _cm CreditManager address
-    function getCreditManagerState(address _cm) public view override returns (CreditManagerState memory result) {
-        ICreditManagerV3 creditManager = ICreditManagerV3(_cm);
-        ICreditConfiguratorV3 creditConfigurator = ICreditConfiguratorV3(creditManager.creditConfigurator());
-        CreditFacadeV3 creditFacade = CreditFacadeV3(creditManager.creditFacade());
+    function getCreditManagerState(address creditManager)
+        public
+        view
+        override
+        returns (CreditManagerState memory result)
+    {
+        result.underlying = ICreditManagerV3(creditManager).underlying();
+        result.baseParams = creditManager.getBaseParams(_appendPostfix("CREDIT_MANAGER", result.underlying), address(0));
 
-        result.baseParams = BaseLib.getBaseParams(_cm, "CREDIT_MANAGER", address(0));
-        // string name;
-        result.name = ICreditManagerV3(_cm).name();
+        result.name = ICreditManagerV3(creditManager).name();
+        result.accountFactory = ICreditManagerV3(creditManager).accountFactory();
+        result.pool = ICreditManagerV3(creditManager).pool();
+        result.creditFacade = ICreditManagerV3(creditManager).creditFacade();
+        result.creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
 
-        // address accountFactory;
-        result.accountFactory = creditManager.accountFactory();
-        // address underlying;
-        result.underlying = creditManager.underlying();
-        // address pool;
-        result.pool = creditManager.pool();
-        // address creditFacade;
-        result.creditFacade = address(creditFacade);
-        // address creditConfigurator;
-        result.creditConfigurator = address(creditConfigurator);
-        // uint8 maxEnabledTokens;
-        result.maxEnabledTokens = creditManager.maxEnabledTokens();
+        result.maxEnabledTokens = ICreditManagerV3(creditManager).maxEnabledTokens();
 
-        uint256 collateralTokensCount = creditManager.collateralTokensCount();
+        uint256 collateralTokensCount = ICreditManagerV3(creditManager).collateralTokensCount();
         result.collateralTokens = new CollateralToken[](collateralTokensCount);
         for (uint256 i; i < collateralTokensCount; ++i) {
-            (address token, uint16 lt) = creditManager.collateralTokenByMask(1 << i);
-            result.collateralTokens[i] = CollateralToken(token, lt);
+            (result.collateralTokens[i].token, result.collateralTokens[i].liquidationThreshold) =
+                ICreditManagerV3(creditManager).collateralTokenByMask(1 << i);
         }
 
         (
@@ -78,22 +87,65 @@ contract CreditSuiteCompressor is ICreditSuiteCompressor {
             result.liquidationDiscount,
             result.feeLiquidationExpired,
             result.liquidationDiscountExpired
-        ) = creditManager.fees();
+        ) = ICreditManagerV3(creditManager).fees();
     }
 
-    /// @dev Returns CreditManagerData for a particular _cm
-    /// @param _cf CreditFacade address
-    function getCreditFacadeState(address _cf) public view override returns (CreditFacadeState memory result) {
-        CreditFacadeV3 creditFacade = CreditFacadeV3(_cf);
+    function getCreditFacadeState(address creditFacade)
+        public
+        view
+        override
+        returns (CreditFacadeState memory result)
+    {
+        result.baseParams = creditFacade.getBaseParams("CREDIT_FACADE", address(0));
 
-        result.baseParams = BaseLib.getBaseParams(_cf, "CREDIT_FACADE", address(0));
-        result.expirable = creditFacade.expirable();
-        result.degenNFT = creditFacade.degenNFT();
-        result.expirationDate = creditFacade.expirationDate();
-        result.maxDebtPerBlockMultiplier = creditFacade.maxDebtPerBlockMultiplier();
-        result.botList = creditFacade.botList();
-        (result.minDebt, result.maxDebt) = creditFacade.debtLimits();
-        result.forbiddenTokenMask = creditFacade.forbiddenTokenMask();
-        result.isPaused = creditFacade.paused();
+        result.degenNFT = ICreditFacadeV3(creditFacade).degenNFT();
+        result.botList = ICreditFacadeV3(creditFacade).botList();
+
+        result.expirable = ICreditFacadeV3(creditFacade).expirable();
+        result.expirationDate = ICreditFacadeV3(creditFacade).expirationDate();
+
+        result.maxDebtPerBlockMultiplier = ICreditFacadeV3(creditFacade).maxDebtPerBlockMultiplier();
+        (result.minDebt, result.maxDebt) = ICreditFacadeV3(creditFacade).debtLimits();
+
+        result.forbiddenTokensMask = ICreditFacadeV3(creditFacade).forbiddenTokenMask();
+
+        result.isPaused = Pausable(creditFacade).paused();
+    }
+
+    function getCreditConfiguratorState(address creditConfigurator) public view override returns (BaseState memory) {
+        return creditConfigurator.getBaseState("CREDIT_CONFIGURATOR", address(0));
+    }
+
+    function getAccountFactoryState(address accountFactory) public view override returns (BaseState memory) {
+        return accountFactory.getBaseState("ACCOUNT_FACTORY::DEFAULT", address(0));
+    }
+
+    function getAdapters(address creditManager) public view override returns (AdapterState[] memory adapters) {
+        address creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
+        address[] memory allowedAdapters = ICreditConfiguratorV3(creditConfigurator).allowedAdapters();
+        adapters = new AdapterState[](allowedAdapters.length);
+        for (uint256 i; i < allowedAdapters.length; ++i) {
+            address adapter = allowedAdapters[i];
+            adapters[i].baseParams.addr = adapter;
+
+            try IAdapter(adapter).contractType() returns (bytes32 contractType_) {
+                adapters[i].baseParams.contractType = contractType_;
+            } catch {
+                adapters[i].baseParams.contractType =
+                    Legacy.getAdapterType(ILegacyAdapter(adapter)._gearboxAdapterType());
+            }
+
+            try IAdapter(adapter).version() returns (uint256 version_) {
+                adapters[i].baseParams.version = version_;
+            } catch {
+                adapters[i].baseParams.version = ILegacyAdapter(adapter)._gearboxAdapterVersion();
+            }
+
+            try IAdapter(adapter).serialize() returns (bytes memory serializedParams) {
+                adapters[i].baseParams.serializedParams = serializedParams;
+            } catch {}
+
+            adapters[i].targetContract = ICreditManagerV3(creditManager).adapterToContract(adapter);
+        }
     }
 }

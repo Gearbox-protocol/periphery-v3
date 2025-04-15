@@ -70,7 +70,7 @@ contract PoolsEquivalenceTest is Test {
             );
             assertEq(markets[i].pool.isPaused, poolsOld[i].isPaused, "Pool isPaused mismatch");
 
-            assertEq(markets[i].pool.poolQuotaKeeper, poolsOld[i].poolQuotaKeeper, "Pool quota keeper address mismatch");
+            assertEq(markets[i].pool.quotaKeeper, poolsOld[i].poolQuotaKeeper, "Pool quota keeper address mismatch");
             assertEq(
                 markets[i].pool.interestRateModel,
                 poolsOld[i].lirm.interestRateModel,
@@ -115,31 +115,25 @@ contract PoolsEquivalenceTest is Test {
             }
 
             assertEq(
-                markets[i].poolQuotaKeeper.quotas.length, poolsOld[i].quotas.length, "Pool quota params length mismatch"
+                markets[i].quotaKeeper.quotas.length, poolsOld[i].quotas.length, "Pool quota params length mismatch"
             );
 
-            for (uint256 j; j < markets[i].poolQuotaKeeper.quotas.length; j++) {
+            for (uint256 j; j < markets[i].quotaKeeper.quotas.length; j++) {
+                assertEq(markets[i].quotaKeeper.quotas[j].token, poolsOld[i].quotas[j].token, "Quota token mismatch");
+                assertEq(markets[i].quotaKeeper.quotas[j].rate, poolsOld[i].quotas[j].rate, "Quota rate mismatch");
                 assertEq(
-                    markets[i].poolQuotaKeeper.quotas[j].token, poolsOld[i].quotas[j].token, "Quota token mismatch"
-                );
-                assertEq(markets[i].poolQuotaKeeper.quotas[j].rate, poolsOld[i].quotas[j].rate, "Quota rate mismatch");
-                assertEq(
-                    markets[i].poolQuotaKeeper.quotas[j].quotaIncreaseFee,
+                    markets[i].quotaKeeper.quotas[j].quotaIncreaseFee,
                     poolsOld[i].quotas[j].quotaIncreaseFee,
                     "Quota increase fee mismatch"
                 );
                 assertEq(
-                    markets[i].poolQuotaKeeper.quotas[j].totalQuoted,
+                    markets[i].quotaKeeper.quotas[j].totalQuoted,
                     poolsOld[i].quotas[j].totalQuoted,
                     "Quota total quoted mismatch"
                 );
+                assertEq(markets[i].quotaKeeper.quotas[j].limit, poolsOld[i].quotas[j].limit, "Quota limit mismatch");
                 assertEq(
-                    markets[i].poolQuotaKeeper.quotas[j].limit, poolsOld[i].quotas[j].limit, "Quota limit mismatch"
-                );
-                assertEq(
-                    markets[i].poolQuotaKeeper.quotas[j].isActive,
-                    poolsOld[i].quotas[j].isActive,
-                    "Quota isActive mismatch"
+                    markets[i].quotaKeeper.quotas[j].isActive, poolsOld[i].quotas[j].isActive, "Quota isActive mismatch"
                 );
             }
         }

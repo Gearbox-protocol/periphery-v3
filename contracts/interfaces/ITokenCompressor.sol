@@ -1,13 +1,13 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 // Gearbox Protocol. Generalized leverage for DeFi protocols
-// (c) Gearbox Holdings, 2024
-pragma solidity ^0.8.10;
+// (c) Gearbox Foundation, 2025.
+pragma solidity ^0.8.23;
 
-import {TokenData} from "../types/TokenData.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
+import {TokenData} from "../types/TokenData.sol";
 
-/// @title Token compressor 3.0.
-/// @notice Helper contract to fetch ERC20 token metadata
 interface ITokenCompressor is IVersion {
-    function getTokenInfo(address token) external view returns (TokenData memory result);
+    function getTokens(address[] memory tokens) external view returns (TokenData[] memory);
+
+    function getTokenInfo(address token) external view returns (TokenData memory);
 }
