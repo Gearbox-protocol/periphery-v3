@@ -32,11 +32,9 @@ abstract contract BaseCompressor {
     }
 
     address public immutable addressProvider;
-    address public immutable marketConfiguratorFactory;
 
     constructor(address addressProvider_) {
         addressProvider = addressProvider_;
-        marketConfiguratorFactory = _getAddress(AP_MARKET_CONFIGURATOR_FACTORY);
     }
 
     function _getAddress(bytes32 key) internal view returns (address) {
@@ -61,7 +59,7 @@ abstract contract BaseCompressor {
     function _getPools(MarketFilter memory filter) internal view returns (Pool[] memory pools) {
         address[] memory configurators = filter.configurators.length != 0
             ? filter.configurators
-            : IMarketConfiguratorFactory(marketConfiguratorFactory).getMarketConfigurators();
+            : IMarketConfiguratorFactory(_getAddress(AP_MARKET_CONFIGURATOR_FACTORY)).getMarketConfigurators();
 
         // rough estimate of maximum number of pools
         uint256 max;
