@@ -8,7 +8,10 @@ fi
 
 # forge script script/V30Fix.sol:V30Fix --rpc-url ${ANVIL_URL} --unlocked --sender 0x0000000000000000000000000000000000000000 --ffi --broadcast
 forge script script/V31Install.sol:V31Install --rpc-url ${ANVIL_URL} --broadcast --gas-estimate-multiplier 130
-forge script script/FundsBack.sol:FundsBack --rpc-url ${ANVIL_URL} --broadcast 
+
+if [ -n "$SKIP_FUNDS_BACK" ]; then
+    forge script script/FundsBack.sol:FundsBack --rpc-url ${ANVIL_URL} --broadcast 
+fi
 
 # SHARED_DIR is set on testnets
 if [ -n "$SHARED_DIR" ] && [ -f "addresses.json" ]; then
