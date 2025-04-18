@@ -119,13 +119,12 @@ contract V31Install is Script, GlobalSetup, AnvilHelper, LegacyHelper {
 
         ChainInfo[] memory chains = _getChains();
 
-        // set routers (technically it should be done by instance owner, but before activation it's cross-chain governance)
         CrossChainCall[] memory setRouterCalls = new CrossChainCall[](chains.length);
         for (uint256 i; i < chains.length; ++i) {
             setRouterCalls[i] = CrossChainCall({
                 chainId: chains[i].chainId,
                 target: address(instanceManager),
-                callData: abi.encodeCall(instanceManager.setLocalAddress, ("LOCAL::ROUTER", chains[i].router, true))
+                callData: abi.encodeCall(instanceManager.setGlobalAddress, ("GLOBAL::ROUTER", chains[i].router, true))
             });
         }
         _submitBatchAndSign("Set routers", setRouterCalls);

@@ -453,7 +453,7 @@ contract LegacyHelper {
         unpausableAdmins[2] = 0xdD84A24eeddE63F10Ec3e928f1c8302A47538b6B;
         unpausableAdmins[3] = 0x029De72Fa62A2AdB1E84E97A339F92ce4810e2a9;
 
-        address[] memory emergencyLiquidators = new address[](6);
+        address[] memory emergencyLiquidators = new address[](7);
         emergencyLiquidators[0] = 0xbd796DdE46DEB00B1840e7be311eF469c375c940;
         emergencyLiquidators[1] = 0x98b0EB10A3a2aaf72CA2C362f8D8360FE6037E8b;
         emergencyLiquidators[2] = 0x16040e932b5Ac7A3aB23b88a2f230B4185727b0d;

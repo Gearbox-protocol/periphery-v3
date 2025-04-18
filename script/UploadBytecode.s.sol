@@ -119,7 +119,6 @@ contract UploadBytecode is Script {
 
     function run() public {
         vm.startBroadcast(author.privateKey);
-        _uploadBytecodes(_getAccountFactoryContracts());
         _uploadBytecodes(_getAdapterContracts());
         _uploadBytecodes(_getBotContracts());
         _uploadBytecodes(_getCoreContracts());
@@ -140,14 +139,6 @@ contract UploadBytecode is Script {
             bytecodes[i].authorSignature = abi.encodePacked(r, s, v);
             IBytecodeRepository(bytecodeRepository).uploadBytecode(bytecodes[i]);
         }
-    }
-
-    function _getAccountFactoryContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](1);
-        bytecodes[0].contractType = "ACCOUNT_FACTORY::DEFAULT";
-        bytecodes[0].version = 3_10;
-        bytecodes[0].initCode = type(DefaultAccountFactoryV3).creationCode;
-        bytecodes[0].source = string.concat(core, "/contracts/core/DefaultAccountFactoryV3.sol");
     }
 
     function _getAdapterContracts() internal view returns (Bytecode[] memory bytecodes) {
@@ -283,7 +274,7 @@ contract UploadBytecode is Script {
     }
 
     function _getCoreContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](23);
+        bytecodes = new Bytecode[](24);
 
         bytecodes[0].contractType = "BOT_LIST";
         bytecodes[0].version = 3_10;
@@ -399,6 +390,11 @@ contract UploadBytecode is Script {
         bytecodes[22].version = 3_10;
         bytecodes[22].initCode = type(TreasurySplitter).creationCode;
         bytecodes[22].source = string.concat(permissionless, "/contracts/market/TreasurySplitter.sol");
+
+        bytecodes[23].contractType = "ACCOUNT_FACTORY::DEFAULT";
+        bytecodes[23].version = 3_10;
+        bytecodes[23].initCode = type(DefaultAccountFactoryV3).creationCode;
+        bytecodes[23].source = string.concat(core, "/contracts/core/DefaultAccountFactoryV3.sol");
     }
 
     function _getDegenNFTContracts() internal view returns (Bytecode[] memory bytecodes) {
