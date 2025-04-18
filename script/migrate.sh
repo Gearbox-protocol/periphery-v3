@@ -9,7 +9,7 @@ fi
 # forge script script/V30Fix.sol:V30Fix --rpc-url ${ANVIL_URL} --unlocked --sender 0x0000000000000000000000000000000000000000 --ffi --broadcast
 forge script script/V31Install.sol:V31Install --rpc-url ${ANVIL_URL} --broadcast --gas-estimate-multiplier 130
 
-if [ -n "$SKIP_FUNDS_BACK" ]; then
+if [ -z "$SKIP_FUNDS_BACK" ]; then
     forge script script/FundsBack.sol:FundsBack --rpc-url ${ANVIL_URL} --broadcast 
 fi
 
