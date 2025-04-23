@@ -261,7 +261,7 @@ contract CreditAccountCompressor is BaseCompressor, ICreditAccountCompressor {
             data.totalValueUSD = cdd_.totalValueUSD;
             data.twvUSD = cdd_.twvUSD;
             data.totalValue = cdd_.totalValue;
-            data.healthFactor = cdd_.twvUSD * 1e18 / cdd_.totalDebtUSD;
+            data.healthFactor = _calcHealthFactor(cdd_);
             data.success = true;
         } catch {}
 
@@ -328,7 +328,7 @@ contract CreditAccountCompressor is BaseCompressor, ICreditAccountCompressor {
             try ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL)
             returns (CollateralDebtData memory cdd) {
                 if (filter.reverting) return false;
-                uint256 healthFactor = cdd.twvUSD * 1e18 / cdd.totalDebtUSD;
+                uint256 healthFactor = _calcHealthFactor(cdd);
                 if (filter.minHealthFactor != 0 && healthFactor < filter.minHealthFactor) return false;
                 if (filter.maxHealthFactor != 0 && healthFactor > filter.maxHealthFactor) return false;
             } catch {
@@ -337,5 +337,10 @@ contract CreditAccountCompressor is BaseCompressor, ICreditAccountCompressor {
         }
 
         return true;
+    }
+
+    /// @dev Calculates health factor with 18 decimals precision, returns `type(uint256).max` if debt is zero
+    function _calcHealthFactor(CollateralDebtData memory cdd) internal view returns (uint256) {
+        return cdd.totalDebtUSD == 0 ? type(uint256).max : cdd.twvUSD * 1e18 / cdd.totalDebtUSD;
     }
 }
