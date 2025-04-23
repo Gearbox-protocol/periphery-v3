@@ -340,7 +340,7 @@ contract CreditAccountCompressor is BaseCompressor, ICreditAccountCompressor {
     }
 
     /// @dev Calculates health factor with 18 decimals precision, returns `type(uint256).max` if debt is zero
-    function _calcHealthFactor(CollateralDebtData memory cdd) internal view returns (uint256) {
+    function _calcHealthFactor(CollateralDebtData memory cdd) internal pure returns (uint256) {
         return cdd.totalDebtUSD == 0 ? type(uint256).max : cdd.twvUSD * 1e18 / cdd.totalDebtUSD;
     }
 }
