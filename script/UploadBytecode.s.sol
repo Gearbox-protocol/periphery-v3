@@ -109,7 +109,7 @@ contract UploadBytecode is Script {
     string public oracles =
         "https://github.com/Gearbox-protocol/oracles-v3/blob/fc8d3a0ab5bd7eb50ce3f6b87dde5cd3d887bafe";
     string public permissionless =
-        "https://github.com/Gearbox-protocol/permissionless/blob/6ef5000e1b642f3476946595777fb841c81af0f0";
+        "https://github.com/Gearbox-protocol/permissionless/blob/f660f1abb176096d1b97b80667a0a019e0aaadc6";
 
     function setUp() public {
         author = vm.createWallet(vm.envUint("AUTHOR_PRIVATE_KEY"));
