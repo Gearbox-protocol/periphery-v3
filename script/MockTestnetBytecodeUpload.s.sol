@@ -16,10 +16,17 @@ contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
     address ccmProxy;
 
     function run() external {
+
+        bytes32 auditorPrivateKey = vm.envOr("AUDITOR_PRIVATE_KEY", bytes32(0));
+
+        if (auditorPrivateKey == bytes32(0)) {
+            revert("AUDITOR_PRIVATE_KEY is not set");
+        }
+
         bytecodeRepository = InstanceManager(IM).bytecodeRepository();
         ccmProxy = InstanceManager(IM).crossChainGovernanceProxy();
 
-        VmSafe.Wallet memory auditor = vm.createWallet(uint256(keccak256(abi.encodePacked("auditor"))));
+        VmSafe.Wallet memory auditor = vm.createWallet(auditorPrivateKey);
 
         vm.startBroadcast(auditor.addr);
 
