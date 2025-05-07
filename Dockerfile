@@ -31,4 +31,5 @@ RUN nvm install \
     && pnpm install \
     && forge build
 
-ENTRYPOINT [ "/app/script/migrate.sh" ]
+ENTRYPOINT [ "/bin/bash", "-c" ]
+CMD [ "/app/script/migrate.sh" ]
