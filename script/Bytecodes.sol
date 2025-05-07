@@ -404,7 +404,7 @@ contract Bytecodes {
     }
 
     function _getPriceFeedContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](17);
+        bytecodes = new Bytecode[](16);
 
         bytecodes[0].contractType = "PRICE_FEED::BOUNDED";
         bytecodes[0].version = 3_10;
