@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.17;
+
+import {BCRHelpers} from "@gearbox-protocol/permissionless/contracts/test/helpers/BCRHelpers.sol";
+import {InstanceManager} from "@gearbox-protocol/permissionless/contracts/instance/InstanceManager.sol";
+import {BytecodeRepository} from "@gearbox-protocol/permissionless/contracts/global/BytecodeRepository.sol";
+import {Bytecode, AuditReport} from "@gearbox-protocol/permissionless/contracts/interfaces/Types.sol";
+import {Bytecodes} from "./Bytecodes.sol";
+
+import {VmSafe} from "forge-std/Vm.sol";
+import "forge-std/Script.sol";
+
+address constant IM = 0x77777777144339Bdc3aCceE992D8d4D31734CB2e;
+
+contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
+    address ccmProxy;
+
+    function run() external {
+        bytecodeRepository = InstanceManager(IM).bytecodeRepository();
+        ccmProxy = InstanceManager(IM).crossChainGovernanceProxy();
+
+        VmSafe.Wallet memory auditor = vm.createWallet(uint256(keccak256(abi.encodePacked("auditor"))));
+
+        vm.startBroadcast(auditor.addr);
+
+        _startPrankOrBroadcast(ccmProxy);
+        BytecodeRepository(bytecodeRepository).addAuditor(auditor.addr, "auditor");
+        _stopPrankOrBroadcast();
+
+        Bytecode[] memory bcs = _getAdapterContracts();
+
+        for (uint256 i = 0; i < bcs.length; i++) {
+            _safeUploadBytecode(auditor, bcs[i]);
+        }
+
+        bcs = _getPriceFeedContracts();
+
+        for (uint256 i = 0; i < bcs.length; i++) {
+            _safeUploadBytecode(auditor, bcs[i]);
+        }
+
+        vm.stopBroadcast();
+    }
+
+    function _safeUploadBytecode(VmSafe.Wallet memory auditor, Bytecode memory bc) internal {
+        if (BytecodeRepository(bytecodeRepository).getAllowedBytecodeHash(bc.contractType, bc.version) == bytes32(0)) {
+            bytes32 bytecodeHash = _uploadByteCodeAndSign(auditor, auditor, bc.initCode, bc.contractType, bc.version);
+            BytecodeRepository(bytecodeRepository).allowPublicContract(bytecodeHash);
+        }
+    }
+}
