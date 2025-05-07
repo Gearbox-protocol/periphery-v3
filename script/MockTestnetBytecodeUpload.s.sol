@@ -26,7 +26,7 @@ contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
         bytecodeRepository = InstanceManager(IM).bytecodeRepository();
         ccmProxy = InstanceManager(IM).crossChainGovernanceProxy();
 
-        VmSafe.Wallet memory auditor = vm.createWallet(auditorPrivateKey);
+        VmSafe.Wallet memory auditor = vm.createWallet(uint256(auditorPrivateKey));
 
         vm.startBroadcast(auditor.addr);
 
