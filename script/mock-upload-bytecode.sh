@@ -3,11 +3,11 @@
 set -e
 
 if [ -z "$ANVIL_URL" ]; then
-    ANVIL_URL="http://127.0.0.1:8545"
+    export ANVIL_URL="http://127.0.0.1:8545"
 fi
 
 if [ -z "$AUDITOR_PRIVATE_KEY" ]; then
-    AUDITOR_PRIVATE_KEY="0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
+    export AUDITOR_PRIVATE_KEY="0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
     echo "AUDITOR_PRIVATE_KEY is not set, using default anvil key"
 fi
 
