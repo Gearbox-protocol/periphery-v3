@@ -241,7 +241,7 @@ contract Bytecodes {
         bytecodes[24].initCode = type(InfraredVaultAdapter).creationCode;
         bytecodes[24].source = string.concat(integrations, "/contracts/adapters/infrared/InfraredVaultAdapter.sol");
 
-        bytecodes[25].contractType = "ADAPTER::TRADER_JOE_ROUTER";
+        bytecodes[25].contractType = "ADAPTER::TRADERJOE_ROUTER";
         bytecodes[25].version = 3_10;
         bytecodes[25].initCode = type(TraderJoeRouterAdapter).creationCode;
         bytecodes[25].source = string.concat(integrations, "/contracts/adapters/traderjoe/TraderJoeRouterAdapter.sol");
