@@ -61,6 +61,11 @@ import {InfraredVaultAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/infrared/InfraredVaultAdapter.sol";
 import {TraderJoeRouterAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/traderjoe/TraderJoeRouterAdapter.sol";
+import {FluidDexAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/fluid/FluidDexAdapter.sol";
+
+import {FluidDexETHGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/fluid/FluidDexETHGateway.sol";
+import {CurveV1StETHPoolGateway} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/curve/CurveV1_stETHGateway.sol";
 
 import {UnderlyingDepositZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingDepositZapper.sol";
 import {UnderlyingFarmingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingFarmingZapper.sol";
@@ -245,6 +250,25 @@ contract Bytecodes {
         bytecodes[25].version = 3_10;
         bytecodes[25].initCode = type(TraderJoeRouterAdapter).creationCode;
         bytecodes[25].source = string.concat(integrations, "/contracts/adapters/traderjoe/TraderJoeRouterAdapter.sol");
+
+        bytecodes[26].contractType = "ADAPTER::FLUID_DEX";
+        bytecodes[26].version = 3_10;
+        bytecodes[26].initCode = type(FluidDexAdapter).creationCode;
+        bytecodes[26].source = string.concat(integrations, "/contracts/adapters/fluid/FluidDexAdapter.sol");
+    }
+
+    function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
+        bytecodes = new Bytecode[](2);
+
+        bytecodes[0].contractType = "GATEWAY::FLUID_DEX_ETH";
+        bytecodes[0].version = 3_10;
+        bytecodes[0].initCode = type(FluidDexETHGateway).creationCode;
+        bytecodes[0].source = string.concat(integrations, "/contracts/helpers/fluid/FluidDexETHGateway.sol");
+
+        bytecodes[1].contractType = "GATEWAY::CURVE_V1";
+        bytecodes[1].version = 3_10;
+        bytecodes[1].initCode = type(CurveV1StETHPoolGateway).creationCode;
+        bytecodes[1].source = string.concat(integrations, "/contracts/helpers/curve/CurveV1_stETHGateway.sol");
     }
 
     function _getBotContracts() internal view returns (Bytecode[] memory bytecodes) {

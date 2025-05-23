@@ -16,7 +16,6 @@ contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
     address ccmProxy;
 
     function run() external {
-
         bytes32 auditorPrivateKey = vm.envOr("AUDITOR_PRIVATE_KEY", bytes32(0));
 
         if (auditorPrivateKey == bytes32(0)) {
@@ -41,6 +40,12 @@ contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
         }
 
         bcs = _getPriceFeedContracts();
+
+        for (uint256 i = 0; i < bcs.length; i++) {
+            _safeUploadBytecode(auditor, bcs[i]);
+        }
+
+        bcs = _getHelperContracts();
 
         for (uint256 i = 0; i < bcs.length; i++) {
             _safeUploadBytecode(auditor, bcs[i]);
