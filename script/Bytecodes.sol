@@ -119,7 +119,7 @@ contract Bytecodes {
         "https://github.com/Gearbox-protocol/permissionless/blob/f660f1abb176096d1b97b80667a0a019e0aaadc6";
 
     function _getAdapterContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](26);
+        bytecodes = new Bytecode[](27);
 
         bytecodes[0].contractType = "ADAPTER::BALANCER_VAULT";
         bytecodes[0].version = 3_10;
