@@ -27,7 +27,7 @@ contract TreasuryLiquidator is SanityCheckTrait {
     using CreditLogic for CollateralDebtData;
 
     /// @notice Contract type for identification
-    bytes32 public constant contractType = "HELPER::TREASURY_LIQUIDATOR";
+    bytes32 public constant contractType = "TREASURY_LIQUIDATOR";
 
     /// @notice Contract version
     uint256 public constant version = 3_10;
@@ -138,7 +138,8 @@ contract TreasuryLiquidator is SanityCheckTrait {
         if (requiredRate == 0) revert UnsupportedTokenPairException();
 
         address creditManager = ICreditFacadeV3(creditFacade).creditManager();
-        CollateralDebtData memory cdd = _getCDD(creditAccount, creditManager);
+        CollateralDebtData memory cdd =
+            ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_ONLY);
         uint256 totalDebt = cdd.calcTotalDebt();
 
         IERC20(underlying).safeTransferFrom(treasury, address(this), totalDebt);
@@ -146,11 +147,11 @@ contract TreasuryLiquidator is SanityCheckTrait {
 
         MultiCall[] memory finalCalls = new MultiCall[](2);
         finalCalls[0] = MultiCall({
-            target: creditManager,
+            target: creditFacade,
             callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (underlying, totalDebt))
         });
         finalCalls[1] = MultiCall({
-            target: creditManager,
+            target: creditFacade,
             callData: abi.encodeCall(
                 ICreditFacadeV3Multicall.withdrawCollateral,
                 (tokenToSeize, totalDebt * requiredRate / RATE_PRECISION, treasury)
@@ -193,20 +194,8 @@ contract TreasuryLiquidator is SanityCheckTrait {
         IERC20(underlying).safeTransferFrom(treasury, address(this), underlyingOut);
         IERC20(underlying).forceApprove(creditManager, underlyingOut);
 
-        MultiCall[] memory finalCalls = new MultiCall[](1 + tokensToSeize.length);
-        finalCalls[0] = MultiCall({
-            target: creditManager,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (underlying, underlyingOut))
-        });
-        for (uint256 i = 0; i < tokensToSeize.length; ++i) {
-            finalCalls[1 + i] = MultiCall({
-                target: creditManager,
-                callData: abi.encodeCall(
-                    ICreditFacadeV3Multicall.withdrawCollateral, (tokensToSeize[i], amountsToSeize[i], treasury)
-                )
-            });
-        }
-
+        MultiCall[] memory finalCalls =
+            _generateMultiAssetCalls(creditFacade, underlying, underlyingOut, tokensToSeize, amountsToSeize);
         finalCalls = _concatCalls(calls, finalCalls);
 
         ICreditFacadeV3(creditFacade).liquidateCreditAccount(creditAccount, treasury, finalCalls, lossPolicyData);
@@ -247,15 +236,6 @@ contract TreasuryLiquidator is SanityCheckTrait {
         emit PartiallyLiquidateFromTreasury(creditFacade, creditAccount, msg.sender, token);
     }
 
-    function _getCDD(address creditAccount, address creditManager)
-        internal
-        view
-        virtual
-        returns (CollateralDebtData memory)
-    {
-        return ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL);
-    }
-
     function _computeUnderlyingOut(address underlying, address[] memory tokensToSeize, uint256[] memory amountsToSeize)
         internal
         view
@@ -266,6 +246,28 @@ contract TreasuryLiquidator is SanityCheckTrait {
             uint256 requiredRate = minExchangeRates[underlying][tokensToSeize[i]];
             if (requiredRate == 0) revert UnsupportedTokenPairException();
             amountOut += amountsToSeize[i] * RATE_PRECISION / requiredRate;
+        }
+    }
+
+    function _generateMultiAssetCalls(
+        address creditFacade,
+        address underlying,
+        uint256 underlyingOut,
+        address[] memory tokensToSeize,
+        uint256[] memory amountsToSeize
+    ) internal view returns (MultiCall[] memory calls) {
+        calls = new MultiCall[](1 + tokensToSeize.length);
+        calls[0] = MultiCall({
+            target: creditFacade,
+            callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (underlying, underlyingOut))
+        });
+        for (uint256 i = 0; i < tokensToSeize.length; ++i) {
+            calls[1 + i] = MultiCall({
+                target: creditFacade,
+                callData: abi.encodeCall(
+                    ICreditFacadeV3Multicall.withdrawCollateral, (tokensToSeize[i], amountsToSeize[i], treasury)
+                )
+            });
         }
     }
 
