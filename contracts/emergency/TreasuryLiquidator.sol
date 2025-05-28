@@ -3,6 +3,7 @@
 // (c) Gearbox Foundation, 2024.
 pragma solidity ^0.8.17;
 
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 import {
@@ -15,6 +16,20 @@ import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/inte
 import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 import {CreditLogic} from "@gearbox-protocol/core-v3/contracts/libraries/CreditLogic.sol";
 import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
+
+import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
+import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/interfaces/IContractsRegister.sol";
+
+struct SeizedCollateral {
+    address[] tokensToSeize;
+    uint256[] amountsToSeize;
+}
+
+struct ExtraParams {
+    MultiCall[] calls;
+    bytes lossPolicyData;
+    address wrappedUnderlying;
+}
 
 /**
  * @title TreasuryLiquidator
@@ -38,6 +53,9 @@ contract TreasuryLiquidator is SanityCheckTrait {
     /// @notice The treasury address that funds are taken from and returned to
     address public immutable treasury;
 
+    /// @notice The market configurator address
+    address public immutable marketConfigurator;
+
     /// @notice Mapping of approved liquidators who can use this contract
     mapping(address => bool) public isLiquidator;
 
@@ -47,13 +65,13 @@ contract TreasuryLiquidator is SanityCheckTrait {
 
     // EVENTS
     event LiquidateFromTreasury(
-        address indexed creditFacade, address indexed creditAccount, address indexed liquidator, address tokenOut
+        address indexed creditFacade, address indexed creditAccount, address indexed liquidator
     );
     event LiquidateMultipleFromTreasury(
-        address indexed creditFacade, address indexed creditAccount, address indexed liquidator, address[] tokensOut
+        address indexed creditFacade, address indexed creditAccount, address indexed liquidator
     );
     event PartiallyLiquidateFromTreasury(
-        address indexed creditFacade, address indexed creditAccount, address indexed liquidator, address token
+        address indexed creditFacade, address indexed creditAccount, address indexed liquidator
     );
     event SetLiquidatorStatus(address indexed liquidator, bool status);
     event SetMinExchangeRate(address indexed assetIn, address indexed assetOut, uint256 rate);
@@ -62,8 +80,10 @@ contract TreasuryLiquidator is SanityCheckTrait {
     error CallerNotTreasuryException();
     error CallerNotApprovedLiquidatorException();
     error InsufficientExchangeRateException(uint256 received, uint256 expected);
+    error InsufficientTreasuryFundsException();
     error UnsupportedTokenPairException();
     error InvalidWithdrawalException();
+    error InvalidCreditSuiteException();
 
     /// @notice Modifier to verify the sender is the treasury
     modifier onlyTreasury() {
@@ -77,12 +97,28 @@ contract TreasuryLiquidator is SanityCheckTrait {
         _;
     }
 
+    /// @notice Modifier to verify the credit facade is from the market configurator
+    modifier onlyCFFromMarketConfigurator(address creditFacade) {
+        address creditManager = ICreditFacadeV3(creditFacade).creditManager();
+        bool isValidCM = IContractsRegister(IMarketConfigurator(marketConfigurator).contractsRegister()).isCreditManager(
+            creditManager
+        );
+        if (!isValidCM || ICreditManagerV3(creditManager).creditFacade() != creditFacade) {
+            revert InvalidCreditSuiteException();
+        }
+        _;
+    }
+
     /**
      * @notice Constructor
      * @param _treasury The address of the treasury
      */
-    constructor(address _treasury) nonZeroAddress(_treasury) {
+    constructor(address _treasury, address _marketConfigurator)
+        nonZeroAddress(_treasury)
+        nonZeroAddress(_marketConfigurator)
+    {
         treasury = _treasury;
+        marketConfigurator = _marketConfigurator;
     }
 
     /**
@@ -118,32 +154,32 @@ contract TreasuryLiquidator is SanityCheckTrait {
      * @notice Liquidate a credit account using funds from the treasury
      * @param creditFacade The credit facade contract
      * @param creditAccount The credit account to liquidate
-     * @param tokenToSeize The token to receive from liquidation
-     * @param calls Additional calls to be executed before swaps with treasury. Any
-     *              withdrawals can be sent to treasury only.
-     * @param lossPolicyData Additional data for the loss policy
+     * @param extraParams Additional parameters for the liquidation
      */
     function liquidateFromTreasurySingleAsset(
         address creditFacade,
         address creditAccount,
         address tokenToSeize,
-        MultiCall[] calldata calls,
-        bytes calldata lossPolicyData
-    ) external onlyLiquidator {
-        _validateCalls(calls);
+        ExtraParams calldata extraParams
+    ) external onlyLiquidator onlyCFFromMarketConfigurator(creditFacade) {
+        _validateCalls(extraParams.calls);
 
         address underlying = ICreditFacadeV3(creditFacade).underlying();
 
         uint256 requiredRate = minExchangeRates[underlying][tokenToSeize];
         if (requiredRate == 0) revert UnsupportedTokenPairException();
 
-        address creditManager = ICreditFacadeV3(creditFacade).creditManager();
-        CollateralDebtData memory cdd =
-            ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_ONLY);
-        uint256 totalDebt = cdd.calcTotalDebt();
+        uint256 totalDebt;
 
-        IERC20(underlying).safeTransferFrom(treasury, address(this), totalDebt);
-        IERC20(underlying).forceApprove(creditManager, totalDebt);
+        {
+            address creditManager = ICreditFacadeV3(creditFacade).creditManager();
+            CollateralDebtData memory cdd =
+                ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_ONLY);
+            totalDebt = cdd.calcTotalDebt();
+
+            _transferUnderlying(underlying, extraParams.wrappedUnderlying, totalDebt);
+            IERC20(underlying).forceApprove(creditManager, totalDebt);
+        }
 
         MultiCall[] memory finalCalls = new MultiCall[](2);
         finalCalls[0] = MultiCall({
@@ -158,49 +194,50 @@ contract TreasuryLiquidator is SanityCheckTrait {
             )
         });
 
-        finalCalls = _concatCalls(calls, finalCalls);
+        finalCalls = _concatCalls(extraParams.calls, finalCalls);
 
-        ICreditFacadeV3(creditFacade).liquidateCreditAccount(creditAccount, treasury, finalCalls, lossPolicyData);
+        ICreditFacadeV3(creditFacade).liquidateCreditAccount(
+            creditAccount, treasury, finalCalls, extraParams.lossPolicyData
+        );
 
-        emit LiquidateFromTreasury(creditFacade, creditAccount, msg.sender, tokenToSeize);
+        emit LiquidateFromTreasury(creditFacade, creditAccount, msg.sender);
     }
 
     /**
      * @notice Liquidate a credit account using funds from the treasury
      * @param creditFacade The credit facade contract
      * @param creditAccount The credit account to liquidate
-     * @param tokensToSeize The tokens to receive from liquidation
-     * @param amountsToSeize The amounts of tokens to receive from liquidation
-     * @param calls Additional calls to be executed before swaps with treasury. Any
-     *              withdrawals can be sent to treasury only.
-     * @param lossPolicyData Additional data for the loss policy
+     * @param seizedCollateral The tokens to seize
+     * @param extraParams Additional parameters for the liquidation
      */
     function liquidateFromTreasuryMultiAsset(
         address creditFacade,
         address creditAccount,
-        address[] calldata tokensToSeize,
-        uint256[] calldata amountsToSeize,
-        MultiCall[] calldata calls,
-        bytes calldata lossPolicyData
-    ) external onlyLiquidator {
-        _validateCalls(calls);
+        SeizedCollateral calldata seizedCollateral,
+        ExtraParams calldata extraParams
+    ) external onlyLiquidator onlyCFFromMarketConfigurator(creditFacade) {
+        _validateCalls(extraParams.calls);
 
         address underlying = ICreditFacadeV3(creditFacade).underlying();
 
-        address creditManager = ICreditFacadeV3(creditFacade).creditManager();
+        uint256 underlyingOut = _computeUnderlyingOut(underlying, seizedCollateral);
 
-        uint256 underlyingOut = _computeUnderlyingOut(underlying, tokensToSeize, amountsToSeize);
+        _transferUnderlying(underlying, extraParams.wrappedUnderlying, underlyingOut);
 
-        IERC20(underlying).safeTransferFrom(treasury, address(this), underlyingOut);
-        IERC20(underlying).forceApprove(creditManager, underlyingOut);
+        {
+            address creditManager = ICreditFacadeV3(creditFacade).creditManager();
+            IERC20(underlying).forceApprove(creditManager, underlyingOut);
+        }
 
         MultiCall[] memory finalCalls =
-            _generateMultiAssetCalls(creditFacade, underlying, underlyingOut, tokensToSeize, amountsToSeize);
-        finalCalls = _concatCalls(calls, finalCalls);
+            _generateMultiAssetCalls(creditFacade, underlying, underlyingOut, seizedCollateral);
+        finalCalls = _concatCalls(extraParams.calls, finalCalls);
 
-        ICreditFacadeV3(creditFacade).liquidateCreditAccount(creditAccount, treasury, finalCalls, lossPolicyData);
+        ICreditFacadeV3(creditFacade).liquidateCreditAccount(
+            creditAccount, treasury, finalCalls, extraParams.lossPolicyData
+        );
 
-        emit LiquidateMultipleFromTreasury(creditFacade, creditAccount, msg.sender, tokensToSeize);
+        emit LiquidateMultipleFromTreasury(creditFacade, creditAccount, msg.sender);
     }
 
     /**
@@ -216,8 +253,9 @@ contract TreasuryLiquidator is SanityCheckTrait {
         address creditAccount,
         address token,
         uint256 repaidAmount,
-        PriceUpdate[] calldata priceUpdates
-    ) external onlyLiquidator {
+        PriceUpdate[] calldata priceUpdates,
+        address wrappedUnderlying
+    ) external onlyLiquidator onlyCFFromMarketConfigurator(creditFacade) {
         address underlying = ICreditFacadeV3(creditFacade).underlying();
 
         uint256 requiredRate = minExchangeRates[underlying][token];
@@ -225,27 +263,47 @@ contract TreasuryLiquidator is SanityCheckTrait {
 
         uint256 minSeizedAmount = repaidAmount * requiredRate / RATE_PRECISION;
 
-        IERC20(underlying).safeTransferFrom(treasury, address(this), repaidAmount);
-        address creditManager = ICreditFacadeV3(creditFacade).creditManager();
-        IERC20(underlying).forceApprove(creditManager, repaidAmount);
+        _transferUnderlying(underlying, wrappedUnderlying, repaidAmount);
+        {
+            address creditManager = ICreditFacadeV3(creditFacade).creditManager();
+            IERC20(underlying).forceApprove(creditManager, repaidAmount);
+        }
 
         ICreditFacadeV3(creditFacade).partiallyLiquidateCreditAccount(
             creditAccount, token, repaidAmount, minSeizedAmount, treasury, priceUpdates
         );
 
-        emit PartiallyLiquidateFromTreasury(creditFacade, creditAccount, msg.sender, token);
+        emit PartiallyLiquidateFromTreasury(creditFacade, creditAccount, msg.sender);
     }
 
-    function _computeUnderlyingOut(address underlying, address[] memory tokensToSeize, uint256[] memory amountsToSeize)
+    function _transferUnderlying(address underlying, address wrappedUnderlying, uint256 amount) internal {
+        uint256 balance = IERC20(underlying).balanceOf(treasury);
+        uint256 wrappedAssets;
+
+        if (wrappedUnderlying != address(0)) {
+            wrappedAssets = IERC4626(wrappedUnderlying).maxWithdraw(treasury);
+        }
+
+        if (balance >= amount) {
+            IERC20(underlying).safeTransferFrom(treasury, address(this), amount);
+        } else if (balance + wrappedAssets >= amount) {
+            IERC20(underlying).safeTransferFrom(treasury, address(this), balance);
+            IERC4626(wrappedUnderlying).withdraw(amount - balance, address(this), treasury);
+        } else {
+            revert InsufficientTreasuryFundsException();
+        }
+    }
+
+    function _computeUnderlyingOut(address underlying, SeizedCollateral calldata seizedCollateral)
         internal
         view
         returns (uint256 amountOut)
     {
-        uint256 len = tokensToSeize.length;
+        uint256 len = seizedCollateral.tokensToSeize.length;
         for (uint256 i = 0; i < len; ++i) {
-            uint256 requiredRate = minExchangeRates[underlying][tokensToSeize[i]];
+            uint256 requiredRate = minExchangeRates[underlying][seizedCollateral.tokensToSeize[i]];
             if (requiredRate == 0) revert UnsupportedTokenPairException();
-            amountOut += amountsToSeize[i] * RATE_PRECISION / requiredRate;
+            amountOut += seizedCollateral.amountsToSeize[i] * RATE_PRECISION / requiredRate;
         }
     }
 
@@ -253,19 +311,20 @@ contract TreasuryLiquidator is SanityCheckTrait {
         address creditFacade,
         address underlying,
         uint256 underlyingOut,
-        address[] memory tokensToSeize,
-        uint256[] memory amountsToSeize
+        SeizedCollateral calldata seizedCollateral
     ) internal view returns (MultiCall[] memory calls) {
-        calls = new MultiCall[](1 + tokensToSeize.length);
+        calls = new MultiCall[](1 + seizedCollateral.tokensToSeize.length);
         calls[0] = MultiCall({
             target: creditFacade,
             callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (underlying, underlyingOut))
         });
-        for (uint256 i = 0; i < tokensToSeize.length; ++i) {
+        uint256 len = seizedCollateral.tokensToSeize.length;
+        for (uint256 i = 0; i < len; ++i) {
             calls[1 + i] = MultiCall({
                 target: creditFacade,
                 callData: abi.encodeCall(
-                    ICreditFacadeV3Multicall.withdrawCollateral, (tokensToSeize[i], amountsToSeize[i], treasury)
+                    ICreditFacadeV3Multicall.withdrawCollateral,
+                    (seizedCollateral.tokensToSeize[i], seizedCollateral.amountsToSeize[i], treasury)
                 )
             });
         }
