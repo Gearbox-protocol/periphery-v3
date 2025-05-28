@@ -114,7 +114,7 @@ contract MultiPause is IVersion, IStateSerializer, ACLTrait, ContractsRegisterTr
     /// @dev Pauses `target` if it's pausable and not already paused
     function _pause(address target) internal {
         try IPausable(target).paused() returns (bool paused) {
-            if (!paused) try IPausable(target).pause() {} catch {}
+            if (!paused) try IPausable(target).pause{gas: 30_000}() {} catch {}
         } catch {}
     }
 }
