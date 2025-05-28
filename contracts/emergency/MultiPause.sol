@@ -3,9 +3,6 @@
 // (c) Gearbox Foundation, 2025.
 pragma solidity ^0.8.23;
 
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-
 import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IStateSerializer.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {ACLTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLTrait.sol";
@@ -15,13 +12,13 @@ import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/int
 import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 import {MarketFactories} from "@gearbox-protocol/permissionless/contracts/interfaces/Types.sol";
 
+import {IPausable} from "../interfaces/IPausable.sol";
+
 /// @title MultiPause
 /// @author Gearbox Foundation
 /// @notice Allows pausable admins to pause multiple contracts via single call.
 ///         This contract itself is expected to have the `PAUSABLE_ADMIN` role in the ACL contract.
 contract MultiPause is IVersion, IStateSerializer, ACLTrait, ContractsRegisterTrait {
-    using Address for address;
-
     /// @notice Contract type
     bytes32 public constant override contractType = "MULTI_PAUSE";
 
@@ -116,8 +113,8 @@ contract MultiPause is IVersion, IStateSerializer, ACLTrait, ContractsRegisterTr
 
     /// @dev Pauses `target` if it's pausable and not already paused
     function _pause(address target) internal {
-        try Pausable(target).paused() returns (bool paused) {
-            if (!paused) target.functionCall(abi.encodeWithSignature("pause()"));
+        try IPausable(target).paused() returns (bool paused) {
+            if (!paused) try IPausable(target).pause() {} catch {}
         } catch {}
     }
 }
