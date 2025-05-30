@@ -406,15 +406,17 @@ contract TreasuryLiquidatorIntegrationTest is IntegrationTestHelper {
             address(creditFacade), creditAccount, weth, repaidAmount, new PriceUpdate[](0), address(0)
         );
 
-        // Check treasury balance decreased by repaid amount
         assertEq(
             IERC20(underlying).balanceOf(treasury),
             treasuryBalanceBefore - repaidAmount,
             "Treasury underlying balance should decrease"
         );
 
-        // Check treasury received collateral
-        assertGt(IERC20(weth).balanceOf(treasury), treasuryWethBalanceBefore, "Treasury should receive collateral");
+        assertGt(
+            IERC20(weth).balanceOf(treasury),
+            treasuryWethBalanceBefore + 9e17,
+            "Treasury should receive at least 9e17 weth"
+        );
     }
 
     /// @dev I:[TL-17]: partiallyLiquidateFromTreasury works correctly with wrapped underlying
@@ -435,7 +437,7 @@ contract TreasuryLiquidatorIntegrationTest is IntegrationTestHelper {
         treasuryLiquidator.setMinExchangeRate(underlying, weth, rate);
 
         uint256 repaidAmount = 1000e18;
-        uint256 treasuryWrappedBalanceBefore = wrappedUnderlying.balanceOf(treasury);
+        uint256 treasuryWrappedBalanceBefore = wrappedUnderlying.maxWithdraw(treasury);
         uint256 treasuryWethBalanceBefore = IERC20(weth).balanceOf(treasury);
 
         vm.prank(treasury);
@@ -448,16 +450,18 @@ contract TreasuryLiquidatorIntegrationTest is IntegrationTestHelper {
         treasuryLiquidator.partiallyLiquidateFromTreasury(
             address(creditFacade), creditAccount, weth, repaidAmount, new PriceUpdate[](0), address(wrappedUnderlying)
         );
-
-        // Check treasury wrapped balance decreased
-        assertLt(
-            wrappedUnderlying.balanceOf(treasury),
-            treasuryWrappedBalanceBefore,
-            "Treasury wrapped balance should decrease"
+        
+        assertEq(
+            wrappedUnderlying.maxWithdraw(treasury),
+            treasuryWrappedBalanceBefore - repaidAmount,
+            "Treasury wrapped balance is incorrect"
         );
 
-        // Check treasury received collateral
-        assertGt(IERC20(weth).balanceOf(treasury), treasuryWethBalanceBefore, "Treasury should receive collateral");
+        assertGt(
+            IERC20(weth).balanceOf(treasury),
+            treasuryWethBalanceBefore + 9e17,
+            "Treasury should receive at least 9e17 weth"
+        );
     }
 
     /// @dev I:[TL-18]: partiallyLiquidateFromTreasury calculates minimum seized amount correctly
@@ -489,7 +493,6 @@ contract TreasuryLiquidatorIntegrationTest is IntegrationTestHelper {
         vm.prank(treasury);
         IERC20(underlying).approve(address(treasuryLiquidator), repaidAmount);
 
-        // Mock the partial liquidation to check the minimum seized amount parameter
         vm.expectCall(
             address(creditFacade),
             abi.encodeWithSelector(
