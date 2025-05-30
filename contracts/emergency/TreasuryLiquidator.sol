@@ -5,12 +5,14 @@ pragma solidity ^0.8.17;
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {ICreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 import {SanityCheckTrait} from "@gearbox-protocol/core-v3/contracts/traits/SanityCheckTrait.sol";
+import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 
 import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/interfaces/IContractsRegister.sol";
@@ -30,9 +32,6 @@ contract TreasuryLiquidator is SanityCheckTrait {
     /// @notice Contract version
     uint256 public constant version = 3_10;
 
-    /// @notice Precision for exchange rates
-    uint256 public constant RATE_PRECISION = 1e18;
-
     /// @notice The treasury address that funds are taken from and returned to
     address public immutable treasury;
 
@@ -43,7 +42,7 @@ contract TreasuryLiquidator is SanityCheckTrait {
     mapping(address => bool) public isLiquidator;
 
     /// @notice Mapping of minimum exchange rates (assetIn => assetOut => rate)
-    /// Rate is in RATE_PRECISION format, e.g., 1e18 means 1:1
+    /// Rate is in PERCENTAGE_FACTOR format (i.e. 10050 means 1.005 units of collateral per unit of underlying, regardless of decimals)
     mapping(address => mapping(address => uint256)) public minExchangeRates;
 
     // EVENTS
@@ -143,10 +142,7 @@ contract TreasuryLiquidator is SanityCheckTrait {
     ) external onlyLiquidator onlyCFFromMarketConfigurator(creditFacade) {
         address underlying = ICreditFacadeV3(creditFacade).underlying();
 
-        uint256 requiredRate = minExchangeRates[underlying][token];
-        if (requiredRate == 0) revert UnsupportedTokenPairException();
-
-        uint256 minSeizedAmount = repaidAmount * requiredRate / RATE_PRECISION;
+        uint256 minSeizedAmount = _getMinSeizedAmount(underlying, token, repaidAmount);
 
         _transferUnderlying(underlying, wrappedUnderlying, repaidAmount);
         {
@@ -161,21 +157,29 @@ contract TreasuryLiquidator is SanityCheckTrait {
         emit PartiallyLiquidateFromTreasury(creditFacade, creditAccount, msg.sender);
     }
 
+    function _getMinSeizedAmount(address underlying, address token, uint256 repaidAmount)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 requiredRate = minExchangeRates[underlying][token];
+        if (requiredRate == 0) revert UnsupportedTokenPairException();
+
+        uint256 scaleUnderlying = 10 ** IERC20Metadata(underlying).decimals();
+        uint256 scaleToken = 10 ** IERC20Metadata(token).decimals();
+
+        return repaidAmount * requiredRate * scaleToken / (PERCENTAGE_FACTOR * scaleUnderlying);
+    }
+
     function _transferUnderlying(address underlying, address wrappedUnderlying, uint256 amount) internal {
-        uint256 balance = IERC20(underlying).balanceOf(treasury);
-        uint256 wrappedAssets;
-
         if (wrappedUnderlying != address(0)) {
-            wrappedAssets = IERC4626(wrappedUnderlying).maxWithdraw(treasury);
-        }
-
-        if (balance >= amount) {
-            IERC20(underlying).safeTransferFrom(treasury, address(this), amount);
-        } else if (balance + wrappedAssets >= amount) {
-            IERC20(underlying).safeTransferFrom(treasury, address(this), balance);
-            IERC4626(wrappedUnderlying).withdraw(amount - balance, address(this), treasury);
+            uint256 wrappedAssets = IERC4626(wrappedUnderlying).maxWithdraw(treasury);
+            if (wrappedAssets < amount) revert InsufficientTreasuryFundsException();
+            IERC4626(wrappedUnderlying).withdraw(amount, address(this), treasury);
         } else {
-            revert InsufficientTreasuryFundsException();
+            uint256 balance = IERC20(underlying).balanceOf(treasury);
+            if (balance < amount) revert InsufficientTreasuryFundsException();
+            IERC20(underlying).safeTransferFrom(treasury, address(this), amount);
         }
     }
 }
