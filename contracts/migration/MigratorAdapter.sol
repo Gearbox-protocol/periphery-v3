@@ -5,7 +5,7 @@ pragma solidity ^0.8.23;
 
 import {AbstractAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/AbstractAdapter.sol";
 import {IAdapter} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAdapter.sol";
-import {MigrationParams} from "./MigratorBot.sol";
+import {MigrationParams, MigratedCollateral} from "./MigratorBot.sol";
 
 contract MigratorAdapter is AbstractAdapter {
     /// @dev Legacy adapter type parameter, for compatibility with 3.0 contracts
@@ -35,17 +35,19 @@ contract MigratorAdapter is AbstractAdapter {
 
     constructor(address _creditManager, address _migratorBot) AbstractAdapter(_creditManager, _migratorBot) {}
 
-    function migrate(MigrationParams memory params) external whenUnlocked creditFacadeOnly {
-        _approveTokens(params.collaterals, type(uint256).max);
+    function migrate(MigrationParams memory params) external whenUnlocked creditFacadeOnly returns (bool) {
+        _approveTokens(params.migratedCollaterals, type(uint256).max);
         _execute(msg.data);
-        _approveTokens(params.collaterals, 0);
+        _approveTokens(params.migratedCollaterals, 0);
+
+        return false;
     }
 
-    function _approveTokens(address[] memory tokens, uint256 amount) internal {
+    function _approveTokens(MigratedCollateral[] memory tokens, uint256 amount) internal {
         uint256 len = tokens.length;
 
         for (uint256 i = 0; i < len; i++) {
-            _approveToken(tokens[i], amount);
+            _approveToken(tokens[i].collateral, amount);
         }
     }
 
