@@ -39,11 +39,11 @@ contract TreasuryLiquidator is SanityCheckTrait {
     address public immutable marketConfigurator;
 
     /// @notice Mapping of approved liquidators who can use this contract
-    mapping(address => bool) public isLiquidator;
+    mapping(address liquidator => bool isAllowed) public isLiquidator;
 
     /// @notice Mapping of minimum exchange rates (assetIn => assetOut => rate)
     /// Rate is in PERCENTAGE_FACTOR format (i.e. 10050 means 1.005 units of collateral per unit of underlying, regardless of decimals)
-    mapping(address => mapping(address => uint256)) public minExchangeRates;
+    mapping(address assetIn => mapping(address assetOut => uint256 rate)) public minExchangeRates;
 
     // EVENTS
     event PartiallyLiquidateFromTreasury(
@@ -58,6 +58,7 @@ contract TreasuryLiquidator is SanityCheckTrait {
     error InsufficientTreasuryFundsException();
     error UnsupportedTokenPairException();
     error InvalidCreditSuiteException();
+    error IncorrectWrappedUnderlyingException();
 
     /// @notice Modifier to verify the sender is the treasury
     modifier onlyTreasury() {
@@ -72,6 +73,7 @@ contract TreasuryLiquidator is SanityCheckTrait {
     }
 
     /// @notice Modifier to verify the credit facade is from the market configurator
+    /// @param creditFacade The credit facade address
     modifier onlyCFFromMarketConfigurator(address creditFacade) {
         address creditManager = ICreditFacadeV3(creditFacade).creditManager();
         bool isValidCM = IContractsRegister(IMarketConfigurator(marketConfigurator).contractsRegister()).isCreditManager(
@@ -86,6 +88,7 @@ contract TreasuryLiquidator is SanityCheckTrait {
     /**
      * @notice Constructor
      * @param _treasury The address of the treasury
+     * @param _marketConfigurator The address of the market configurator
      */
     constructor(address _treasury, address _marketConfigurator)
         nonZeroAddress(_treasury)
@@ -131,6 +134,7 @@ contract TreasuryLiquidator is SanityCheckTrait {
      * @param token The collateral token to seize
      * @param repaidAmount The amount of underlying to repay
      * @param priceUpdates Optional price updates to apply before liquidation
+     * @param wrappedUnderlying ERC4626 vault that wraps the underlying token, if unwrapping is required
      */
     function partiallyLiquidateFromTreasury(
         address creditFacade,
@@ -173,6 +177,7 @@ contract TreasuryLiquidator is SanityCheckTrait {
 
     function _transferUnderlying(address underlying, address wrappedUnderlying, uint256 amount) internal {
         if (wrappedUnderlying != address(0)) {
+            if (IERC4626(wrappedUnderlying).asset() != underlying) revert IncorrectWrappedUnderlyingException();
             uint256 wrappedAssets = IERC4626(wrappedUnderlying).maxWithdraw(treasury);
             if (wrappedAssets < amount) revert InsufficientTreasuryFundsException();
             IERC4626(wrappedUnderlying).withdraw(amount, address(this), treasury);
