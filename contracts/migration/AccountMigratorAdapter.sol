@@ -4,19 +4,21 @@
 pragma solidity ^0.8.23;
 
 import {AbstractAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/AbstractAdapter.sol";
-import {IAdapter} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAdapter.sol";
-import {MigrationParams, MigratedCollateral} from "./MigratorBot.sol";
+import {IAccountMigratorAdapter} from "../interfaces/IAccountMigratorBot.sol";
+import {MigrationParams, MigratedCollateral} from "../types/AccountMigrationTypes.sol";
 
-contract MigratorAdapter is AbstractAdapter {
+contract AccountMigratorAdapter is AbstractAdapter, IAccountMigratorAdapter {
     /// @dev Legacy adapter type parameter, for compatibility with 3.0 contracts
     uint8 public constant _gearboxAdapterType = 0;
 
     /// @dev Legacy adapter version parameter, for compatibility with 3.0 contracts
     uint16 public constant _gearboxAdapterVersion = 3_10;
 
-    bytes32 public constant override contractType = "ADAPTER::MIGRATOR";
+    bytes32 public constant override contractType = "ADAPTER::ACCOUNT_MIGRATOR";
     uint256 public constant override version = 3_10;
 
+    /// @dev Whether tha adapter is locked. The adapter should only be interactable when unlocked from the migrator bot,
+    ///      as the `migrate` function is fairly dangerous.
     bool public locked = true;
 
     modifier onlyMigratorBot() {
@@ -35,6 +37,7 @@ contract MigratorAdapter is AbstractAdapter {
 
     constructor(address _creditManager, address _migratorBot) AbstractAdapter(_creditManager, _migratorBot) {}
 
+    /// @notice Migrates collaterals to a new credit account, using the migrator bot as a target contract.
     function migrate(MigrationParams memory params) external whenUnlocked creditFacadeOnly returns (bool) {
         _approveTokens(params.migratedCollaterals, type(uint256).max);
         _execute(msg.data);
