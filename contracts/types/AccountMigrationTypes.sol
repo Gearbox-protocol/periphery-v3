@@ -37,6 +37,7 @@ struct FailureStates {
     bool newTargetDebtOutOfLimits;
     bool noPathToSourceUnderlying;
     bool cannotSwapEnoughToCoverDebt;
+    bool sourceHasNoMigratorBotAdapter;
 }
 
 struct MigrationParams {
