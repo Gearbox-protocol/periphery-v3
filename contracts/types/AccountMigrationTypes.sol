@@ -14,8 +14,6 @@ struct PhantomTokenOverride {
 struct PhantomTokenParams {
     bool isPhantomToken;
     address underlying;
-    MultiCall withdrawalCall;
-    MultiCall depositCall;
 }
 
 struct MigratedCollateral {
@@ -24,6 +22,7 @@ struct MigratedCollateral {
     uint96 targetQuotaIncrease;
     bool underlyingInSource;
     bool underlyingInTarget;
+    bool isPhantomToken;
     PhantomTokenParams phantomTokenParams;
 }
 

@@ -54,8 +54,9 @@ import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/int
 import {BitMask} from "@gearbox-protocol/core-v3/contracts/libraries/BitMask.sol";
 import {CreditLogic} from "@gearbox-protocol/core-v3/contracts/libraries/CreditLogic.sol";
 import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
+import {ReentrancyGuardTrait} from "@gearbox-protocol/core-v3/contracts/traits/ReentrancyGuardTrait.sol";
 
-contract MigratorBot is Ownable, IAccountMigratorBot {
+contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
     using SafeERC20 for IERC20;
     using BitMask for uint256;
     using CreditLogic for CollateralDebtData;
@@ -64,16 +65,16 @@ contract MigratorBot is Ownable, IAccountMigratorBot {
     uint256 public constant override version = 3_10;
     bytes32 public constant override contractType = "BOT::ACCOUNT_MIGRATOR";
 
+    uint192 public constant override requiredPermissions =
+        EXTERNAL_CALLS_PERMISSION | UPDATE_QUOTA_PERMISSION | DECREASE_DEBT_PERMISSION;
+
+    address internal activeCreditAccount = INACTIVE_CREDIT_ACCOUNT_ADDRESS;
+
     mapping(address => PhantomTokenOverride) internal _phantomTokenOverrides;
 
     EnumerableSet.AddressSet internal _overridenPhantomTokens;
 
     address public immutable mcFactory;
-
-    uint192 public constant override requiredPermissions =
-        EXTERNAL_CALLS_PERMISSION | UPDATE_QUOTA_PERMISSION | DECREASE_DEBT_PERMISSION;
-
-    address internal activeCreditAccount = INACTIVE_CREDIT_ACCOUNT_ADDRESS;
 
     constructor(address _mcFactory, address _ioProxy) {
         _transferOwnership(_ioProxy);
@@ -85,14 +86,16 @@ contract MigratorBot is Ownable, IAccountMigratorBot {
     /// @notice Migrates a credit account from one credit manager to another.
     /// @param params The migration parameters.
     /// @param priceUpdates The price updates to apply.
-    function migrateCreditAccount(MigrationParams memory params, PriceUpdate[] memory priceUpdates) external {
+    function migrateCreditAccount(MigrationParams memory params, PriceUpdate[] memory priceUpdates)
+        external
+        nonReentrant
+    {
         address sourceCreditManager = ICreditAccountV3(params.sourceCreditAccount).creditManager();
 
-        _validateCreditManager(sourceCreditManager);
-        _validateCreditManager(params.targetCreditManager);
+        _validateParameters(sourceCreditManager, params);
 
         _applyPriceUpdates(params.targetCreditManager, priceUpdates);
-        _checkAccountOwner(params);
+        _checkAccountOwner(sourceCreditManager, params);
 
         address creditFacade = ICreditManagerV3(sourceCreditManager).creditFacade();
         address adapter = ICreditManagerV3(sourceCreditManager).contractToAdapter(address(this));
@@ -130,8 +133,7 @@ contract MigratorBot is Ownable, IAccountMigratorBot {
     }
 
     /// @dev Checks whether the caller is the owner of the source credit account.
-    function _checkAccountOwner(MigrationParams memory params) internal view {
-        address sourceCreditManager = ICreditAccountV3(params.sourceCreditAccount).creditManager();
+    function _checkAccountOwner(address sourceCreditManager, MigrationParams memory params) internal view {
         address sourceAccountOwner =
             ICreditManagerV3(sourceCreditManager).getBorrowerOrRevert(params.sourceCreditAccount);
 
@@ -143,7 +145,7 @@ contract MigratorBot is Ownable, IAccountMigratorBot {
     /// @dev Builds a MultiCall array to close the source credit account.
     function _getClosingMultiCalls(address creditFacade, address adapter, MigrationParams memory params)
         internal
-        pure
+        view
         returns (MultiCall[] memory calls)
     {
         uint256 collateralsLength = params.migratedCollaterals.length;
@@ -151,12 +153,16 @@ contract MigratorBot is Ownable, IAccountMigratorBot {
         calls = new MultiCall[](params.numRemoveQuotasCalls + params.numPhantomTokenCalls + 2);
         uint256 k = 0;
 
+        address sourceCreditManager = ICreditAccountV3(params.sourceCreditAccount).creditManager();
+
         for (uint256 i = 0; i < collateralsLength; i++) {
             if (
                 params.migratedCollaterals[i].phantomTokenParams.isPhantomToken
                     && params.migratedCollaterals[i].amount > 1
             ) {
-                calls[k++] = params.migratedCollaterals[i].phantomTokenParams.withdrawalCall;
+                calls[k++] = _getPhantomTokenWithdrawalCall(
+                    sourceCreditManager, params.migratedCollaterals[i].collateral, params.migratedCollaterals[i].amount
+                );
             }
         }
 
@@ -216,7 +222,11 @@ contract MigratorBot is Ownable, IAccountMigratorBot {
                 params.migratedCollaterals[i].phantomTokenParams.isPhantomToken
                     && params.migratedCollaterals[i].amount > 1
             ) {
-                calls[k++] = params.migratedCollaterals[i].phantomTokenParams.depositCall;
+                calls[k++] = _getPhantomTokenDepositCall(
+                    params.targetCreditManager,
+                    params.migratedCollaterals[i].collateral,
+                    params.migratedCollaterals[i].amount
+                );
             }
         }
 
@@ -273,6 +283,78 @@ contract MigratorBot is Ownable, IAccountMigratorBot {
         });
     }
 
+    /// @dev Builds a call to deposit a phantom token.
+    function _getPhantomTokenDepositCall(address creditManager, address collateral, uint256 amount)
+        internal
+        view
+        returns (MultiCall memory call)
+    {
+        PhantomTokenOverride memory ptOverride = _phantomTokenOverrides[collateral];
+
+        if (ptOverride.newToken != address(0)) {
+            (address target,) = _getPhantomTokenInfo(ptOverride.newToken);
+
+            address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
+
+            return MultiCall({
+                target: adapter,
+                callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (ptOverride.newToken, amount))
+            });
+        }
+
+        (address target,) = _getPhantomTokenInfo(collateral);
+
+        if (target == address(0)) revert("MigratorBot: phantom token is not valid");
+
+        address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
+
+        return MultiCall({
+            target: adapter,
+            callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (collateral, amount))
+        });
+    }
+
+    /// @dev Builds a call to withdraw a phantom token.
+    function _getPhantomTokenWithdrawalCall(address creditManager, address collateral, uint256 amount)
+        internal
+        view
+        returns (MultiCall memory call)
+    {
+        PhantomTokenOverride memory ptOverride = _phantomTokenOverrides[collateral];
+
+        if (ptOverride.newToken != address(0)) {
+            (address target,) = _getPhantomTokenInfo(collateral);
+
+            address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
+
+            return MultiCall({target: adapter, callData: ptOverride.withdrawalCallData});
+        }
+
+        (address target,) = _getPhantomTokenInfo(collateral);
+
+        if (target == address(0)) revert("MigratorBot: phantom token is not valid");
+
+        address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
+
+        return MultiCall({
+            target: adapter,
+            callData: abi.encodeCall(IPhantomTokenAdapter.withdrawPhantomToken, (collateral, amount))
+        });
+    }
+
+    /// @dev Gets the target and deposited token of a phantom token safely, to account for tokens that may behave
+    ///      weirdly on unknown function selector.
+    function _getPhantomTokenInfo(address collateral) internal view returns (address target, address depositedToken) {
+        (bool success, bytes memory returnData) = OptionalCall.staticCallOptionalSafe({
+            target: collateral,
+            data: abi.encodeWithSelector(IPhantomToken.getPhantomTokenInfo.selector),
+            gasAllowance: 30_000
+        });
+        if (!success) return (address(0), address(0));
+
+        (target, depositedToken) = abi.decode(returnData, (address, address));
+    }
+
     /// @dev Computes the total debt of a credit account.
     function _getAccountTotalDebt(address creditAccount) internal view returns (uint256) {
         address creditManager = ICreditAccountV3(creditAccount).creditManager();
@@ -301,6 +383,61 @@ contract MigratorBot is Ownable, IAccountMigratorBot {
     function _lockAdapter(address adapter) internal {
         activeCreditAccount = INACTIVE_CREDIT_ACCOUNT_ADDRESS;
         IAccountMigratorAdapter(adapter).lock();
+    }
+
+    /// @dev Validates the migration parameters. Checks that:
+    ///      - the source credit manager is valid
+    ///      - the target credit manager is valid
+    ///      - the migrated tokens are collaterals in the source CM
+    ///      - the phantom token underlyings are correct
+    ///      - the migration adapter is not called in the underlying swap calls or extra opening calls
+    function _validateParameters(address sourceCreditManager, MigrationParams memory params) internal view {
+        _validateCreditManager(sourceCreditManager);
+        _validateCreditManager(params.targetCreditManager);
+
+        for (uint256 i = 0; i < params.migratedCollaterals.length; i++) {
+            try ICreditManagerV3(sourceCreditManager).getTokenMaskOrRevert(params.migratedCollaterals[i].collateral)
+            returns (uint256) {} catch {
+                revert("MigratorBot: migrated token is not a valid collateral");
+            }
+
+            if (params.migratedCollaterals[i].phantomTokenParams.isPhantomToken) {
+                PhantomTokenOverride memory ptOverride =
+                    _phantomTokenOverrides[params.migratedCollaterals[i].collateral];
+
+                if (
+                    ptOverride.underlying != address(0)
+                        && ptOverride.underlying != params.migratedCollaterals[i].phantomTokenParams.underlying
+                ) {
+                    revert("MigratorBot: incorrect phantom token underlying");
+                }
+
+                (, address underlying) = _getPhantomTokenInfo(params.migratedCollaterals[i].collateral);
+                if (params.migratedCollaterals[i].phantomTokenParams.underlying != underlying) {
+                    revert("MigratorBot: incorrect phantom token underlying");
+                }
+            }
+        }
+
+        address targetAdapter = ICreditManagerV3(params.targetCreditManager).contractToAdapter(address(this));
+
+        if (targetAdapter != address(0)) {
+            uint256 len = params.underlyingSwapCalls.length;
+
+            for (uint256 i = 0; i < len; i++) {
+                if (params.underlyingSwapCalls[i].target == targetAdapter) {
+                    revert("MigratorBot: arbitrary call to migration adapter");
+                }
+            }
+
+            len = params.extraOpeningCalls.length;
+
+            for (uint256 i = 0; i < len; i++) {
+                if (params.extraOpeningCalls[i].target == targetAdapter) {
+                    revert("MigratorBot: arbitrary call to migration adapter");
+                }
+            }
+        }
     }
 
     /// @dev Validates that the credit manager is known by Gearbox protocol.
