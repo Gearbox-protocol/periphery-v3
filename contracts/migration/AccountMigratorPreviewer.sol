@@ -177,12 +177,7 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
                 sourceCreditManager, result.migrationParams.sourceCreditAccount, underlyingRate, migratedCollaterals[i]
             );
 
-            migratedCollaterals[i].phantomTokenParams = _getPhantomTokenParams(
-                sourceCreditManager,
-                result.migrationParams.targetCreditManager,
-                migratedCollaterals[i].collateral,
-                migratedCollaterals[i].amount
-            );
+            migratedCollaterals[i].phantomTokenParams = _getPhantomTokenParams(migratedCollaterals[i].collateral);
 
             enabledTokensMask = enabledTokensMask.disable(tokenMask);
         }
@@ -295,53 +290,21 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
         }
     }
 
-    /// @dev Computes whether to migrated collateral is a phantom token and populates the phantom token parameters if so.
-    ///      This includes the calls to withdraw and redeposit the phantom token. The phantom token may have an override
-    ///      to migrate from a deprecated version of a phantom token to a new one. In this case, the underlying and the withdrawal
-    ///      call are set in the override.
-    function _getPhantomTokenParams(
-        address sourceCreditManager,
-        address targetCreditManager,
-        address collateral,
-        uint256 amount
-    ) internal view returns (PhantomTokenParams memory ptParams) {
-        {
-            PhantomTokenOverride memory ptOverride = IAccountMigratorBot(migratorBot).phantomTokenOverrides(collateral);
-            if (ptOverride.newToken != address(0)) {
-                ptParams.isPhantomToken = true;
-                ptParams.underlying = ptOverride.underlying;
-
-                (address target,) = _getPhantomTokenInfo(collateral);
-                address oldAdapter = ICreditManagerV3(sourceCreditManager).contractToAdapter(target);
-
-                ptParams.withdrawalCall = MultiCall({target: oldAdapter, callData: ptOverride.withdrawalCallData});
-
-                address adapter = ICreditManagerV3(targetCreditManager).contractToAdapter(target);
-                ptParams.depositCall = MultiCall({
-                    target: adapter,
-                    callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (ptOverride.newToken, amount))
-                });
-
-                return ptParams;
-            }
+    /// @dev Computes whether to migrated collateral is a phantom token and its underlying.
+    function _getPhantomTokenParams(address collateral) internal view returns (PhantomTokenParams memory ptParams) {
+        PhantomTokenOverride memory ptOverride = IAccountMigratorBot(migratorBot).phantomTokenOverrides(collateral);
+        if (ptOverride.newToken != address(0)) {
+            ptParams.isPhantomToken = true;
+            ptParams.underlying = ptOverride.underlying;
+            return ptParams;
         }
 
-        (address target, address depositedToken) = _getPhantomTokenInfo(collateral);
-        address newAdapter = ICreditManagerV3(targetCreditManager).contractToAdapter(target);
+        (, address depositedToken) = _getPhantomTokenInfo(collateral);
 
-        ptParams.isPhantomToken = true;
-        ptParams.underlying = depositedToken;
-        ptParams.depositCall = MultiCall({
-            target: newAdapter,
-            callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (collateral, amount))
-        });
-
-        address oldAdapter = ICreditManagerV3(sourceCreditManager).contractToAdapter(target);
-
-        ptParams.withdrawalCall = MultiCall({
-            target: oldAdapter,
-            callData: abi.encodeCall(IPhantomTokenAdapter.withdrawPhantomToken, (collateral, amount))
-        });
+        if (depositedToken != address(0)) {
+            ptParams.isPhantomToken = true;
+            ptParams.underlying = depositedToken;
+        }
 
         return ptParams;
     }
