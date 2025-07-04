@@ -41,6 +41,7 @@ import {OptionalCall} from "@gearbox-protocol/core-v3/contracts/libraries/Option
 import {
     IPhantomToken, IPhantomTokenAdapter
 } from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPhantomToken.sol";
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IInterestRateModel} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IInterestRateModel.sol";
 import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.sol";
@@ -76,9 +77,12 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
 
     address public immutable mcFactory;
 
-    constructor(address _mcFactory, address _ioProxy) {
+    address public immutable contractsRegisterOld;
+
+    constructor(address _mcFactory, address _ioProxy, address _contractsRegisterOld) {
         _transferOwnership(_ioProxy);
         mcFactory = _mcFactory;
+        contractsRegisterOld = _contractsRegisterOld;
     }
 
     /// EXECUTION LOGIC
@@ -519,17 +523,25 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
 
     /// @dev Validates that the credit manager is known by Gearbox protocol.
     function _validateCreditManager(address creditManager) internal view {
-        address creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
-        address acl = ACLTrait(creditConfigurator).acl();
-        address mc = Ownable(acl).owner();
+        uint256 cmVersion = IVersion(creditManager).version();
 
-        address contractsRegister = IMarketConfigurator(mc).contractsRegister();
+        if (cmVersion < 3_10) {
+            if (!IContractsRegister(contractsRegisterOld).isCreditManager(creditManager)) {
+                revert("MigratorBot: credit manager is not valid");
+            }
+        } else {
+            address creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
+            address acl = ACLTrait(creditConfigurator).acl();
+            address mc = Ownable(acl).owner();
 
-        if (
-            !IMarketConfiguratorFactory(mcFactory).isMarketConfigurator(mc)
-                || !IContractsRegister(contractsRegister).isCreditManager(creditManager)
-        ) {
-            revert("MigratorBot: credit manager is not valid");
+            address contractsRegister = IMarketConfigurator(mc).contractsRegister();
+
+            if (
+                !IMarketConfiguratorFactory(mcFactory).isMarketConfigurator(mc)
+                    || !IContractsRegister(contractsRegister).isCreditManager(creditManager)
+            ) {
+                revert("MigratorBot: credit manager is not valid");
+            }
         }
     }
 
