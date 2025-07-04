@@ -114,6 +114,43 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
             revert("MigratorBot: caller is not the active credit account");
         }
 
+        uint256[] memory balances = _transferCollaterals(params);
+
+        address targetCreditFacade = ICreditManagerV3(params.targetCreditManager).creditFacade();
+
+        MultiCall[] memory calls = _getOpeningMultiCalls(targetCreditFacade, params, balances);
+
+        ICreditFacadeV3(targetCreditFacade).openCreditAccount(params.accountOwner, calls, 0);
+    }
+
+    /// @dev Transfers the collaterals from the previous credit account and returns the unique tokens and the transferred balances.
+    function _transferCollaterals(MigrationParams memory params) internal returns (uint256[] memory) {
+        uint256[] memory minimalAmounts = _getMinimalAssetAmounts(params);
+
+        uint256 len = params.uniqueTransferredTokens.length;
+
+        uint256[] memory balances = new uint256[](len);
+
+        for (uint256 i = 0; i < len; i++) {
+            address token = params.uniqueTransferredTokens[i];
+
+            balances[i] = IERC20(token).balanceOf(msg.sender);
+
+            if (balances[i] < minimalAmounts[i]) {
+                revert("MigratorBot: insufficient token balance to cover expected amount");
+            }
+
+            IERC20(token).safeTransferFrom(msg.sender, address(this), balances[i]);
+            IERC20(token).forceApprove(params.targetCreditManager, balances[i]);
+        }
+
+        return balances;
+    }
+
+    /// @dev Gets the aggregated amounts for each transferred collateral or PT underlying.
+    function _getMinimalAssetAmounts(MigrationParams memory params) internal pure returns (uint256[] memory) {
+        uint256[] memory totalAmounts = new uint256[](params.uniqueTransferredTokens.length);
+
         uint256 len = params.migratedCollaterals.length;
 
         for (uint256 i = 0; i < len; i++) {
@@ -121,15 +158,26 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
                 ? params.migratedCollaterals[i].phantomTokenParams.underlying
                 : params.migratedCollaterals[i].collateral;
 
-            IERC20(token).safeTransferFrom(msg.sender, address(this), params.migratedCollaterals[i].amount);
-            IERC20(token).forceApprove(params.targetCreditManager, params.migratedCollaterals[i].amount);
+            uint256 amount = params.migratedCollaterals[i].phantomTokenParams.isPhantomToken
+                ? params.migratedCollaterals[i].phantomTokenParams.underlyingAmount
+                : params.migratedCollaterals[i].amount;
+
+            uint256 index = _indexOf(params.uniqueTransferredTokens, token);
+            totalAmounts[index] += amount;
         }
 
-        address targetCreditFacade = ICreditManagerV3(params.targetCreditManager).creditFacade();
+        return totalAmounts;
+    }
 
-        MultiCall[] memory calls = _getOpeningMultiCalls(targetCreditFacade, params);
+    /// @dev Gets the index of an item in an array.
+    function _indexOf(address[] memory array, address item) internal pure returns (uint256) {
+        uint256 len = array.length;
 
-        ICreditFacadeV3(targetCreditFacade).openCreditAccount(params.accountOwner, calls, 0);
+        for (uint256 i = 0; i < len; i++) {
+            if (array[i] == item) return i;
+        }
+
+        revert("MigratorBot: item not found in array");
     }
 
     /// @dev Checks whether the caller is the owner of the source credit account.
@@ -188,34 +236,32 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
     }
 
     /// @dev Builds a MultiCall array to open the target credit account.
-    function _getOpeningMultiCalls(address creditFacade, MigrationParams memory params)
+    function _getOpeningMultiCalls(address creditFacade, MigrationParams memory params, uint256[] memory balances)
         internal
         view
         returns (MultiCall[] memory calls)
     {
-        uint256 collateralsLength = params.migratedCollaterals.length;
-
         calls = new MultiCall[](
             params.numAddCollateralCalls + params.numIncreaseQuotaCalls + params.numPhantomTokenCalls
                 + params.underlyingSwapCalls.length + params.extraOpeningCalls.length + 2
         );
 
+        uint256 uniqueTokensLength = params.uniqueTransferredTokens.length;
+
         uint256 k = 0;
 
-        for (uint256 i = 0; i < collateralsLength; i++) {
-            if (params.migratedCollaterals[i].amount > 1) {
-                address token = params.migratedCollaterals[i].phantomTokenParams.isPhantomToken
-                    ? params.migratedCollaterals[i].phantomTokenParams.underlying
-                    : params.migratedCollaterals[i].collateral;
+        for (uint256 i = 0; i < uniqueTokensLength; i++) {
+            address token = params.uniqueTransferredTokens[i];
 
+            if (balances[i] > 1) {
                 calls[k++] = MultiCall({
                     target: creditFacade,
-                    callData: abi.encodeCall(
-                        ICreditFacadeV3Multicall.addCollateral, (token, params.migratedCollaterals[i].amount)
-                    )
+                    callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (token, balances[i]))
                 });
             }
         }
+
+        uint256 collateralsLength = params.migratedCollaterals.length;
 
         for (uint256 i = 0; i < collateralsLength; i++) {
             if (
@@ -436,6 +482,37 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
                 if (params.extraOpeningCalls[i].target == targetAdapter) {
                     revert("MigratorBot: arbitrary call to migration adapter");
                 }
+            }
+        }
+
+        uint256 uniqueTokensLength = params.uniqueTransferredTokens.length;
+        uint256 migratedCollateralsLength = params.migratedCollaterals.length;
+
+        for (uint256 i = 0; i < uniqueTokensLength; i++) {
+            bool found = false;
+            for (uint256 j = 0; j < migratedCollateralsLength; j++) {
+                if (params.uniqueTransferredTokens[i] == params.migratedCollaterals[j].collateral) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                revert("MigratorBot: transferred token not found among collaterals");
+            }
+        }
+
+        for (uint256 i = 0; i < migratedCollateralsLength; i++) {
+            bool found = false;
+            for (uint256 j = 0; j < uniqueTokensLength; j++) {
+                if (params.migratedCollaterals[i].collateral == params.uniqueTransferredTokens[j]) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                revert("MigratorBot: migrated collateral not found among transferred tokens");
             }
         }
     }

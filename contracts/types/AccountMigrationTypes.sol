@@ -14,6 +14,7 @@ struct PhantomTokenOverride {
 struct PhantomTokenParams {
     bool isPhantomToken;
     address underlying;
+    uint256 underlyingAmount;
 }
 
 struct MigratedCollateral {
@@ -47,6 +48,7 @@ struct MigrationParams {
     uint256 targetBorrowAmount;
     MultiCall[] underlyingSwapCalls;
     MultiCall[] extraOpeningCalls;
+    address[] uniqueTransferredTokens;
     uint256 numAddCollateralCalls;
     uint256 numRemoveQuotasCalls;
     uint256 numIncreaseQuotaCalls;
