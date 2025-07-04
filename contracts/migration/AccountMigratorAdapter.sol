@@ -50,7 +50,10 @@ contract AccountMigratorAdapter is AbstractAdapter, IAccountMigratorAdapter {
         uint256 len = tokens.length;
 
         for (uint256 i = 0; i < len; i++) {
-            _approveToken(tokens[i].collateral, amount);
+            address token = tokens[i].phantomTokenParams.isPhantomToken
+                ? tokens[i].phantomTokenParams.underlying
+                : tokens[i].collateral;
+            _approveToken(token, amount);
         }
     }
 

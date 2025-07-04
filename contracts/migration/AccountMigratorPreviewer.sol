@@ -162,6 +162,8 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
         MigratedCollateral[] memory migratedCollaterals =
             new MigratedCollateral[](enabledTokensMask.calcEnabledTokens());
 
+        address[] memory uniqueTransferredTokens = new address[](0);
+
         for (uint256 i = 0; i < migratedCollaterals.length; i++) {
             uint256 tokenMask = enabledTokensMask.lsbMask();
             migratedCollaterals[i].collateral = ICreditManagerV3(sourceCreditManager).getTokenByMask(tokenMask);
@@ -177,12 +179,24 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
                 sourceCreditManager, result.migrationParams.sourceCreditAccount, underlyingRate, migratedCollaterals[i]
             );
 
-            migratedCollaterals[i].phantomTokenParams = _getPhantomTokenParams(migratedCollaterals[i].collateral);
+            migratedCollaterals[i].phantomTokenParams =
+                _getPhantomTokenParams(migratedCollaterals[i].collateral, migratedCollaterals[i].amount);
+
+            if (migratedCollaterals[i].phantomTokenParams.isPhantomToken) {
+                if (!_includes(uniqueTransferredTokens, migratedCollaterals[i].phantomTokenParams.underlying)) {
+                    _push(uniqueTransferredTokens, migratedCollaterals[i].phantomTokenParams.underlying);
+                }
+            } else {
+                if (!_includes(uniqueTransferredTokens, migratedCollaterals[i].collateral)) {
+                    _push(uniqueTransferredTokens, migratedCollaterals[i].collateral);
+                }
+            }
 
             enabledTokensMask = enabledTokensMask.disable(tokenMask);
         }
 
         result.migrationParams.migratedCollaterals = migratedCollaterals;
+        result.migrationParams.uniqueTransferredTokens = uniqueTransferredTokens;
     }
 
     /// @dev Populates the debt and swap calls. This includes the debt amount to borrow, as well as the calls to swap
@@ -216,9 +230,24 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
     /// @dev Counts the number of calls of each type required to migrate the credit account. This is done to simplify
     ///      computation during actual migration and save gas.
     function _countCalls(PreviewMigrationResult memory result) internal pure {
-        for (uint256 i = 0; i < result.migrationParams.migratedCollaterals.length; i++) {
-            if (result.migrationParams.migratedCollaterals[i].amount > 1) {
-                result.migrationParams.numAddCollateralCalls++;
+        for (uint256 i = 0; i < result.migrationParams.uniqueTransferredTokens.length; i++) {
+            for (uint256 j = 0; j < result.migrationParams.migratedCollaterals.length; j++) {
+                if (
+                    result.migrationParams.uniqueTransferredTokens[i]
+                        == result.migrationParams.migratedCollaterals[j].collateral
+                        && result.migrationParams.migratedCollaterals[j].amount > 1
+                ) {
+                    result.migrationParams.numAddCollateralCalls++;
+                    break;
+                }
+                if (
+                    result.migrationParams.uniqueTransferredTokens[i]
+                        == result.migrationParams.migratedCollaterals[j].phantomTokenParams.underlying
+                        && result.migrationParams.migratedCollaterals[j].phantomTokenParams.underlyingAmount > 1
+                ) {
+                    result.migrationParams.numAddCollateralCalls++;
+                    break;
+                }
             }
         }
 
@@ -291,11 +320,16 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
     }
 
     /// @dev Computes whether to migrated collateral is a phantom token and its underlying.
-    function _getPhantomTokenParams(address collateral) internal view returns (PhantomTokenParams memory ptParams) {
+    function _getPhantomTokenParams(address collateral, uint256 amount)
+        internal
+        view
+        returns (PhantomTokenParams memory ptParams)
+    {
         PhantomTokenOverride memory ptOverride = IAccountMigratorBot(migratorBot).phantomTokenOverrides(collateral);
         if (ptOverride.newToken != address(0)) {
             ptParams.isPhantomToken = true;
             ptParams.underlying = ptOverride.underlying;
+            ptParams.underlyingAmount = amount;
             return ptParams;
         }
 
@@ -304,9 +338,29 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
         if (depositedToken != address(0)) {
             ptParams.isPhantomToken = true;
             ptParams.underlying = depositedToken;
+            ptParams.underlyingAmount = amount;
         }
 
         return ptParams;
+    }
+
+    /// @dev Checks if an array contains an item.
+    function _includes(address[] memory array, address item) internal pure returns (bool) {
+        uint256 len = array.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (array[i] == item) return true;
+        }
+        return false;
+    }
+
+    /// @dev Pushes an item to an array.
+    function _push(address[] memory array, address item) internal pure returns (address[] memory result) {
+        uint256 len = array.length;
+        result = new address[](len + 1);
+        for (uint256 i = 0; i < len; i++) {
+            result[i] = array[i];
+        }
+        result[len] = item;
     }
 
     /// @dev Computes the underlying swap calls to swap the target CM underlying to the source CM underlying.
