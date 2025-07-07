@@ -23,12 +23,12 @@ struct MigratedCollateral {
     uint96 targetQuotaIncrease;
     bool underlyingInSource;
     bool underlyingInTarget;
-    bool isPhantomToken;
     PhantomTokenParams phantomTokenParams;
 }
 
 struct FailureStates {
     bool targetHFTooLow;
+    bool targetSafeHFTooLow;
     bool sourceUnderlyingIsNotCollateral;
     bool migratedCollateralDoesNotExistInTarget;
     bool insufficientTargetQuotaLimits;
@@ -58,6 +58,7 @@ struct MigrationParams {
 struct PreviewMigrationResult {
     bool success;
     uint256 expectedTargetHF;
+    uint256 expectedTargetSafeHF;
     uint256 expectedUnderlyingDust;
     FailureStates failureStates;
     MigrationParams migrationParams;

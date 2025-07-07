@@ -57,7 +57,7 @@ import {CreditLogic} from "@gearbox-protocol/core-v3/contracts/libraries/CreditL
 import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 import {ReentrancyGuardTrait} from "@gearbox-protocol/core-v3/contracts/traits/ReentrancyGuardTrait.sol";
 
-contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
+contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
     using SafeERC20 for IERC20;
     using BitMask for uint256;
     using CreditLogic for CollateralDebtData;
@@ -189,7 +189,7 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
         address sourceAccountOwner =
             ICreditManagerV3(sourceCreditManager).getBorrowerOrRevert(params.sourceCreditAccount);
 
-        if (msg.sender != sourceAccountOwner) {
+        if (msg.sender != sourceAccountOwner || msg.sender != params.accountOwner) {
             revert("MigratorBot: caller is not the account owner");
         }
     }
@@ -202,7 +202,10 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
     {
         uint256 collateralsLength = params.migratedCollaterals.length;
 
-        calls = new MultiCall[](params.numRemoveQuotasCalls + params.numPhantomTokenCalls + 2);
+        calls = new MultiCall[](
+            params.numRemoveQuotasCalls + params.numPhantomTokenCalls + (params.targetBorrowAmount > 0 ? 1 : 0) + 1
+        );
+
         uint256 k = 0;
 
         address sourceCreditManager = ICreditAccountV3(params.sourceCreditAccount).creditManager();
@@ -231,10 +234,12 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
             }
         }
 
-        calls[k] = MultiCall({
-            target: creditFacade,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.decreaseDebt, (type(uint256).max))
-        });
+        if (params.targetBorrowAmount > 0) {
+            calls[k] = MultiCall({
+                target: creditFacade,
+                callData: abi.encodeCall(ICreditFacadeV3Multicall.decreaseDebt, (type(uint256).max))
+            });
+        }
 
         return calls;
     }
@@ -247,7 +252,8 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
     {
         calls = new MultiCall[](
             params.numAddCollateralCalls + params.numIncreaseQuotaCalls + params.numPhantomTokenCalls
-                + params.underlyingSwapCalls.length + params.extraOpeningCalls.length + 2
+                + params.underlyingSwapCalls.length + params.extraOpeningCalls.length
+                + (params.targetBorrowAmount > 0 ? 2 : 0)
         );
 
         uint256 uniqueTokensLength = params.uniqueTransferredTokens.length;
@@ -280,6 +286,13 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
             }
         }
 
+        if (params.targetBorrowAmount > 0) {
+            calls[k++] = MultiCall({
+                target: creditFacade,
+                callData: abi.encodeCall(ICreditFacadeV3Multicall.increaseDebt, (params.targetBorrowAmount))
+            });
+        }
+
         for (uint256 i = 0; i < collateralsLength; i++) {
             if (params.migratedCollaterals[i].targetQuotaIncrease > 0) {
                 calls[k++] = MultiCall({
@@ -287,7 +300,7 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
                     callData: abi.encodeCall(
                         ICreditFacadeV3Multicall.updateQuota,
                         (
-                            params.migratedCollaterals[i].collateral,
+                            _getCollateralOrOverride(params.migratedCollaterals[i].collateral),
                             int96(params.migratedCollaterals[i].targetQuotaIncrease),
                             params.migratedCollaterals[i].targetQuotaIncrease
                         )
@@ -302,12 +315,9 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
             calls[k++] = params.underlyingSwapCalls[i];
         }
 
-        calls[k++] = MultiCall({
-            target: creditFacade,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.increaseDebt, (params.targetBorrowAmount))
-        });
-
-        calls[k++] = _getUnderlyingWithdrawCall(creditFacade, params);
+        if (params.targetBorrowAmount > 0) {
+            calls[k++] = _getUnderlyingWithdrawCall(creditFacade, params);
+        }
 
         uint256 extraOpeningCallsLength = params.extraOpeningCalls.length;
 
@@ -462,7 +472,7 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
                     revert("MigratorBot: incorrect phantom token underlying");
                 }
 
-                (, address underlying) = _getPhantomTokenInfo(params.migratedCollaterals[i].collateral);
+                (, address underlying) = _getPhantomTokenInfo(ptOverride.newToken);
                 if (params.migratedCollaterals[i].phantomTokenParams.underlying != underlying) {
                     revert("MigratorBot: incorrect phantom token underlying");
                 }
@@ -495,7 +505,11 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
         for (uint256 i = 0; i < uniqueTokensLength; i++) {
             bool found = false;
             for (uint256 j = 0; j < migratedCollateralsLength; j++) {
-                if (params.uniqueTransferredTokens[i] == params.migratedCollaterals[j].collateral) {
+                address token = params.migratedCollaterals[j].phantomTokenParams.isPhantomToken
+                    ? params.migratedCollaterals[j].phantomTokenParams.underlying
+                    : params.migratedCollaterals[j].collateral;
+
+                if (params.uniqueTransferredTokens[i] == token) {
                     found = true;
                     break;
                 }
@@ -509,7 +523,11 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
         for (uint256 i = 0; i < migratedCollateralsLength; i++) {
             bool found = false;
             for (uint256 j = 0; j < uniqueTokensLength; j++) {
-                if (params.migratedCollaterals[i].collateral == params.uniqueTransferredTokens[j]) {
+                address token = params.migratedCollaterals[i].phantomTokenParams.isPhantomToken
+                    ? params.migratedCollaterals[i].phantomTokenParams.underlying
+                    : params.migratedCollaterals[i].collateral;
+
+                if (token == params.uniqueTransferredTokens[j]) {
                     found = true;
                     break;
                 }
@@ -543,6 +561,17 @@ contract MigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBot {
                 revert("MigratorBot: credit manager is not valid");
             }
         }
+    }
+
+    /// @dev Returns either the collateral token or its PT override token.
+    function _getCollateralOrOverride(address collateral) internal view returns (address) {
+        PhantomTokenOverride memory ptOverride = _phantomTokenOverrides[collateral];
+
+        if (ptOverride.newToken != address(0)) {
+            return ptOverride.newToken;
+        }
+
+        return collateral;
     }
 
     function serialize() external view override returns (bytes memory) {

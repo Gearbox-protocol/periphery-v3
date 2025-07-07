@@ -100,6 +100,9 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
     function _populateMigrationParams(PreviewMigrationResult memory result) internal {
         address sourceCreditManager = ICreditAccountV3(result.migrationParams.sourceCreditAccount).creditManager();
 
+        result.migrationParams.accountOwner =
+            ICreditManagerV3(sourceCreditManager).getBorrowerOrRevert(result.migrationParams.sourceCreditAccount);
+
         _checkSourceUnderlyingIsCollateral(result, sourceCreditManager);
 
         if (!result.success) {
@@ -184,11 +187,12 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
 
             if (migratedCollaterals[i].phantomTokenParams.isPhantomToken) {
                 if (!_includes(uniqueTransferredTokens, migratedCollaterals[i].phantomTokenParams.underlying)) {
-                    _push(uniqueTransferredTokens, migratedCollaterals[i].phantomTokenParams.underlying);
+                    uniqueTransferredTokens =
+                        _push(uniqueTransferredTokens, migratedCollaterals[i].phantomTokenParams.underlying);
                 }
             } else {
                 if (!_includes(uniqueTransferredTokens, migratedCollaterals[i].collateral)) {
-                    _push(uniqueTransferredTokens, migratedCollaterals[i].collateral);
+                    uniqueTransferredTokens = _push(uniqueTransferredTokens, migratedCollaterals[i].collateral);
                 }
             }
 
@@ -306,17 +310,19 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
         address sourceCreditAccount,
         uint256 underlyingRate,
         MigratedCollateral memory collateral
-    ) internal view returns (uint96) {
+    ) internal view returns (uint96 targetQuota) {
         if (collateral.underlyingInTarget) {
-            return 0;
+            targetQuota = 0;
         } else if (!collateral.underlyingInSource) {
             (uint96 sourceQuota,) = IPoolQuotaKeeperV3(ICreditManagerV3(sourceCreditManager).poolQuotaKeeper()).getQuota(
                 sourceCreditAccount, collateral.collateral
             );
-            return uint96(sourceQuota * underlyingRate / WAD);
+            targetQuota = uint96(sourceQuota * underlyingRate / WAD);
         } else {
-            return uint96(collateral.amount * 10050 * underlyingRate / (WAD * 10000));
+            targetQuota = uint96(collateral.amount * 10050 * underlyingRate / (WAD * 10000));
         }
+
+        return (targetQuota / 10000) * 10000;
     }
 
     /// @dev Computes whether to migrated collateral is a phantom token and its underlying.
@@ -388,6 +394,13 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
             });
         }
 
+        for (uint256 i = 0; i < result.migrationParams.migratedCollaterals.length; i++) {
+            if (result.migrationParams.migratedCollaterals[i].underlyingInTarget) {
+                tData[0].balance += result.migrationParams.migratedCollaterals[i].amount;
+                tData[0].leftoverBalance = result.migrationParams.migratedCollaterals[i].amount;
+            }
+        }
+
         try IGearboxRouter(router).routeOpenManyToOne(
             result.migrationParams.targetCreditManager, ICreditManagerV3(sourceCreditManager).underlying(), 50, tData
         ) returns (RouterResult memory routerResult) {
@@ -424,25 +437,24 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
 
         if (sourcePool != targetPool) {
             for (uint256 i = 0; i < result.migrationParams.migratedCollaterals.length; i++) {
+                address token = _getCollateralOrOverride(result.migrationParams.migratedCollaterals[i]);
+
                 if (!result.migrationParams.migratedCollaterals[i].underlyingInTarget) {
                     address poolQuotaKeeper = IPoolV3(targetPool).poolQuotaKeeper();
 
-                    try IPoolQuotaKeeperV3(poolQuotaKeeper).getTokenQuotaParams(
-                        result.migrationParams.migratedCollaterals[i].collateral
-                    ) returns (uint16, uint192, uint16, uint96, uint96, bool) {} catch {
+                    (, uint192 indexLU,,,,) = IPoolQuotaKeeperV3(poolQuotaKeeper).getTokenQuotaParams(token);
+                    if (indexLU == 0) {
                         result.success = false;
                         result.failureStates.migratedCollateralDoesNotExistInTarget = true;
                     }
                 }
-            }
-        }
 
-        for (uint256 i = 0; i < result.migrationParams.migratedCollaterals.length; i++) {
-            try ICreditManagerV3(result.migrationParams.targetCreditManager).getTokenMaskOrRevert(
-                result.migrationParams.migratedCollaterals[i].collateral
-            ) returns (uint256) {} catch {
-                result.success = false;
-                result.failureStates.migratedCollateralDoesNotExistInTarget = true;
+                try ICreditManagerV3(result.migrationParams.targetCreditManager).getTokenMaskOrRevert(token) returns (
+                    uint256
+                ) {} catch {
+                    result.success = false;
+                    result.failureStates.migratedCollateralDoesNotExistInTarget = true;
+                }
             }
         }
     }
@@ -459,9 +471,9 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
                 continue;
             }
 
-            (,,, uint96 totalQuoted, uint96 limit,) = IPoolQuotaKeeperV3(poolQuotaKeeper).getTokenQuotaParams(
-                result.migrationParams.migratedCollaterals[i].collateral
-            );
+            address token = _getCollateralOrOverride(result.migrationParams.migratedCollaterals[i]);
+
+            (,,, uint96 totalQuoted, uint96 limit,) = IPoolQuotaKeeperV3(poolQuotaKeeper).getTokenQuotaParams(token);
 
             if (sourcePool != targetPool) {
                 if (result.migrationParams.migratedCollaterals[i].targetQuotaIncrease + totalQuoted > limit) {
@@ -479,6 +491,10 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
 
     /// @dev Checks whether the target pool has sufficient liquidity and limits to cover the new debt.
     function _checkNewDebt(PreviewMigrationResult memory result) internal view {
+        if (result.migrationParams.targetBorrowAmount == 0) {
+            return;
+        }
+
         address targetPool = ICreditManagerV3(result.migrationParams.targetCreditManager).pool();
         address sourcePool =
             ICreditManagerV3(ICreditAccountV3(result.migrationParams.sourceCreditAccount).creditManager()).pool();
@@ -509,6 +525,15 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
             result.success = false;
             result.failureStates.insufficientTargetBorrowLiquidity = true;
         }
+
+        address creditFacade = ICreditManagerV3(result.migrationParams.targetCreditManager).creditFacade();
+        (uint128 minDebt, uint128 maxDebt) = ICreditFacadeV3(creditFacade).debtLimits();
+
+        if (result.migrationParams.targetBorrowAmount > maxDebt || result.migrationParams.targetBorrowAmount < minDebt)
+        {
+            result.success = false;
+            result.failureStates.newTargetDebtOutOfLimits = true;
+        }
     }
 
     /// @dev Computes the expected HF of the new account and checks whether it is solvent after migration.
@@ -516,36 +541,74 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
         address priceOracle = ICreditManagerV3(result.migrationParams.targetCreditManager).priceOracle();
         address underlying = ICreditManagerV3(result.migrationParams.targetCreditManager).underlying();
 
-        CollateralDebtData memory cdd;
-
-        for (uint256 i = 0; i < result.migrationParams.migratedCollaterals.length; i++) {
-            address collateral = result.migrationParams.migratedCollaterals[i].collateral;
-
-            uint16 lt = ICreditManagerV3(result.migrationParams.targetCreditManager).liquidationThresholds(collateral);
-
-            if (result.migrationParams.migratedCollaterals[i].underlyingInTarget) {
-                cdd.twvUSD += result.migrationParams.migratedCollaterals[i].amount * lt / PERCENTAGE_FACTOR;
-            } else {
-                uint256 quotaUSD = IPriceOracleV3(priceOracle).convertToUSD(
-                    result.migrationParams.migratedCollaterals[i].targetQuotaIncrease, underlying
-                );
-                uint256 wvUSD = IPriceOracleV3(priceOracle).convertToUSD(
-                    result.migrationParams.migratedCollaterals[i].amount, collateral
-                ) * lt / PERCENTAGE_FACTOR;
-
-                cdd.twvUSD += wvUSD > quotaUSD ? quotaUSD : wvUSD;
-            }
-        }
-
-        cdd.totalDebtUSD =
+        uint256 twvUSD = _getTargetTwvUSD(result, false, priceOracle, underlying);
+        uint256 safeTwvUSD = _getTargetTwvUSD(result, true, priceOracle, underlying);
+        uint256 totalDebtUSD =
             IPriceOracleV3(priceOracle).convertToUSD(result.migrationParams.targetBorrowAmount, underlying);
 
-        result.expectedTargetHF = cdd.twvUSD * PERCENTAGE_FACTOR / cdd.totalDebtUSD;
+        if (totalDebtUSD == 0) {
+            result.expectedTargetHF = type(uint16).max;
+            result.expectedTargetSafeHF = type(uint16).max;
+        } else {
+            result.expectedTargetHF = twvUSD * PERCENTAGE_FACTOR / totalDebtUSD;
+            result.expectedTargetSafeHF = safeTwvUSD * PERCENTAGE_FACTOR / totalDebtUSD;
+        }
 
         if (result.expectedTargetHF < 10000) {
             result.success = false;
             result.failureStates.targetHFTooLow = true;
         }
+
+        if (result.expectedTargetSafeHF < 10000) {
+            result.success = false;
+            result.failureStates.targetSafeHFTooLow = true;
+        }
+    }
+
+    function _getTargetTwvUSD(PreviewMigrationResult memory result, bool safe, address priceOracle, address underlying)
+        internal
+        view
+        returns (uint256 twvUSD)
+    {
+        for (uint256 i = 0; i < result.migrationParams.migratedCollaterals.length; i++) {
+            address collateral = _getCollateralOrOverride(result.migrationParams.migratedCollaterals[i]);
+
+            uint16 lt = ICreditManagerV3(result.migrationParams.targetCreditManager).liquidationThresholds(collateral);
+
+            if (result.migrationParams.migratedCollaterals[i].underlyingInTarget) {
+                twvUSD += IPriceOracleV3(priceOracle).convertToUSD(
+                    result.migrationParams.migratedCollaterals[i].amount, collateral
+                ) * lt / PERCENTAGE_FACTOR;
+            } else {
+                uint256 quotaUSD = IPriceOracleV3(priceOracle).convertToUSD(
+                    result.migrationParams.migratedCollaterals[i].targetQuotaIncrease, underlying
+                );
+
+                uint256 valueUSD = safe
+                    ? IPriceOracleV3(priceOracle).safeConvertToUSD(
+                        result.migrationParams.migratedCollaterals[i].amount, collateral
+                    )
+                    : IPriceOracleV3(priceOracle).convertToUSD(
+                        result.migrationParams.migratedCollaterals[i].amount, collateral
+                    );
+
+                uint256 wvUSD = valueUSD * lt / PERCENTAGE_FACTOR;
+
+                twvUSD += wvUSD > quotaUSD ? quotaUSD : wvUSD;
+            }
+        }
+    }
+
+    function _getCollateralOrOverride(MigratedCollateral memory collateral) internal view returns (address) {
+        if (collateral.phantomTokenParams.isPhantomToken) {
+            PhantomTokenOverride memory ptOverride =
+                IAccountMigratorBot(migratorBot).phantomTokenOverrides(collateral.collateral);
+            if (ptOverride.newToken != address(0)) {
+                return ptOverride.newToken;
+            }
+        }
+
+        return collateral.collateral;
     }
 
     /// @dev Gets the target and deposited token of a phantom token safely, to account for tokens that may behave
