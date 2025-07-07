@@ -7,7 +7,7 @@ import {AbstractAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapt
 import {IAccountMigratorAdapter} from "../interfaces/IAccountMigratorBot.sol";
 import {MigrationParams, MigratedCollateral} from "../types/AccountMigrationTypes.sol";
 
-contract AccountMigratorAdapter is AbstractAdapter, IAccountMigratorAdapter {
+abstract contract AccountMigratorAdapter is AbstractAdapter {
     /// @dev Legacy adapter type parameter, for compatibility with 3.0 contracts
     uint8 public constant _gearboxAdapterType = 0;
 
@@ -37,13 +37,11 @@ contract AccountMigratorAdapter is AbstractAdapter, IAccountMigratorAdapter {
 
     constructor(address _creditManager, address _migratorBot) AbstractAdapter(_creditManager, _migratorBot) {}
 
-    /// @notice Migrates collaterals to a new credit account, using the migrator bot as a target contract.
-    function migrate(MigrationParams memory params) external whenUnlocked creditFacadeOnly returns (bool) {
+    /// @dev Internal function to migrate collaterals to a new credit account
+    function _migrate(MigrationParams memory params) internal {
         _approveTokens(params.migratedCollaterals, type(uint256).max);
         _execute(msg.data);
         _approveTokens(params.migratedCollaterals, 0);
-
-        return false;
     }
 
     function _approveTokens(MigratedCollateral[] memory tokens, uint256 amount) internal {

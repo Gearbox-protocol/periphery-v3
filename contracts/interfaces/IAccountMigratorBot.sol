@@ -30,5 +30,5 @@ interface IAccountMigratorBot is IBot {
 interface IAccountMigratorAdapter is IAdapter {
     function unlock() external;
     function lock() external;
-    function migrate(MigrationParams memory params) external returns (bool);
+    function migrate(MigrationParams memory params) external;
 }
