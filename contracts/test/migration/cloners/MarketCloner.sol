@@ -18,7 +18,7 @@ import {
 } from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IAdapter} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAdapter.sol";
 
-import {IACL} from "@gearbox-protocol/governance/contracts/interfaces/IACL.sol";
+import {IACL} from "@gearbox-protocol/permissionless/contracts/interfaces/IACL.sol";
 
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";

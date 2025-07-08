@@ -6,7 +6,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AdapterType} from "@gearbox-protocol/sdk-gov/contracts/AdapterType.sol";
 
-import {IACL} from "@gearbox-protocol/governance/contracts/interfaces/IACL.sol";
+import {IACL} from "@gearbox-protocol/permissionless/contracts/interfaces/IACL.sol";
 import {IAdapter} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAdapter.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
@@ -39,7 +39,7 @@ import {PendlePairStatus} from "@gearbox-protocol/integrations-v3/contracts/inte
 import {CurveV1Adapter2Assets} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_2.sol";
 import {CurveV1Adapter3Assets} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_3.sol";
 import {CurveV1Adapter4Assets} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_4.sol";
-import {CurveV1AdapterStableNG} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_StableNg.sol";
+import {CurveV1AdapterStableNG} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_StableNG.sol";
 import {ConvexV1BaseRewardPoolAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/convex/ConvexV1_BaseRewardPool.sol";
 import {ConvexV1BoosterAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/convex/ConvexV1_Booster.sol";

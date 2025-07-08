@@ -11,7 +11,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
-import {IACL} from "@gearbox-protocol/governance/contracts/interfaces/IACL.sol";
+import {IACL} from "@gearbox-protocol/permissionless/contracts/interfaces/IACL.sol";
 
 import {IPriceFeed, IUpdatablePriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
 import {PriceFeedParams} from "@gearbox-protocol/oracles-v3/contracts/oracles/PriceFeedParams.sol";
