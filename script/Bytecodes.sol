@@ -62,6 +62,9 @@ import {InfraredVaultAdapter} from
 import {TraderJoeRouterAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/traderjoe/TraderJoeRouterAdapter.sol";
 import {FluidDexAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/fluid/FluidDexAdapter.sol";
+import {MellowDVVAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/MellowDVVAdapter.sol";
+import {MellowWrapperAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/MellowWrapperAdapter.sol";
 
 import {FluidDexETHGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/fluid/FluidDexETHGateway.sol";
 import {CurveV1StETHPoolGateway} from
@@ -119,7 +122,7 @@ contract Bytecodes {
         "https://github.com/Gearbox-protocol/permissionless/blob/f660f1abb176096d1b97b80667a0a019e0aaadc6";
 
     function _getAdapterContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](27);
+        bytecodes = new Bytecode[](29);
 
         bytecodes[0].contractType = "ADAPTER::BALANCER_VAULT";
         bytecodes[0].version = 3_10;
@@ -255,6 +258,16 @@ contract Bytecodes {
         bytecodes[26].version = 3_10;
         bytecodes[26].initCode = type(FluidDexAdapter).creationCode;
         bytecodes[26].source = string.concat(integrations, "/contracts/adapters/fluid/FluidDexAdapter.sol");
+
+        bytecodes[27].contractType = "ADAPTER::MELLOW_DVV";
+        bytecodes[27].version = 3_10;
+        bytecodes[27].initCode = type(MellowDVVAdapter).creationCode;
+        bytecodes[27].source = string.concat(integrations, "/contracts/adapters/mellow/MellowDVVAdapter.sol");
+
+        bytecodes[28].contractType = "ADAPTER::MELLOW_WRAPPER";
+        bytecodes[28].version = 3_10;
+        bytecodes[28].initCode = type(MellowWrapperAdapter).creationCode;
+        bytecodes[28].source = string.concat(integrations, "/contracts/adapters/mellow/MellowWrapperAdapter.sol");
     }
 
     function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
