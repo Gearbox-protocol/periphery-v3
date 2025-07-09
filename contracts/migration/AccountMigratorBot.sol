@@ -39,8 +39,10 @@ import {
 } from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
 import {OptionalCall} from "@gearbox-protocol/core-v3/contracts/libraries/OptionalCall.sol";
 import {
-    IPhantomToken, IPhantomTokenAdapter
+    IPhantomToken,
+    IPhantomTokenWithdrawer
 } from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPhantomToken.sol";
+import {IPhantomTokenAdapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/IPhantomTokenAdapter.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IInterestRateModel} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IInterestRateModel.sol";
@@ -347,30 +349,19 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
     function _getPhantomTokenDepositCall(address creditManager, address collateral, uint256 amount)
         internal
         view
-        returns (MultiCall memory call)
+        returns (MultiCall memory)
     {
         PhantomTokenOverride memory ptOverride = _phantomTokenOverrides[collateral];
 
-        if (ptOverride.newToken != address(0)) {
-            (address target,) = _getPhantomTokenInfo(ptOverride.newToken);
+        address token = ptOverride.newToken == address(0) ? collateral : ptOverride.newToken;
 
-            address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
-
-            return MultiCall({
-                target: adapter,
-                callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (ptOverride.newToken, amount))
-            });
-        }
-
-        (address target,) = _getPhantomTokenInfo(collateral);
-
+        (address target,) = _getPhantomTokenInfo(token);
         if (target == address(0)) revert("MigratorBot: phantom token is not valid");
-
         address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
 
         return MultiCall({
             target: adapter,
-            callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (collateral, amount))
+            callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (token, amount))
         });
     }
 
@@ -378,27 +369,19 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
     function _getPhantomTokenWithdrawalCall(address creditManager, address collateral, uint256 amount)
         internal
         view
-        returns (MultiCall memory call)
+        returns (MultiCall memory)
     {
         PhantomTokenOverride memory ptOverride = _phantomTokenOverrides[collateral];
 
-        if (ptOverride.newToken != address(0)) {
-            (address target,) = _getPhantomTokenInfo(collateral);
-
-            address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
-
-            return MultiCall({target: adapter, callData: ptOverride.withdrawalCallData});
-        }
-
         (address target,) = _getPhantomTokenInfo(collateral);
-
         if (target == address(0)) revert("MigratorBot: phantom token is not valid");
-
         address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
 
         return MultiCall({
             target: adapter,
-            callData: abi.encodeCall(IPhantomTokenAdapter.withdrawPhantomToken, (collateral, amount))
+            callData: ptOverride.newToken == address(0)
+                ? abi.encodeCall(IPhantomTokenWithdrawer.withdrawPhantomToken, (collateral, amount))
+                : ptOverride.withdrawalCallData
         });
     }
 

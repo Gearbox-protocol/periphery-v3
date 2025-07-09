@@ -8,15 +8,6 @@ import {IAccountMigratorAdapter} from "../interfaces/IAccountMigratorBot.sol";
 import {MigrationParams, MigratedCollateral} from "../types/AccountMigrationTypes.sol";
 
 abstract contract AccountMigratorAdapter is AbstractAdapter {
-    /// @dev Legacy adapter type parameter, for compatibility with 3.0 contracts
-    uint8 public constant _gearboxAdapterType = 0;
-
-    /// @dev Legacy adapter version parameter, for compatibility with 3.0 contracts
-    uint16 public constant _gearboxAdapterVersion = 3_10;
-
-    bytes32 public constant override contractType = "ADAPTER::ACCOUNT_MIGRATOR";
-    uint256 public constant override version = 3_10;
-
     /// @dev Whether tha adapter is locked. The adapter should only be interactable when unlocked from the migrator bot,
     ///      as the `migrate` function is fairly dangerous.
     bool public locked = true;

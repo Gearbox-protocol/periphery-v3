@@ -27,8 +27,8 @@ import {CreditLogic} from "@gearbox-protocol/core-v3/contracts/libraries/CreditL
 
 import {AccountMigratorBot} from "../../migration/AccountMigratorBot.sol";
 import {AccountMigratorPreviewer} from "../../migration/AccountMigratorPreviewer.sol";
-import {AccountMigratorAdapter30} from "../../migration/AccountMigratorAdapter30.sol";
-import {AccountMigratorAdapter31} from "../../migration/AccountMigratorAdapter31.sol";
+import {AccountMigratorAdapterV30} from "../../migration/AccountMigratorAdapterV30.sol";
+import {AccountMigratorAdapterV31} from "../../migration/AccountMigratorAdapterV31.sol";
 import {IAccountMigratorAdapter} from "../../interfaces/IAccountMigratorBot.sol";
 
 import {RedstonePriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/updatable/RedstonePriceFeed.sol";
@@ -62,11 +62,11 @@ contract MigrationTestHelper is Test {
 
         if (cmVersion < 3_10) {
             accountMigratorAdapter = IAccountMigratorAdapter(
-                address(new AccountMigratorAdapter30(_creditManager, address(accountMigratorBot)))
+                address(new AccountMigratorAdapterV30(_creditManager, address(accountMigratorBot)))
             );
         } else {
             accountMigratorAdapter = IAccountMigratorAdapter(
-                address(new AccountMigratorAdapter31(_creditManager, address(accountMigratorBot)))
+                address(new AccountMigratorAdapterV31(_creditManager, address(accountMigratorBot)))
             );
         }
 

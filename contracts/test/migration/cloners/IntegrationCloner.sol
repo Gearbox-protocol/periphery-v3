@@ -178,7 +178,7 @@ contract IntegrationCloner is Test {
         /// ERC4626
         else if (aType == AdapterType.ERC4626_VAULT) {
             vm.prank(configurator);
-            newAdapter = address(new ERC4626Adapter(newCreditManager, targetContract));
+            newAdapter = address(new ERC4626Adapter(newCreditManager, targetContract, address(0)));
         }
         /// LIDO V1
         else if (aType == AdapterType.LIDO_V1) {
