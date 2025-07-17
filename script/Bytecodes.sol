@@ -65,10 +65,13 @@ import {FluidDexAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapt
 import {MellowDVVAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/MellowDVVAdapter.sol";
 import {MellowWrapperAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/MellowWrapperAdapter.sol";
+import {KodiakIslandHelperAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/kodiak/KodiakIslandHelperAdapter.sol";
 
 import {FluidDexETHGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/fluid/FluidDexETHGateway.sol";
 import {CurveV1StETHPoolGateway} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/curve/CurveV1_stETHGateway.sol";
+import {KodiakIslandHelper} from "@gearbox-protocol/integrations-v3/contracts/helpers/kodiak/KodiakIslandHelper.sol";
 
 import {UnderlyingDepositZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingDepositZapper.sol";
 import {UnderlyingFarmingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingFarmingZapper.sol";
@@ -93,6 +96,7 @@ import {RedstonePriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/
 import {YearnPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/yearn/YearnPriceFeed.sol";
 import {ConstantPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/ConstantPriceFeed.sol";
 import {CurveTWAPPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/curve/CurveTWAPPriceFeed.sol";
+import {KodiakIslandPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/kodiak/KodiakIslandPriceFeed.sol";
 
 import {CreditFactory} from "@gearbox-protocol/permissionless/contracts/factories/CreditFactory.sol";
 import {InterestRateModelFactory} from
@@ -122,7 +126,7 @@ contract Bytecodes {
         "https://github.com/Gearbox-protocol/permissionless/blob/f660f1abb176096d1b97b80667a0a019e0aaadc6";
 
     function _getAdapterContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](29);
+        bytecodes = new Bytecode[](30);
 
         bytecodes[0].contractType = "ADAPTER::BALANCER_VAULT";
         bytecodes[0].version = 3_10;
@@ -268,10 +272,15 @@ contract Bytecodes {
         bytecodes[28].version = 3_10;
         bytecodes[28].initCode = type(MellowWrapperAdapter).creationCode;
         bytecodes[28].source = string.concat(integrations, "/contracts/adapters/mellow/MellowWrapperAdapter.sol");
+
+        bytecodes[29].contractType = "ADAPTER::KODIAK_ISLAND_HELPER";
+        bytecodes[29].version = 3_10;
+        bytecodes[29].initCode = type(KodiakIslandHelperAdapter).creationCode;
+        bytecodes[29].source = string.concat(integrations, "/contracts/adapters/kodiak/KodiakIslandHelperAdapter.sol");
     }
 
     function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](2);
+        bytecodes = new Bytecode[](3);
 
         bytecodes[0].contractType = "GATEWAY::FLUID_DEX_ETH";
         bytecodes[0].version = 3_10;
@@ -282,6 +291,11 @@ contract Bytecodes {
         bytecodes[1].version = 3_10;
         bytecodes[1].initCode = type(CurveV1StETHPoolGateway).creationCode;
         bytecodes[1].source = string.concat(integrations, "/contracts/helpers/curve/CurveV1_stETHGateway.sol");
+
+        bytecodes[2].contractType = "HELPER::KODIAK_ISLAND";
+        bytecodes[2].version = 3_10;
+        bytecodes[2].initCode = type(KodiakIslandHelper).creationCode;
+        bytecodes[2].source = string.concat(integrations, "/contracts/helpers/kodiak/KodiakIslandHelper.sol");
     }
 
     function _getBotContracts() internal view returns (Bytecode[] memory bytecodes) {
@@ -441,7 +455,7 @@ contract Bytecodes {
     }
 
     function _getPriceFeedContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](16);
+        bytecodes = new Bytecode[](17);
 
         bytecodes[0].contractType = "PRICE_FEED::BOUNDED";
         bytecodes[0].version = 3_10;
@@ -522,6 +536,11 @@ contract Bytecodes {
         bytecodes[15].version = 3_10;
         bytecodes[15].initCode = type(ConstantPriceFeed).creationCode;
         bytecodes[15].source = string.concat(oracles, "/contracts/oracles/ConstantPriceFeed.sol");
+
+        bytecodes[16].contractType = "PRICE_FEED::KODIAK_ISLAND";
+        bytecodes[16].version = 3_10;
+        bytecodes[16].initCode = type(KodiakIslandPriceFeed).creationCode;
+        bytecodes[16].source = string.concat(oracles, "/contracts/oracles/kodiak/KodiakIslandPriceFeed.sol");
     }
 
     function _getRateKeeperContracts() internal view returns (Bytecode[] memory bytecodes) {
