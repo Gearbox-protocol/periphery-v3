@@ -1,7 +1,7 @@
 [submodule "lib/@gearbox-protocol/core-v3"]
 	path = lib/@gearbox-protocol/core-v3
 	url = https://github.com/Gearbox-protocol/core-v3
-	branch = deposit-phantom-token
+	branch = next
 [submodule "lib/@gearbox-protocol/integrations-v3"]
 	path = lib/@gearbox-protocol/integrations-v3
 	url = https://github.com/Gearbox-protocol/integrations-v3
@@ -9,7 +9,7 @@
 [submodule "lib/@gearbox-protocol/oracles-v3"]
 	path = lib/@gearbox-protocol/oracles-v3
 	url = https://github.com/Gearbox-protocol/oracles-v3
-	branch = next
+	branch = kodiak-feed
 [submodule "lib/@openzeppelin"]
 	path = lib/@openzeppelin
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
