@@ -31,6 +31,7 @@ contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
 
         _startPrankOrBroadcast(ccmProxy);
         BytecodeRepository(bytecodeRepository).addAuditor(auditor.addr, "auditor");
+        BytecodeRepository(bytecodeRepository).addPublicDomain("HELPER");
         _stopPrankOrBroadcast();
 
         Bytecode[] memory bcs = _getAdapterContracts();
