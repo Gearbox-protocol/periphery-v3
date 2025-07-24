@@ -448,16 +448,20 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
                 PhantomTokenOverride memory ptOverride =
                     _phantomTokenOverrides[params.migratedCollaterals[i].collateral];
 
-                if (
-                    ptOverride.underlying != address(0)
-                        && ptOverride.underlying != params.migratedCollaterals[i].phantomTokenParams.underlying
-                ) {
-                    revert("MigratorBot: incorrect phantom token underlying");
-                }
+                if (ptOverride.newToken != address(0)) {
+                    if (ptOverride.underlying != params.migratedCollaterals[i].phantomTokenParams.underlying) {
+                        revert("MigratorBot: incorrect phantom token underlying");
+                    }
 
-                (, address underlying) = _getPhantomTokenInfo(ptOverride.newToken);
-                if (params.migratedCollaterals[i].phantomTokenParams.underlying != underlying) {
-                    revert("MigratorBot: incorrect phantom token underlying");
+                    (, address underlying) = _getPhantomTokenInfo(ptOverride.newToken);
+                    if (params.migratedCollaterals[i].phantomTokenParams.underlying != underlying) {
+                        revert("MigratorBot: incorrect phantom token underlying");
+                    }
+                } else {
+                    (, address underlying) = _getPhantomTokenInfo(params.migratedCollaterals[i].collateral);
+                    if (params.migratedCollaterals[i].phantomTokenParams.underlying != underlying) {
+                        revert("MigratorBot: incorrect phantom token underlying");
+                    }
                 }
             }
         }

@@ -47,10 +47,18 @@ abstract contract AccountMigratorAdapter is AbstractAdapter {
     }
 
     function lock() external onlyMigratorBot {
+        if (locked) {
+            revert("MigratorAdapter: adapter is already locked");
+        }
+
         locked = true;
     }
 
     function unlock() external onlyMigratorBot {
+        if (!locked) {
+            revert("MigratorAdapter: adapter is not locked");
+        }
+
         locked = false;
     }
 
