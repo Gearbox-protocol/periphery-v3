@@ -65,13 +65,13 @@ import {FluidDexAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapt
 import {MellowDVVAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/MellowDVVAdapter.sol";
 import {MellowWrapperAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/MellowWrapperAdapter.sol";
-import {KodiakIslandHelperAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/kodiak/KodiakIslandHelperAdapter.sol";
+import {KodiakIslandGatewayAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/kodiak/KodiakIslandGatewayAdapter.sol";
 
 import {FluidDexETHGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/fluid/FluidDexETHGateway.sol";
 import {CurveV1StETHPoolGateway} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/curve/CurveV1_stETHGateway.sol";
-import {KodiakIslandHelper} from "@gearbox-protocol/integrations-v3/contracts/helpers/kodiak/KodiakIslandHelper.sol";
+import {KodiakIslandGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/kodiak/KodiakIslandGateway.sol";
 
 import {UnderlyingDepositZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingDepositZapper.sol";
 import {UnderlyingFarmingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingFarmingZapper.sol";
@@ -273,10 +273,10 @@ contract Bytecodes {
         bytecodes[28].initCode = type(MellowWrapperAdapter).creationCode;
         bytecodes[28].source = string.concat(integrations, "/contracts/adapters/mellow/MellowWrapperAdapter.sol");
 
-        bytecodes[29].contractType = "ADAPTER::KODIAK_ISLAND_HELPER";
+        bytecodes[29].contractType = "ADAPTER::KODIAK_ISLAND_GATEWAY";
         bytecodes[29].version = 3_10;
-        bytecodes[29].initCode = type(KodiakIslandHelperAdapter).creationCode;
-        bytecodes[29].source = string.concat(integrations, "/contracts/adapters/kodiak/KodiakIslandHelperAdapter.sol");
+        bytecodes[29].initCode = type(KodiakIslandGatewayAdapter).creationCode;
+        bytecodes[29].source = string.concat(integrations, "/contracts/adapters/kodiak/KodiakIslandGatewayAdapter.sol");
     }
 
     function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
@@ -292,10 +292,10 @@ contract Bytecodes {
         bytecodes[1].initCode = type(CurveV1StETHPoolGateway).creationCode;
         bytecodes[1].source = string.concat(integrations, "/contracts/helpers/curve/CurveV1_stETHGateway.sol");
 
-        bytecodes[2].contractType = "HELPER::KODIAK_ISLAND";
+        bytecodes[2].contractType = "GATEWAY::KODIAK_ISLAND";
         bytecodes[2].version = 3_10;
-        bytecodes[2].initCode = type(KodiakIslandHelper).creationCode;
-        bytecodes[2].source = string.concat(integrations, "/contracts/helpers/kodiak/KodiakIslandHelper.sol");
+        bytecodes[2].initCode = type(KodiakIslandGateway).creationCode;
+        bytecodes[2].source = string.concat(integrations, "/contracts/helpers/kodiak/KodiakIslandGateway.sol");
     }
 
     function _getBotContracts() internal view returns (Bytecode[] memory bytecodes) {
