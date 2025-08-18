@@ -67,11 +67,19 @@ import {MellowWrapperAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/MellowWrapperAdapter.sol";
 import {KodiakIslandGatewayAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/kodiak/KodiakIslandGatewayAdapter.sol";
+import {InfinifiGatewayAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/infinifi/InfinifiGatewayAdapter.sol";
+import {InfinifiUnwindingGatewayAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/infinifi/InfinifiUnwindingGatewayAdapter.sol";
 
 import {FluidDexETHGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/fluid/FluidDexETHGateway.sol";
 import {CurveV1StETHPoolGateway} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/curve/CurveV1_stETHGateway.sol";
 import {KodiakIslandGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/kodiak/KodiakIslandGateway.sol";
+import {InfinifiUnwindingGateway} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingGateway.sol";
+import {InfinifiUnwindingPhantomToken} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingPhantomToken.sol";
 
 import {UnderlyingDepositZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingDepositZapper.sol";
 import {UnderlyingFarmingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingFarmingZapper.sol";
@@ -126,7 +134,7 @@ contract Bytecodes {
         "https://github.com/Gearbox-protocol/permissionless/blob/f660f1abb176096d1b97b80667a0a019e0aaadc6";
 
     function _getAdapterContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](30);
+        bytecodes = new Bytecode[](32);
 
         bytecodes[0].contractType = "ADAPTER::BALANCER_VAULT";
         bytecodes[0].version = 3_10;
@@ -277,10 +285,21 @@ contract Bytecodes {
         bytecodes[29].version = 3_10;
         bytecodes[29].initCode = type(KodiakIslandGatewayAdapter).creationCode;
         bytecodes[29].source = string.concat(integrations, "/contracts/adapters/kodiak/KodiakIslandGatewayAdapter.sol");
+
+        bytecodes[30].contractType = "ADAPTER::INFINIFI_GATEWAY";
+        bytecodes[30].version = 3_10;
+        bytecodes[30].initCode = type(InfinifiGatewayAdapter).creationCode;
+        bytecodes[30].source = string.concat(integrations, "/contracts/adapters/infinifi/InfinifiGatewayAdapter.sol");
+
+        bytecodes[31].contractType = "ADAPTER::INFINIFI_UNWINDING";
+        bytecodes[31].version = 3_10;
+        bytecodes[31].initCode = type(InfinifiUnwindingGatewayAdapter).creationCode;
+        bytecodes[31].source =
+            string.concat(integrations, "/contracts/adapters/infinifi/InfinifiUnwindingGatewayAdapter.sol");
     }
 
     function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](3);
+        bytecodes = new Bytecode[](5);
 
         bytecodes[0].contractType = "GATEWAY::FLUID_DEX_ETH";
         bytecodes[0].version = 3_10;
@@ -296,6 +315,17 @@ contract Bytecodes {
         bytecodes[2].version = 3_10;
         bytecodes[2].initCode = type(KodiakIslandGateway).creationCode;
         bytecodes[2].source = string.concat(integrations, "/contracts/helpers/kodiak/KodiakIslandGateway.sol");
+
+        bytecodes[3].contractType = "GATEWAY::INFINIFI_UNWINDING";
+        bytecodes[3].version = 3_10;
+        bytecodes[3].initCode = type(InfinifiUnwindingGateway).creationCode;
+        bytecodes[3].source = string.concat(integrations, "/contracts/helpers/infinifi/InfinifiUnwindingGateway.sol");
+
+        bytecodes[4].contractType = "PHANTOM_TOKEN::INFINIFI_UNWIND";
+        bytecodes[4].version = 3_10;
+        bytecodes[4].initCode = type(InfinifiUnwindingPhantomToken).creationCode;
+        bytecodes[4].source =
+            string.concat(integrations, "/contracts/helpers/infinifi/InfinifiUnwindingPhantomToken.sol");
     }
 
     function _getBotContracts() internal view returns (Bytecode[] memory bytecodes) {

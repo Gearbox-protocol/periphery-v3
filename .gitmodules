@@ -5,9 +5,9 @@
 [submodule "lib/@gearbox-protocol/integrations-v3"]
 	path = lib/@gearbox-protocol/integrations-v3
 	url = https://github.com/Gearbox-protocol/integrations-v3
-	branch = mellow-dvv
+	branch = infinifi
 [submodule "lib/@gearbox-protocol/oracles-v3"]
-	path = lib/@gearbox-protocol/oracles-v3
+	path = lib/@gearbfox-protocol/oracles-v3
 	url = https://github.com/Gearbox-protocol/oracles-v3
 	branch = kodiak-feed
 [submodule "lib/@openzeppelin"]
