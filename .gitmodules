@@ -7,9 +7,9 @@
 	url = https://github.com/Gearbox-protocol/integrations-v3
 	branch = infinifi
 [submodule "lib/@gearbox-protocol/oracles-v3"]
-	path = lib/@gearbfox-protocol/oracles-v3
+	path = lib/@gearbox-protocol/oracles-v3
 	url = https://github.com/Gearbox-protocol/oracles-v3
-	branch = kodiak-feed
+	branch = next
 [submodule "lib/@openzeppelin"]
 	path = lib/@openzeppelin
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
