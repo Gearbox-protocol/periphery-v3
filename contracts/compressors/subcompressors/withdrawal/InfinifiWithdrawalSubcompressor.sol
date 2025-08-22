@@ -85,7 +85,7 @@ contract InfinifiWithdrawalSubcompressor is IWithdrawalSubcompressor {
         ClaimableWithdrawal[] memory claimableWithdrawals = new ClaimableWithdrawal[](1);
         claimableWithdrawals[0] = _getClaimableWithdrawal(creditAccount, token, infinifiUnwindingGateway);
 
-        if (claimableWithdrawals[0].outputs[0].amount == 0) {
+        if (claimableWithdrawals[0].outputs.length == 0 || claimableWithdrawals[0].outputs[0].amount == 0) {
             claimableWithdrawals = new ClaimableWithdrawal[](0);
         }
 
