@@ -39,9 +39,6 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
     uint256 public constant version = 3_10;
     bytes32 public constant contractType = "GLOBAL::UPSHIFT_WD_SC";
 
-    uint256 internal constant EPOCH = 1 weeks;
-    uint256 internal constant EPOCH_OFFSET = 3 days;
-
     function getWithdrawableAssets(address, address token)
         external
         view
