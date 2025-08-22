@@ -88,7 +88,7 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
             pendingWithdrawals = pendingWithdrawals.concat(pwCurrent);
         }
 
-        return (claimableWithdrawals, pendingWithdrawals);
+        return (claimableWithdrawals.filterEmpty(), pendingWithdrawals.filterEmpty());
     }
 
     function getWithdrawalRequestResult(address creditAccount, address token, uint256 amount)

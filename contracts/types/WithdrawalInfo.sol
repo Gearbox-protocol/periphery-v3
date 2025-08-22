@@ -82,6 +82,19 @@ library WithdrawalLib {
         return withdrawals;
     }
 
+    function push(ClaimableWithdrawal[] memory w, ClaimableWithdrawal memory withdrawal)
+        internal
+        pure
+        returns (ClaimableWithdrawal[] memory)
+    {
+        ClaimableWithdrawal[] memory newClaimableWithdrawals = new ClaimableWithdrawal[](w.length + 1);
+        for (uint256 i = 0; i < w.length; i++) {
+            newClaimableWithdrawals[i] = w[i];
+        }
+        newClaimableWithdrawals[w.length] = withdrawal;
+        return newClaimableWithdrawals;
+    }
+
     function concat(ClaimableWithdrawal[] memory w0, ClaimableWithdrawal[] memory w1)
         internal
         pure
@@ -97,6 +110,19 @@ library WithdrawalLib {
         return withdrawals;
     }
 
+    function push(PendingWithdrawal[] memory w, PendingWithdrawal memory withdrawal)
+        internal
+        pure
+        returns (PendingWithdrawal[] memory)
+    {
+        PendingWithdrawal[] memory newPendingWithdrawals = new PendingWithdrawal[](w.length + 1);
+        for (uint256 i = 0; i < w.length; i++) {
+            newPendingWithdrawals[i] = w[i];
+        }
+        newPendingWithdrawals[w.length] = withdrawal;
+        return newPendingWithdrawals;
+    }
+
     function concat(PendingWithdrawal[] memory w0, PendingWithdrawal[] memory w1)
         internal
         pure
@@ -110,5 +136,45 @@ library WithdrawalLib {
             withdrawals[w0.length + i] = w1[i];
         }
         return withdrawals;
+    }
+
+    function filterEmpty(PendingWithdrawal[] memory pendingWithdrawals)
+        internal
+        pure
+        returns (PendingWithdrawal[] memory)
+    {
+        PendingWithdrawal[] memory filteredPendingWithdrawals = new PendingWithdrawal[](0);
+        for (uint256 i = 0; i < pendingWithdrawals.length; i++) {
+            if (pendingWithdrawals[i].expectedOutputs.length > 0) {
+                for (uint256 j = 0; j < pendingWithdrawals[i].expectedOutputs.length; j++) {
+                    if (pendingWithdrawals[i].expectedOutputs[j].amount > 0) {
+                        filteredPendingWithdrawals = push(filteredPendingWithdrawals, pendingWithdrawals[i]);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return filteredPendingWithdrawals;
+    }
+
+    function filterEmpty(ClaimableWithdrawal[] memory claimableWithdrawals)
+        internal
+        pure
+        returns (ClaimableWithdrawal[] memory)
+    {
+        ClaimableWithdrawal[] memory filteredClaimableWithdrawals = new ClaimableWithdrawal[](0);
+        for (uint256 i = 0; i < claimableWithdrawals.length; i++) {
+            if (claimableWithdrawals[i].outputs.length > 0) {
+                for (uint256 j = 0; j < claimableWithdrawals[i].outputs.length; j++) {
+                    if (claimableWithdrawals[i].outputs[j].amount > 0) {
+                        filteredClaimableWithdrawals = push(filteredClaimableWithdrawals, claimableWithdrawals[i]);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return filteredClaimableWithdrawals;
     }
 }
