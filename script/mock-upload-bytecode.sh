@@ -24,6 +24,6 @@ cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $AUDITOR_ADDRESS
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $CCM_PROXY_ADDRESS 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $AUDITOR_ADDRESS 0x56BC75E2D63100000
 
-forge script script/MockTestnetBytecodeUpload.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL}
+forge script script/MockTestnetBytecodeUpload.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation
 
 echo "bash script executed successfully"
