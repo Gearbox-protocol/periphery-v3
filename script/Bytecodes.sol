@@ -71,6 +71,7 @@ import {InfinifiGatewayAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/infinifi/InfinifiGatewayAdapter.sol";
 import {InfinifiUnwindingGatewayAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/infinifi/InfinifiUnwindingGatewayAdapter.sol";
+import {UniswapV4Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/uniswap/UniswapV4.sol";
 
 import {FluidDexETHGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/fluid/FluidDexETHGateway.sol";
 import {CurveV1StETHPoolGateway} from
@@ -80,6 +81,7 @@ import {InfinifiUnwindingGateway} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingGateway.sol";
 import {InfinifiUnwindingPhantomToken} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingPhantomToken.sol";
+import {UniswapV4Gateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/uniswap/UniswapV4Gateway.sol";
 
 import {UnderlyingDepositZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingDepositZapper.sol";
 import {UnderlyingFarmingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingFarmingZapper.sol";
@@ -134,7 +136,7 @@ contract Bytecodes {
         "https://github.com/Gearbox-protocol/permissionless/blob/f660f1abb176096d1b97b80667a0a019e0aaadc6";
 
     function _getAdapterContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](32);
+        bytecodes = new Bytecode[](33);
 
         bytecodes[0].contractType = "ADAPTER::BALANCER_VAULT";
         bytecodes[0].version = 3_10;
@@ -296,6 +298,11 @@ contract Bytecodes {
         bytecodes[31].initCode = type(InfinifiUnwindingGatewayAdapter).creationCode;
         bytecodes[31].source =
             string.concat(integrations, "/contracts/adapters/infinifi/InfinifiUnwindingGatewayAdapter.sol");
+
+        bytecodes[32].contractType = "ADAPTER::UNISWAP_V4_GATEWAY";
+        bytecodes[32].version = 3_10;
+        bytecodes[32].initCode = type(UniswapV4Adapter).creationCode;
+        bytecodes[32].source = string.concat(integrations, "/contracts/adapters/uniswap/UniswapV4.sol");
     }
 
     function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
@@ -326,6 +333,11 @@ contract Bytecodes {
         bytecodes[4].initCode = type(InfinifiUnwindingPhantomToken).creationCode;
         bytecodes[4].source =
             string.concat(integrations, "/contracts/helpers/infinifi/InfinifiUnwindingPhantomToken.sol");
+
+        bytecodes[5].contractType = "GATEWAY::UNISWAP_V4";
+        bytecodes[5].version = 3_10;
+        bytecodes[5].initCode = type(UniswapV4Gateway).creationCode;
+        bytecodes[5].source = string.concat(integrations, "/contracts/helpers/uniswap/UniswapV4Gateway.sol");
     }
 
     function _getBotContracts() internal view returns (Bytecode[] memory bytecodes) {
