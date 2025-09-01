@@ -306,7 +306,7 @@ contract Bytecodes {
     }
 
     function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](5);
+        bytecodes = new Bytecode[](6);
 
         bytecodes[0].contractType = "GATEWAY::FLUID_DEX_ETH";
         bytecodes[0].version = 3_10;
