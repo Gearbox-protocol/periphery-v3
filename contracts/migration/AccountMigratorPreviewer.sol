@@ -221,6 +221,7 @@ contract AccountMigratorPreviewer is IAccountMigratorPreviewer {
                 == ICreditManagerV3(result.migrationParams.targetCreditManager).underlying()
         ) {
             result.migrationParams.targetBorrowAmount = debtAmount * 100005 / 100000;
+            result.expectedUnderlyingDust = result.migrationParams.targetBorrowAmount - debtAmount;
             return;
         }
 
