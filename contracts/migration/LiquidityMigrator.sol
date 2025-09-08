@@ -5,6 +5,7 @@ pragma solidity ^0.8.23;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title LiquidityMigrator
 /// @notice Allows the instance owner to migrate a pool position of a user from one pool to another. The user gives an approval of
@@ -27,6 +28,9 @@ contract LiquidityMigrator is Ownable {
         _transferOwnership(ioProxy);
         poolFrom = _poolFrom;
         poolTo = _poolTo;
+
+        address asset = IERC4626(poolTo).asset();
+        IERC20(asset).approve(poolTo, type(uint256).max);
     }
 
     /// @notice Migrates assets from `poolFrom` to `poolTo` for `user`
