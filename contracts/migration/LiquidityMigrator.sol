@@ -35,11 +35,11 @@ contract LiquidityMigrator is Ownable {
 
     /// @notice Migrates assets from `poolFrom` to `poolTo` for `user`
     /// @param user The address of the user whose assets are being migrated
-    /// @param assetsAmount The amount of assets to migrate
-    function migrate(address user, uint256 assetsAmount) external onlyOwner {
-        // The requested amount of assets is withdrawn from `poolFrom`
-        IERC4626(poolFrom).withdraw(assetsAmount, address(this), user);
-        // The same amount of assets is deposited into `poolTo`, with the user as the receiver
+    /// @param amount The amount of `poolFrom` LP shares to migrate
+    function migrate(address user, uint256 amount) external onlyOwner {
+        // Shares are redeemedfrom `poolFrom`, which returns the amount of assets withdrawn
+        uint256 assetsAmount = IERC4626(poolFrom).redeem(amount, address(this), user);
+        // The same amount of assets is deposited into `poolTo`, with the user as the receiver of new LP shares
         IERC4626(poolTo).deposit(assetsAmount, user);
 
         emit Migrate(user, assetsAmount);
