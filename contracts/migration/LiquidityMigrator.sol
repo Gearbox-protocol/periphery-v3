@@ -7,13 +7,17 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
 /// @title LiquidityMigrator
 /// @notice Allows the instance owner to migrate a pool position of a user from one pool to another. The user gives an approval of
 ///         their pool shares to this contract. The instance owner can then migrate assets from specfic `poolFrom` to specific `poolTo`
 ///         at their discretion.
-contract LiquidityMigrator is Ownable {
+contract LiquidityMigrator is Ownable, IVersion {
     using SafeERC20 for IERC20;
+
+    bytes32 public constant contractType = "ZAPPER::LIQUIDITY_MIGRATOR";
+    uint256 public constant version = 310;
 
     error PoolAssetsDoNotMatchException();
 
