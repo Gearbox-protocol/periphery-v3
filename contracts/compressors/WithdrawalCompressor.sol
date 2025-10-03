@@ -9,6 +9,7 @@ import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVer
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {OptionalCall} from "@gearbox-protocol/core-v3/contracts/libraries/OptionalCall.sol";
 
 import {BaseCompressor} from "./BaseCompressor.sol";
 import {IWithdrawalSubcompressor} from "../interfaces/IWithdrawalSubcompressor.sol";
@@ -142,9 +143,12 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
     }
 
     function _getContractType(address phantomToken) internal view returns (bytes32) {
-        try IVersion(phantomToken).contractType() returns (bytes32 cType) {
-            return cType;
-        } catch {
+        (bool success, bytes memory result) =
+            OptionalCall.staticCallOptionalSafe(phantomToken, abi.encodeCall(IVersion.contractType, ()), 100_000);
+
+        if (success) {
+            return abi.decode(result, (bytes32));
+        } else {
             return bytes32(0);
         }
     }
