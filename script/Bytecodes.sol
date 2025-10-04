@@ -72,6 +72,10 @@ import {InfinifiGatewayAdapter} from
 import {InfinifiUnwindingGatewayAdapter} from
     "@gearbox-protocol/integrations-v3/contracts/adapters/infinifi/InfinifiUnwindingGatewayAdapter.sol";
 import {UniswapV4Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/uniswap/UniswapV4.sol";
+import {MidasIssuanceVaultAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/midas/MidasIssuanceVaultAdapter.sol";
+import {MidasRedemptionVaultAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/midas/MidasRedemptionVaultAdapter.sol";
 
 import {FluidDexETHGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/fluid/FluidDexETHGateway.sol";
 import {CurveV1StETHPoolGateway} from
@@ -82,6 +86,10 @@ import {InfinifiUnwindingGateway} from
 import {InfinifiUnwindingPhantomToken} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingPhantomToken.sol";
 import {UniswapV4Gateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/uniswap/UniswapV4Gateway.sol";
+import {MidasRedemptionVaultGateway} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultGateway.sol";
+import {MidasRedemptionVaultPhantomToken} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol";
 
 import {UnderlyingDepositZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingDepositZapper.sol";
 import {UnderlyingFarmingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingFarmingZapper.sol";
@@ -136,7 +144,7 @@ contract Bytecodes {
         "https://github.com/Gearbox-protocol/permissionless/blob/f660f1abb176096d1b97b80667a0a019e0aaadc6";
 
     function _getAdapterContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](33);
+        bytecodes = new Bytecode[](35);
 
         bytecodes[0].contractType = "ADAPTER::BALANCER_VAULT";
         bytecodes[0].version = 3_10;
@@ -303,10 +311,20 @@ contract Bytecodes {
         bytecodes[32].version = 3_10;
         bytecodes[32].initCode = type(UniswapV4Adapter).creationCode;
         bytecodes[32].source = string.concat(integrations, "/contracts/adapters/uniswap/UniswapV4.sol");
+
+        bytecodes[33].contractType = "ADAPTER::MIDAS_ISSUANCE_VAULT";
+        bytecodes[33].version = 3_10;
+        bytecodes[33].initCode = type(MidasIssuanceVaultAdapter).creationCode;
+        bytecodes[33].source = string.concat(integrations, "/contracts/adapters/midas/MidasIssuanceVaultAdapter.sol");
+
+        bytecodes[34].contractType = "ADAPTER::MIDAS_REDEMPTION_VAULT";
+        bytecodes[34].version = 3_10;
+        bytecodes[34].initCode = type(MidasRedemptionVaultAdapter).creationCode;
+        bytecodes[34].source = string.concat(integrations, "/contracts/adapters/midas/MidasRedemptionVaultAdapter.sol");
     }
 
     function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](6);
+        bytecodes = new Bytecode[](8);
 
         bytecodes[0].contractType = "GATEWAY::FLUID_DEX_ETH";
         bytecodes[0].version = 3_10;
@@ -338,6 +356,17 @@ contract Bytecodes {
         bytecodes[5].version = 3_10;
         bytecodes[5].initCode = type(UniswapV4Gateway).creationCode;
         bytecodes[5].source = string.concat(integrations, "/contracts/helpers/uniswap/UniswapV4Gateway.sol");
+
+        bytecodes[6].contractType = "GATEWAY::MIDAS_REDEMPTION_VAULT";
+        bytecodes[6].version = 3_10;
+        bytecodes[6].initCode = type(MidasRedemptionVaultGateway).creationCode;
+        bytecodes[6].source = string.concat(integrations, "/contracts/helpers/midas/MidasRedemptionVaultGateway.sol");
+
+        bytecodes[7].contractType = "PHANTOM_TOKEN::MIDAS_REDEMPTION";
+        bytecodes[7].version = 3_10;
+        bytecodes[7].initCode = type(MidasRedemptionVaultPhantomToken).creationCode;
+        bytecodes[7].source =
+            string.concat(integrations, "/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol");
     }
 
     function _getBotContracts() internal view returns (Bytecode[] memory bytecodes) {
