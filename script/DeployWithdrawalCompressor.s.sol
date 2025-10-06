@@ -34,7 +34,6 @@ contract DeployWithdrawalCompressor is Script {
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MELLOW_WITHDRAWAL", "GLOBAL::MELLOW_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::INFINIFI_UNWIND", "GLOBAL::INFINIFI_WD_SC");
 
-        wc.transferOwnership(ioProxy);
         vm.stopBroadcast();
 
         console.log("WithdrawalCompressor deployed to", address(wc));
