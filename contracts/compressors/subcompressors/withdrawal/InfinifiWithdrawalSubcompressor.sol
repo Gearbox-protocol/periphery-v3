@@ -91,6 +91,10 @@ contract InfinifiWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
         PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(creditAccount, infinifiUnwindingGateway);
 
+        for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
+            pendingWithdrawals[i].withdrawalPhantomToken = token;
+        }
+
         return (claimableWithdrawals, pendingWithdrawals);
     }
 
@@ -165,7 +169,7 @@ contract InfinifiWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return pendingWithdrawals;
     }
 
-    function _getClaimableWithdrawal(address creditAccount, address, address unwindingGateway)
+    function _getClaimableWithdrawal(address creditAccount, address withdrawalToken, address unwindingGateway)
         internal
         view
         returns (ClaimableWithdrawal memory withdrawal)
@@ -199,6 +203,9 @@ contract InfinifiWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
             withdrawal.outputs[0].amount = pendingAssets;
         }
+
+        withdrawal.withdrawalPhantomToken = withdrawalToken;
+        withdrawal.withdrawalTokenSpent = withdrawal.outputs[0].amount;
 
         withdrawal.claimCalls = new MultiCall[](1);
 

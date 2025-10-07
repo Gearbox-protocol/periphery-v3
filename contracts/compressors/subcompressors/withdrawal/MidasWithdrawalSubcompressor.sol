@@ -75,13 +75,17 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address gateway = MidasRedemptionVaultPhantomToken(token).gateway();
 
         ClaimableWithdrawal[] memory claimableWithdrawals = new ClaimableWithdrawal[](1);
-        claimableWithdrawals[0] = _getClaimableWithdrawal(creditAccount, gateway);
+        claimableWithdrawals[0] = _getClaimableWithdrawal(creditAccount, gateway, token);
 
         if (claimableWithdrawals[0].outputs.length == 0 || claimableWithdrawals[0].outputs[0].amount == 0) {
             claimableWithdrawals = new ClaimableWithdrawal[](0);
         }
 
         PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(creditAccount, gateway);
+
+        for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
+            pendingWithdrawals[i].withdrawalPhantomToken = token;
+        }
 
         return (claimableWithdrawals, pendingWithdrawals);
     }
@@ -154,7 +158,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return pendingWithdrawals;
     }
 
-    function _getClaimableWithdrawal(address creditAccount, address gateway)
+    function _getClaimableWithdrawal(address creditAccount, address gateway, address withdrawalToken)
         internal
         view
         returns (ClaimableWithdrawal memory withdrawal)
@@ -186,6 +190,8 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
                     IMidasRedemptionVaultAdapter.withdraw, (remainder > 0 ? remainder : withdrawal.outputs[0].amount)
                 )
             );
+            withdrawal.withdrawalPhantomToken = withdrawalToken;
+            withdrawal.withdrawalTokenSpent = withdrawal.outputs[0].amount;
         }
 
         return withdrawal;
@@ -222,7 +228,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
     function _getAmountAfterFee(address gateway, address asset, uint256 amount) internal view returns (uint256) {
         address midasRedemptionVault = MidasRedemptionVaultGateway(gateway).midasRedemptionVault();
-        (,uint256 fee,,) = IMidasRedemptionVaultExt(midasRedemptionVault).tokensConfig(asset);
+        (, uint256 fee,,) = IMidasRedemptionVaultExt(midasRedemptionVault).tokensConfig(asset);
         return amount * (1e5 - fee) / 1e5;
     }
 }

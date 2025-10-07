@@ -28,12 +28,15 @@ struct RequestableWithdrawal {
 
 struct ClaimableWithdrawal {
     address token;
+    address withdrawalPhantomToken;
+    uint256 withdrawalTokenSpent;
     WithdrawalOutput[] outputs;
     MultiCall[] claimCalls;
 }
 
 struct PendingWithdrawal {
     address token;
+    address withdrawalPhantomToken;
     WithdrawalOutput[] expectedOutputs;
     uint256 claimableAt;
 }

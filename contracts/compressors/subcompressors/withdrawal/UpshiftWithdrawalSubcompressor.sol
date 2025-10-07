@@ -39,11 +39,7 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
     uint256 public constant version = 3_10;
     bytes32 public constant contractType = "GLOBAL::UPSHIFT_WD_SC";
 
-    function getWithdrawableAssets(address, address token)
-        external
-        view
-        returns (WithdrawableAsset[] memory)
-    {
+    function getWithdrawableAssets(address, address token) external view returns (WithdrawableAsset[] memory) {
         address vault = UpshiftVaultWithdrawalPhantomToken(token).vault();
 
         address asset = IERC4626(vault).asset();
@@ -67,13 +63,17 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address upshiftVaultGateway = UpshiftVaultWithdrawalPhantomToken(token).gateway();
 
         ClaimableWithdrawal[] memory claimableWithdrawals = new ClaimableWithdrawal[](1);
-        claimableWithdrawals[0] = _getClaimableWithdrawal(creditAccount, upshiftVaultGateway);
+        claimableWithdrawals[0] = _getClaimableWithdrawal(creditAccount, upshiftVaultGateway, token);
 
         if (claimableWithdrawals[0].outputs.length == 0 || claimableWithdrawals[0].outputs[0].amount == 0) {
             claimableWithdrawals = new ClaimableWithdrawal[](0);
         }
 
         PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(creditAccount, upshiftVaultGateway);
+
+        for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
+            pendingWithdrawals[i].withdrawalPhantomToken = token;
+        }
 
         return (claimableWithdrawals, pendingWithdrawals);
     }
@@ -152,7 +152,7 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return pendingWithdrawals;
     }
 
-    function _getClaimableWithdrawal(address creditAccount, address upshiftVaultGateway)
+    function _getClaimableWithdrawal(address creditAccount, address upshiftVaultGateway, address withdrawalToken)
         internal
         view
         returns (ClaimableWithdrawal memory withdrawal)
@@ -174,6 +174,8 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
             withdrawal.claimCalls = new MultiCall[](1);
             withdrawal.claimCalls[0] =
                 MultiCall(address(upshiftVaultGatewayAdapter), abi.encodeCall(IUpshiftVaultAdapter.claim, (assets)));
+            withdrawal.withdrawalPhantomToken = withdrawalToken;
+            withdrawal.withdrawalTokenSpent = withdrawal.outputs[0].amount;
         }
 
         return withdrawal;

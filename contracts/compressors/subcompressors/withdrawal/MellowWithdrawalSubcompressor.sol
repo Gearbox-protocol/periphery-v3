@@ -148,6 +148,10 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
         PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(creditAccount, multiVault);
 
+        for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
+            pendingWithdrawals[i].withdrawalPhantomToken = token;
+        }
+
         return (claimableWithdrawals, pendingWithdrawals);
     }
 
@@ -335,6 +339,7 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address asset = IERC4626(multiVault).asset();
 
         withdrawal.token = multiVault;
+        withdrawal.withdrawalPhantomToken = withdrawalToken;
         withdrawal.outputs = new WithdrawalOutput[](1);
         withdrawal.outputs[0] = WithdrawalOutput(asset, false, 0);
 
@@ -353,6 +358,8 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         if (withdrawal.outputs[0].amount == 0) {
             return withdrawal;
         }
+
+        withdrawal.withdrawalTokenSpent = withdrawal.outputs[0].amount;
 
         withdrawal.claimCalls = new MultiCall[](1);
 
