@@ -90,6 +90,8 @@ import {MidasRedemptionVaultGateway} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultGateway.sol";
 import {MidasRedemptionVaultPhantomToken} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol";
+import {BalancerV3RouterGateway} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/balancer/BalancerV3RouterGateway.sol";
 
 import {UnderlyingDepositZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingDepositZapper.sol";
 import {UnderlyingFarmingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/UnderlyingFarmingZapper.sol";
@@ -152,7 +154,7 @@ contract Bytecodes {
         bytecodes[0].source = string.concat(integrations, "/contracts/adapters/balancer/BalancerV2VaultAdapter.sol");
 
         bytecodes[1].contractType = "ADAPTER::BALANCER_V3_ROUTER";
-        bytecodes[1].version = 3_10;
+        bytecodes[1].version = 3_11;
         bytecodes[1].initCode = type(BalancerV3RouterAdapter).creationCode;
         bytecodes[1].source = string.concat(integrations, "/contracts/adapters/balancer/BalancerV3RouterAdapter.sol");
 
@@ -232,7 +234,7 @@ contract Bytecodes {
         bytecodes[16].source = string.concat(integrations, "/contracts/adapters/mellow/MellowVaultAdapter.sol");
 
         bytecodes[17].contractType = "ADAPTER::PENDLE_ROUTER";
-        bytecodes[17].version = 3_10;
+        bytecodes[17].version = 3_11;
         bytecodes[17].initCode = type(PendleRouterAdapter).creationCode;
         bytecodes[17].source = string.concat(integrations, "/contracts/adapters/pendle/PendleRouterAdapter.sol");
 
@@ -324,7 +326,7 @@ contract Bytecodes {
     }
 
     function _getHelperContracts() internal view returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](8);
+        bytecodes = new Bytecode[](9);
 
         bytecodes[0].contractType = "GATEWAY::FLUID_DEX_ETH";
         bytecodes[0].version = 3_10;
@@ -367,6 +369,11 @@ contract Bytecodes {
         bytecodes[7].initCode = type(MidasRedemptionVaultPhantomToken).creationCode;
         bytecodes[7].source =
             string.concat(integrations, "/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol");
+
+        bytecodes[8].contractType = "GATEWAY::BALANCER_V3";
+        bytecodes[8].version = 3_11;
+        bytecodes[8].initCode = type(BalancerV3RouterGateway).creationCode;
+        bytecodes[8].source = string.concat(integrations, "/contracts/helpers/balancer/BalancerV3RouterGateway.sol");
     }
 
     function _getBotContracts() internal view returns (Bytecode[] memory bytecodes) {
