@@ -6,14 +6,27 @@ import {InstanceManager} from "@gearbox-protocol/permissionless/contracts/instan
 import {BytecodeRepository} from "@gearbox-protocol/permissionless/contracts/global/BytecodeRepository.sol";
 import {Bytecode, AuditReport} from "@gearbox-protocol/permissionless/contracts/interfaces/Types.sol";
 import {Bytecodes} from "./Bytecodes.sol";
-
+import {BytecodeRepositoryMock} from "./BytecodeRepositoryMock.sol";
+import {AnvilHelper} from "./AnvilHelper.sol";
 import {VmSafe} from "forge-std/Vm.sol";
+import {LibBytes} from "@solady/utils/LibBytes.sol";
 import "forge-std/Script.sol";
 
 address constant IM = 0x77777777144339Bdc3aCceE992D8d4D31734CB2e;
 
-contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
+contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes, AnvilHelper {
     address ccmProxy;
+
+    function _mockBytecodeRepositoryBytecode(address bytecodeRepository) internal {
+        address bcrOwner = BytecodeRepository(bytecodeRepository).owner();
+
+        address ownerPlaceholder = makeAddr("placeholder");
+        address bytecodeRepositoryMock = address(new BytecodeRepositoryMock(ownerPlaceholder));
+        bytes memory findBytes = abi.encodePacked(ownerPlaceholder);
+        bytes memory replacementBytes = abi.encodePacked(bcrOwner);
+        bytes memory updatedBytecode = LibBytes.replace(bytecodeRepositoryMock.code, findBytes, replacementBytes);
+        _replaceBytecode(bytecodeRepository, updatedBytecode);
+    }
 
     function run() external {
         bytes32 auditorPrivateKey = vm.envOr("AUDITOR_PRIVATE_KEY", bytes32(0));
@@ -23,6 +36,7 @@ contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
         }
 
         bytecodeRepository = InstanceManager(IM).bytecodeRepository();
+        _mockBytecodeRepositoryBytecode(bytecodeRepository);
         ccmProxy = InstanceManager(IM).crossChainGovernanceProxy();
 
         VmSafe.Wallet memory auditor = vm.createWallet(uint256(auditorPrivateKey));
@@ -57,7 +71,7 @@ contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes {
     function _safeUploadBytecode(VmSafe.Wallet memory auditor, Bytecode memory bc) internal {
         if (BytecodeRepository(bytecodeRepository).getAllowedBytecodeHash(bc.contractType, bc.version) == bytes32(0)) {
             bytes32 bytecodeHash = _uploadByteCodeAndSign(auditor, auditor, bc.initCode, bc.contractType, bc.version);
-            BytecodeRepository(bytecodeRepository).allowPublicContract(bytecodeHash);
+            BytecodeRepositoryMock(bytecodeRepository).exposed_allowContract(bytecodeHash, bc.contractType, bc.version);
         }
     }
 }
