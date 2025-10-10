@@ -135,9 +135,9 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     {
         address mToken = MidasRedemptionVaultGateway(gateway).mToken();
 
-        (uint256 requestId, uint256 timestamp,) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
+        (bool isActive,uint256 requestId, uint256 timestamp,) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
 
-        if (requestId > 0) {
+        if (isActive) {
             address redemptionVault = MidasRedemptionVaultGateway(gateway).midasRedemptionVault();
 
             (, address requestTokenOut, uint8 status, uint256 amountMTokenIn, uint256 mTokenRate, uint256 tokenOutRate)
@@ -165,12 +165,12 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     {
         address mToken = MidasRedemptionVaultGateway(gateway).mToken();
 
-        (uint256 requestId,, uint256 remainder) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
+        (bool isActive,uint256 requestId,, uint256 remainder) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
 
         address gatewayAdapter =
             ICreditManagerV3(ICreditAccountV3(creditAccount).creditManager()).contractToAdapter(gateway);
 
-        if (requestId > 0) {
+        if (isActive) {
             address redemptionVault = MidasRedemptionVaultGateway(gateway).midasRedemptionVault();
 
             (, address requestTokenOut, uint8 status, uint256 amountMTokenIn, uint256 mTokenRate, uint256 tokenOutRate)
