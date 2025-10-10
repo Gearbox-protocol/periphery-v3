@@ -19,13 +19,8 @@ contract UploadMockTestnetBytecode is Script, BCRHelpers, Bytecodes, AnvilHelper
 
     function _mockBytecodeRepositoryBytecode(address bytecodeRepository) internal {
         address bcrOwner = BytecodeRepository(bytecodeRepository).owner();
-
-        address ownerPlaceholder = makeAddr("placeholder");
-        address bytecodeRepositoryMock = address(new BytecodeRepositoryMock(ownerPlaceholder));
-        bytes memory findBytes = abi.encodePacked(ownerPlaceholder);
-        bytes memory replacementBytes = abi.encodePacked(bcrOwner);
-        bytes memory updatedBytecode = LibBytes.replace(bytecodeRepositoryMock.code, findBytes, replacementBytes);
-        _replaceBytecode(bytecodeRepository, updatedBytecode);
+        address bytecodeRepositoryMock = address(new BytecodeRepositoryMock(bcrOwner));
+        _replaceBytecode(bytecodeRepository, bytecodeRepositoryMock.code);
     }
 
     function run() external {
