@@ -1,0 +1,53 @@
+{
+  "lib/@1inch/farming": {
+    "rev": "47134f2828225a47183ad40bfc8f06a60bd018cd"
+  },
+  "lib/@1inch/solidity-utils": {
+    "rev": "5fdd4c2c02525855e9f64d9a43d779013c6444ea"
+  },
+  "lib/@gearbox-protocol/bots-v3": {
+    "tag": {
+      "name": "v1.6.0",
+      "rev": "bbbd3c7348918077d8d1fb71814b01ea7b74f9b5"
+    }
+  },
+  "lib/@gearbox-protocol/core-v3": {
+    "tag": {
+      "name": "v1.52.0",
+      "rev": "5144d61af7d117f86d3fa9b4e2aa05535e2e5433"
+    }
+  },
+  "lib/@gearbox-protocol/integrations-v3": {
+    "tag": {
+      "name": "v1.48.0",
+      "rev": "54221b884babfe43d4c09de9d5411833ced627be"
+    }
+  },
+  "lib/@gearbox-protocol/oracles-v3": {
+    "tag": {
+      "name": "v1.14.0",
+      "rev": "78ad827ab9329f2c1d884672120fb61ca9fb67ec"
+    }
+  },
+  "lib/@gearbox-protocol/permissionless": {
+    "tag": {
+      "name": "v1.5.0",
+      "rev": "ef0b90dbcd41c13555117ea119ef14c413627612"
+    }
+  },
+  "lib/@gearbox-protocol/sdk-gov": {
+    "rev": "528de13cdf76bc30435a2652d69b98c21aa83f6d"
+  },
+  "lib/@openzeppelin": {
+    "rev": "dc44c9f1a4c3b10af99492eed84f83ed244203f6"
+  },
+  "lib/@solady": {
+    "rev": "8d726fb1499f7f1d7459d05379efddcd500dab1a"
+  },
+  "lib/forge-std": {
+    "tag": {
+      "name": "v1.11.0",
+      "rev": "8e40513d678f392f398620b3ef2b418648b33e89"
+    }
+  }
+}
