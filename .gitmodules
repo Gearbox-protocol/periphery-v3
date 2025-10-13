@@ -1,15 +1,12 @@
 [submodule "lib/@gearbox-protocol/core-v3"]
 	path = lib/@gearbox-protocol/core-v3
 	url = https://github.com/Gearbox-protocol/core-v3
-	branch = next
 [submodule "lib/@gearbox-protocol/integrations-v3"]
 	path = lib/@gearbox-protocol/integrations-v3
 	url = https://github.com/Gearbox-protocol/integrations-v3
-	branch = next
 [submodule "lib/@gearbox-protocol/oracles-v3"]
 	path = lib/@gearbox-protocol/oracles-v3
 	url = https://github.com/Gearbox-protocol/oracles-v3
-	branch = next
 [submodule "lib/@openzeppelin"]
 	path = lib/@openzeppelin
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
@@ -34,4 +31,3 @@
 [submodule "lib/@gearbox-protocol/bots-v3"]
 	path = lib/@gearbox-protocol/bots-v3
 	url = https://github.com/Gearbox-protocol/bots-v3
-	branch = next

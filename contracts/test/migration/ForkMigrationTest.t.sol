@@ -8,6 +8,8 @@ import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 
 contract ForkMigrationTest is MigrationTestHelper {
     function setUp() public {
+        vm.skip(ADDRESS_PROVIDER.code.length == 0, "Not in an attach mode");
+
         address mcFactory = vm.envOr("MARKET_CONFIGURATOR_FACTORY", address(0));
         address contractsRegisterOld = vm.envOr("CONTRACTS_REGISTER_OLD", address(0));
         address router = vm.envOr("ROUTER", address(0));
