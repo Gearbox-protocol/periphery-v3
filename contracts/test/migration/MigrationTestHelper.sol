@@ -45,6 +45,7 @@ interface ICreditFacadeV3Old {
 contract MigrationTestHelper is Test {
     using CreditLogic for CollateralDebtData;
 
+    address public constant ADDRESS_PROVIDER = 0xF7f0a609BfAb9a0A98786951ef10e5FE26cC1E38;
     address public ioProxy;
 
     AccountMigratorBot public accountMigratorBot;
