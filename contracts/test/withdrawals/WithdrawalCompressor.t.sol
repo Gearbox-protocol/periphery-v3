@@ -123,7 +123,7 @@ contract WithdrawalCompressorTest is Test {
             vm.warp(claimableAt + 1);
             address gateway = MidasRedemptionVaultPhantomToken(withdrawalPhantomToken).gateway();
             address midasRedemptionVault = MidasRedemptionVaultGateway(gateway).midasRedemptionVault();
-            (,uint256 requestId,,) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
+            (,,uint256 requestId,,) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
             address mTokenDataFeed = IMidasRedemptionVaultExt(midasRedemptionVault).mTokenDataFeed();
             uint256 mTokenRate = IMidasDataFeed(mTokenDataFeed).getDataInBase18();
 

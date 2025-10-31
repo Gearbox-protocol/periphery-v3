@@ -135,7 +135,8 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     {
         address mToken = MidasRedemptionVaultGateway(gateway).mToken();
 
-        (bool isActive,uint256 requestId, uint256 timestamp,) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
+        (bool isActive, bool isManuallyCleared, uint256 requestId, uint256 timestamp,) =
+            MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
 
         if (isActive) {
             address redemptionVault = MidasRedemptionVaultGateway(gateway).midasRedemptionVault();
@@ -143,7 +144,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
             (, address requestTokenOut, uint8 status, uint256 amountMTokenIn, uint256 mTokenRate, uint256 tokenOutRate)
             = IMidasRedemptionVault(redemptionVault).redeemRequests(requestId);
 
-            if (status == 1) return pendingWithdrawals;
+            if (status == 1 || isManuallyCleared) return pendingWithdrawals;
 
             pendingWithdrawals = new PendingWithdrawal[](1);
             pendingWithdrawals[0].token = mToken;
@@ -165,7 +166,8 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     {
         address mToken = MidasRedemptionVaultGateway(gateway).mToken();
 
-        (bool isActive,uint256 requestId,, uint256 remainder) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
+        (bool isActive, bool isManuallyCleared, uint256 requestId,, uint256 remainder) =
+            MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
 
         address gatewayAdapter =
             ICreditManagerV3(ICreditAccountV3(creditAccount).creditManager()).contractToAdapter(gateway);
@@ -176,7 +178,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
             (, address requestTokenOut, uint8 status, uint256 amountMTokenIn, uint256 mTokenRate, uint256 tokenOutRate)
             = IMidasRedemptionVault(redemptionVault).redeemRequests(requestId);
 
-            if (status == 0) return withdrawal;
+            if (status == 0 || (status == 2 && !isManuallyCleared)) return withdrawal;
 
             withdrawal.token = mToken;
             withdrawal.outputs = new WithdrawalOutput[](1);
