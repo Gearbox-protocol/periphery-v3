@@ -19,7 +19,7 @@ contract ForkMigrationTest is MigrationTestHelper {
         _setUp(mcFactory, contractsRegisterOld, router);
     }
 
-    function test_migrateAllCreditAccounts() public {
+    function test_migrateAllCreditAccountsForked() public {
         address oldCreditManager = vm.envOr("OLD_CREDIT_MANAGER", address(0));
         address newCreditManager = vm.envOr("NEW_CREDIT_MANAGER", address(0));
 
@@ -33,7 +33,7 @@ contract ForkMigrationTest is MigrationTestHelper {
         _migrateAllCreditAccounts(oldCreditManager, newCreditManager);
     }
 
-    function test_migrateCreditAccount() public {
+    function test_migrateCreditAccountForked() public {
         address oldCreditAccount = vm.envOr("OLD_CREDIT_ACCOUNT", address(0));
         address newCreditManager = vm.envOr("NEW_CREDIT_MANAGER", address(0));
 

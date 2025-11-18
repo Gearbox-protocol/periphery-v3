@@ -49,8 +49,11 @@ import {
 } from "@gearbox-protocol/integrations-v3/contracts/adapters/velodrome/VelodromeV2RouterAdapter.sol";
 import {DaiUsdsAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/sky/DaiUsdsAdapter.sol";
 import {StakingRewardsAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/sky/StakingRewardsAdapter.sol";
-import {BalancerV3RouterAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/balancer/BalancerV3RouterAdapter.sol";
+import {
+    BalancerV3RouterAdapter,
+    BalancerV3PoolStatus,
+    PoolStatus
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/balancer/BalancerV3RouterAdapter.sol";
 import {
     MellowVaultAdapter,
     MellowUnderlyingStatus
@@ -64,6 +67,10 @@ interface IOldAdapter {
 
 interface IOldMellowVaultAdapter {
     function isUnderlyingAllowed(address underlying) external view returns (bool);
+}
+
+interface IOldBalancerV3RouterAdapter {
+    function getAllowedPools() external view returns (address[] memory);
 }
 
 address constant VELODROME_DEFAULT_FACTORY = 0xF1046053aa5682b4F9a81b5481394DA16BE5FF5a;
@@ -353,16 +360,23 @@ contract IntegrationCloner is Test {
             vm.prank(configurator);
             newAdapter = address(new BalancerV3RouterAdapter(newCreditManager, targetContract));
 
-            address[] memory pools = BalancerV3RouterAdapter(oldAdapter).getAllowedPools();
+            if (IAdapter(oldAdapter).version() < 3_11) {
+                address[] memory pools = IOldBalancerV3RouterAdapter(oldAdapter).getAllowedPools();
 
-            bool[] memory statuses = new bool[](pools.length);
+                BalancerV3PoolStatus[] memory poolStatuses = new BalancerV3PoolStatus[](pools.length);
 
-            for (uint256 i = 0; i < pools.length; ++i) {
-                statuses[i] = true;
+                for (uint256 i = 0; i < pools.length; ++i) {
+                    poolStatuses[i] = BalancerV3PoolStatus({pool: pools[i], status: PoolStatus.SWAP_ONLY});
+                }
+
+                vm.prank(configurator);
+                BalancerV3RouterAdapter(newAdapter).setPoolStatusBatch(poolStatuses);
+            } else {
+                BalancerV3PoolStatus[] memory poolStatuses = BalancerV3RouterAdapter(oldAdapter).getAllowedPools();
+
+                vm.prank(configurator);
+                BalancerV3RouterAdapter(newAdapter).setPoolStatusBatch(poolStatuses);
             }
-
-            vm.prank(configurator);
-            BalancerV3RouterAdapter(newAdapter).setPoolStatusBatch(pools, statuses);
         }
         /// MELLOW ERC4626 VAULT
         else if (aType == AdapterType.MELLOW_ERC4626_VAULT) {

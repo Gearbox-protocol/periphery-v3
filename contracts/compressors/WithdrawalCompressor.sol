@@ -30,7 +30,7 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
     using WithdrawalLib for ClaimableWithdrawal[];
     using WithdrawalLib for PendingWithdrawal[];
 
-    uint256 public constant version = 3_10;
+    uint256 public constant version = 3_11;
     bytes32 public constant contractType = AP_WITHDRAWAL_COMPRESSOR;
 
     mapping(bytes32 => bytes32) public withdrawableTypeToCompressorType;
@@ -92,8 +92,26 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
         return (claimableWithdrawals.filterEmpty(), pendingWithdrawals.filterEmpty());
     }
 
+    function getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
+        external
+        view
+        returns (RequestableWithdrawal memory withdrawal)
+    {
+        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount);
+    }
+
     function getWithdrawalRequestResult(address creditAccount, address token, uint256 amount)
         external
+        view
+        returns (RequestableWithdrawal memory withdrawal)
+    {
+        address creditManager = ICreditAccountV3(creditAccount).creditManager();
+        address withdrawalToken = _getWithdrawalTokenForToken(creditManager, token);
+        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount);
+    }
+
+    function _getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
+        internal
         view
         returns (RequestableWithdrawal memory withdrawal)
     {
@@ -102,10 +120,6 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
         if (balance < amount) {
             amount = balance;
         }
-
-        address creditManager = ICreditAccountV3(creditAccount).creditManager();
-
-        address withdrawalToken = _getWithdrawalTokenForToken(creditManager, token);
 
         address compressor = _getCompressorForToken(withdrawalToken);
 
