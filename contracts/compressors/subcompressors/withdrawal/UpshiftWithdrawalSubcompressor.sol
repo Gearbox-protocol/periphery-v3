@@ -89,9 +89,9 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
             ICreditManagerV3(ICreditAccountV3(creditAccount).creditManager()).contractToAdapter(upshiftVaultGateway);
 
         (,,, uint256 claimableTimestamp) =
-            IUpshiftVault(UpshiftVaultWithdrawalPhantomToken(token).vault()).getWithdrawalEpoch();
+            IUpshiftVault(UpshiftVaultWithdrawalPhantomToken(withdrawalToken).vault()).getWithdrawalEpoch();
 
-        address vault = UpshiftVaultWithdrawalPhantomToken(token).vault();
+        address vault = UpshiftVaultWithdrawalPhantomToken(withdrawalToken).vault();
         address asset = IERC4626(vault).asset();
 
         requestableWithdrawal.token = token;

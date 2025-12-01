@@ -19,7 +19,8 @@ import {InfinifiWithdrawalSubcompressor} from
     "../../compressors/subcompressors/withdrawal/InfinifiWithdrawalSubcompressor.sol";
 import {MidasWithdrawalSubcompressor} from
     "../../compressors/subcompressors/withdrawal/MidasWithdrawalSubcompressor.sol";
-
+import {UpshiftWithdrawalSubcompressor} from
+    "../../compressors/subcompressors/withdrawal/UpshiftWithdrawalSubcompressor.sol";
 import {MidasRedemptionVaultGateway} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultGateway.sol";
 import {MidasRedemptionVaultPhantomToken} from
@@ -55,6 +56,7 @@ contract WithdrawalCompressorTest is Test {
     MellowWithdrawalSubcompressor public mwsc;
     InfinifiWithdrawalSubcompressor public iusc;
     MidasWithdrawalSubcompressor public midwsc;
+    UpshiftWithdrawalSubcompressor public uwsc;
 
     address user;
 
@@ -66,13 +68,16 @@ contract WithdrawalCompressorTest is Test {
         mwsc = new MellowWithdrawalSubcompressor();
         iusc = new InfinifiWithdrawalSubcompressor();
         midwsc = new MidasWithdrawalSubcompressor();
+        uwsc = new UpshiftWithdrawalSubcompressor();
 
         wc.setSubcompressor(address(mwsc));
         wc.setSubcompressor(address(iusc));
         wc.setSubcompressor(address(midwsc));
+        wc.setSubcompressor(address(uwsc));
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MELLOW_WITHDRAWAL", "GLOBAL::MELLOW_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::INFINIFI_UNWIND", "GLOBAL::INFINIFI_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MIDAS_REDEMPTION", "GLOBAL::MIDAS_WD_SC");
+        wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::UPSHIFT_WITHDRAW", "GLOBAL::UPSHIFT_WD_SC");
     }
 
     function test_WC_01_testWithdrawals() public {
@@ -118,6 +123,8 @@ contract WithdrawalCompressorTest is Test {
         if (cType == "PHANTOM_TOKEN::MELLOW_WITHDRAWAL") {
             vm.warp(claimableAt + 1);
         } else if (cType == "PHANTOM_TOKEN::INFINIFI_UNWIND") {
+            vm.warp(claimableAt + 1);
+        } else if (cType == "PHANTOM_TOKEN::UPSHIFT_WITHDRAW") {
             vm.warp(claimableAt + 1);
         } else if (cType == "PHANTOM_TOKEN::MIDAS_REDEMPTION") {
             vm.warp(claimableAt + 1);
