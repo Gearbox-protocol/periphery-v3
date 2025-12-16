@@ -33,6 +33,10 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import {WAD} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 
+interface IUpshiftVaultExt {
+    function lagDuration() external view returns (uint256);
+}
+
 contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
     using WithdrawalLib for PendingWithdrawal[];
 
@@ -91,6 +95,9 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
         (,,, uint256 claimableTimestamp) =
             IUpshiftVault(UpshiftVaultWithdrawalPhantomToken(withdrawalToken).vault()).getWithdrawalEpoch();
 
+        uint256 lagDuration =
+            IUpshiftVaultExt(UpshiftVaultWithdrawalPhantomToken(withdrawalToken).vault()).lagDuration();
+
         address vault = UpshiftVaultWithdrawalPhantomToken(withdrawalToken).vault();
         address asset = IERC4626(vault).asset();
 
@@ -98,7 +105,7 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
         requestableWithdrawal.amountIn = amount;
         requestableWithdrawal.outputs = new WithdrawalOutput[](1);
 
-        if (claimableTimestamp < block.timestamp) {
+        if (claimableTimestamp < block.timestamp || lagDuration == 0) {
             requestableWithdrawal.outputs[0] = WithdrawalOutput(asset, false, IERC4626(vault).previewRedeem(amount));
             requestableWithdrawal.requestCalls = new MultiCall[](2);
 
