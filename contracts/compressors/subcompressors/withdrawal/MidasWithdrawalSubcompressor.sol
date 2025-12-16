@@ -117,7 +117,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         requestableWithdrawal.amountIn = amount;
         requestableWithdrawal.outputs = new WithdrawalOutput[](1);
 
-        requestableWithdrawal.outputs[0] = WithdrawalOutput(asset, false, outputAmount);
+        requestableWithdrawal.outputs[0] = WithdrawalOutput(withdrawalToken, true, outputAmount);
         requestableWithdrawal.requestCalls = new MultiCall[](1);
         requestableWithdrawal.requestCalls[0] = MultiCall(
             address(gatewayAdapter), abi.encodeCall(IMidasRedemptionVaultAdapter.redeemRequest, (asset, amount))
