@@ -30,17 +30,19 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import {WAD} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 
+address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+interface IKelpGatewayExt {
+    function weth() external view returns (address);
+}
+
 contract KelpLRTWithdrawalSubcompressor is IWithdrawalSubcompressor {
     using WithdrawalLib for PendingWithdrawal[];
 
     uint256 public constant version = 3_10;
     bytes32 public constant contractType = "GLOBAL::KELP_LRT_WD_SC";
 
-    function getWithdrawableAssets(address, address token)
-        external
-        view
-        returns (WithdrawableAsset[] memory)
-    {
+    function getWithdrawableAssets(address, address token) external view returns (WithdrawableAsset[] memory) {
         address withdrawalManagerGateway = KelpLRTWithdrawalPhantomToken(token).withdrawalManagerGateway();
         address asset = KelpLRTWithdrawalPhantomToken(token).tokenOut();
         address rsETH = IKelpLRTWithdrawalManagerGateway(withdrawalManagerGateway).rsETH();
@@ -99,9 +101,10 @@ contract KelpLRTWithdrawalSubcompressor is IWithdrawalSubcompressor {
         requestableWithdrawal.outputs[0] = WithdrawalOutput(withdrawalToken, true, 0);
 
         address withdrawalManager = IKelpLRTWithdrawalManagerGateway(withdrawalManagerGateway).withdrawalManager();
+        address weth = IKelpGatewayExt(withdrawalManagerGateway).weth();
 
         requestableWithdrawal.outputs[0].amount =
-            IKelpLRTWithdrawalManager(withdrawalManager).getExpectedAssetAmount(asset, amount);
+            IKelpLRTWithdrawalManager(withdrawalManager).getExpectedAssetAmount(_assetOrETH(asset, weth), amount);
 
         return requestableWithdrawal;
     }
@@ -116,16 +119,17 @@ contract KelpLRTWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
         address withdrawer =
             IKelpLRTWithdrawalManagerGateway(withdrawalManagerGateway).accountToWithdrawer(creditAccount);
+        address weth = IKelpGatewayExt(withdrawalManagerGateway).weth();
         address asset = KelpLRTWithdrawalPhantomToken(withdrawalToken).tokenOut();
 
-        uint256 numRequests = _getNumRequests(asset, withdrawalManager, withdrawer);
-        uint256 nextLockedNonce = IKelpLRTWithdrawalManager(withdrawalManager).nextLockedNonce(asset);
+        uint256 numRequests = _getNumRequests(_assetOrETH(asset, weth), withdrawalManager, withdrawer);
+        uint256 nextLockedNonce = IKelpLRTWithdrawalManager(withdrawalManager).nextLockedNonce(_assetOrETH(asset, weth));
 
         pendingWithdrawals = new PendingWithdrawal[](numRequests);
 
         for (uint256 i = 0; i < numRequests; i++) {
             (, uint256 expectedAssetAmount, uint256 withdrawalStartBlock, uint256 userNonce) =
-                IKelpLRTWithdrawalManager(withdrawalManager).getUserWithdrawalRequest(asset, withdrawer, i);
+                IKelpLRTWithdrawalManager(withdrawalManager).getUserWithdrawalRequest(_assetOrETH(asset, weth), withdrawer, i);
 
             if (userNonce >= nextLockedNonce) {
                 pendingWithdrawals[i].token = rsETH;
@@ -179,5 +183,9 @@ contract KelpLRTWithdrawalSubcompressor is IWithdrawalSubcompressor {
         }
 
         return withdrawal;
+    }
+
+    function _assetOrETH(address asset, address weth) internal pure returns (address) {
+        return asset == weth ? ETH : asset;
     }
 }
