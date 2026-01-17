@@ -56,7 +56,7 @@ import {BaseCompressor} from "./BaseCompressor.sol";
 contract MarketCompressor is BaseCompressor, IMarketCompressor {
     using BaseLib for address;
 
-    uint256 public constant override version = 3_10;
+    uint256 public constant override version = 3_11;
     bytes32 public constant override contractType = AP_MARKET_COMPRESSOR;
 
     address internal immutable _gaugeSerializer;
@@ -81,12 +81,7 @@ contract MarketCompressor is BaseCompressor, IMarketCompressor {
         return getMarketData(pool, Ownable(IPoolV3(pool).acl()).owner());
     }
 
-    function getMarketData(address pool, address configurator)
-        public
-        view
-        override
-        returns (MarketData memory result)
-    {
+    function getMarketData(address pool, address configurator) public view override returns (MarketData memory result) {
         result.acl = IMarketConfigurator(configurator).acl();
         result.contractsRegister = IMarketConfigurator(configurator).contractsRegister();
         result.treasury = IMarketConfigurator(configurator).treasury();
@@ -108,7 +103,8 @@ contract MarketCompressor is BaseCompressor, IMarketCompressor {
                 ICreditSuiteCompressor(creditSuiteCompressor).getCreditSuiteData(creditManagers[i]);
         }
 
-        address priceFeedCompressor = _getLatestAddress(AP_PRICE_FEED_COMPRESSOR, 3_10);
+        // address priceFeedCompressor = _getLatestAddress(AP_PRICE_FEED_COMPRESSOR, 3_10);
+        address priceFeedCompressor = 0x1fA2637B9fab0CD14290A7EE908DDc9688a15120;
         result.priceOracle =
             IPriceFeedCompressor(priceFeedCompressor).getPriceOracleState(_getPriceOracle(pool, configurator), tokens);
         result.lossPolicy = getLossPolicyState(_getLossPolicy(pool, configurator));
