@@ -275,7 +275,9 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
         data.baseParams =
             priceFeed.getBaseParams(data.baseParams.contractType, serializers[data.baseParams.contractType]);
 
-        data.decimals = IPriceFeed(priceFeed).decimals();
+        try IPriceFeed(priceFeed).decimals() returns (uint8 decimals) {
+            data.decimals = decimals;
+        } catch {}
 
         try IPriceFeed(priceFeed).skipPriceCheck() returns (bool skipCheck) {
             data.skipCheck = skipCheck;
