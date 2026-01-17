@@ -35,7 +35,7 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
     using NestedPriceFeeds for IPriceFeed;
 
     /// @notice Contract version
-    uint256 public constant override version = 3_10;
+    uint256 public constant override version = 3_11;
 
     /// @notice Contract type
     bytes32 public constant override contractType = AP_PRICE_FEED_COMPRESSOR;
@@ -275,7 +275,9 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
         data.baseParams =
             priceFeed.getBaseParams(data.baseParams.contractType, serializers[data.baseParams.contractType]);
 
-        data.decimals = IPriceFeed(priceFeed).decimals();
+        try IPriceFeed(priceFeed).decimals() returns (uint8 decimals) {
+            data.decimals = decimals;
+        } catch {}
 
         try IPriceFeed(priceFeed).skipPriceCheck() returns (bool skipCheck) {
             data.skipCheck = skipCheck;
