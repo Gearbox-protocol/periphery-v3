@@ -13,26 +13,26 @@
   },
   "lib/@gearbox-protocol/core-v3": {
     "tag": {
-      "name": "v1.52.0",
-      "rev": "5144d61af7d117f86d3fa9b4e2aa05535e2e5433"
+      "name": "v1.52.1",
+      "rev": "b038597d9070d9fd18593a6ae9c3d28ca931bb73"
     }
   },
   "lib/@gearbox-protocol/integrations-v3": {
     "tag": {
-      "name": "v1.48.0",
-      "rev": "54221b884babfe43d4c09de9d5411833ced627be"
+      "name": "v1.54.2",
+      "rev": "8c4cf2ac8e9a4a5b49ffd955358e55fd5401605c"
     }
   },
   "lib/@gearbox-protocol/oracles-v3": {
     "tag": {
-      "name": "v1.14.0",
-      "rev": "78ad827ab9329f2c1d884672120fb61ca9fb67ec"
+      "name": "v1.16.0",
+      "rev": "287739a0d85d4c1a2ad15b8aebcc2fcb4db0af4d"
     }
   },
   "lib/@gearbox-protocol/permissionless": {
     "tag": {
-      "name": "v1.5.0",
-      "rev": "ef0b90dbcd41c13555117ea119ef14c413627612"
+      "name": "v1.7.0",
+      "rev": "0aab5ecec6de72176d7d2a8fae2cfa905d0206af"
     }
   },
   "lib/@gearbox-protocol/sdk-gov": {
@@ -46,8 +46,8 @@
   },
   "lib/forge-std": {
     "tag": {
-      "name": "v1.11.0",
-      "rev": "8e40513d678f392f398620b3ef2b418648b33e89"
+      "name": "v1.14.0",
+      "rev": "1801b0541f4fda118a10798fd3486bb7051c5dd6"
     }
   }
 }

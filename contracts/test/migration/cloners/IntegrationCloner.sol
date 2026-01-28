@@ -10,10 +10,12 @@ import {IACL} from "@gearbox-protocol/permissionless/contracts/interfaces/IACL.s
 import {IAdapter} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAdapter.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {ConvexStakedPositionToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/convex/ConvexV1_StakedPositionToken.sol";
-import {StakingRewardsPhantomToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/sky/StakingRewardsPhantomToken.sol";
+import {
+    ConvexStakedPositionToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/convex/ConvexV1_StakedPositionToken.sol";
+import {
+    StakingRewardsPhantomToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/sky/StakingRewardsPhantomToken.sol";
 import {IBaseRewardPool} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/IBaseRewardPool.sol";
 
 import {
@@ -24,12 +26,9 @@ import {
     UniswapV3Adapter,
     UniswapV3PoolStatus
 } from "@gearbox-protocol/integrations-v3/contracts/adapters/uniswap/UniswapV3.sol";
-import {YearnV2Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/yearn/YearnV2.sol";
 import {ERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/erc4626/ERC4626Adapter.sol";
 import {LidoV1Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/lido/LidoV1.sol";
 import {WstETHV1Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/lido/WstETHV1.sol";
-import {BalancerV2VaultAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/balancer/BalancerV2VaultAdapter.sol";
 import {
     CamelotV3Adapter,
     CamelotV3PoolStatus
@@ -40,23 +39,25 @@ import {CurveV1Adapter2Assets} from "@gearbox-protocol/integrations-v3/contracts
 import {CurveV1Adapter3Assets} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_3.sol";
 import {CurveV1Adapter4Assets} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_4.sol";
 import {CurveV1AdapterStableNG} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_StableNG.sol";
-import {ConvexV1BaseRewardPoolAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/convex/ConvexV1_BaseRewardPool.sol";
+import {
+    ConvexV1BaseRewardPoolAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/convex/ConvexV1_BaseRewardPool.sol";
 import {ConvexV1BoosterAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/convex/ConvexV1_Booster.sol";
 import {
     VelodromeV2RouterAdapter,
     VelodromeV2PoolStatus
 } from "@gearbox-protocol/integrations-v3/contracts/adapters/velodrome/VelodromeV2RouterAdapter.sol";
 import {DaiUsdsAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/sky/DaiUsdsAdapter.sol";
-import {StakingRewardsAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/sky/StakingRewardsAdapter.sol";
-import {BalancerV3RouterAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/balancer/BalancerV3RouterAdapter.sol";
 import {
-    MellowVaultAdapter,
-    MellowUnderlyingStatus
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/MellowVaultAdapter.sol";
-import {Mellow4626VaultAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/Mellow4626VaultAdapter.sol";
+    StakingRewardsAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/sky/StakingRewardsAdapter.sol";
+import {
+    BalancerV3RouterAdapter,
+    BalancerV3PoolStatus
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/balancer/BalancerV3RouterAdapter.sol";
+import {
+    Mellow4626VaultAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/Mellow4626VaultAdapter.sol";
 
 interface IOldAdapter {
     function _gearboxAdapterType() external view returns (AdapterType aType);
@@ -170,11 +171,6 @@ contract IntegrationCloner is Test {
             //     }
             // }
         }
-        /// YEARN V2
-        else if (aType == AdapterType.YEARN_V2) {
-            vm.prank(configurator);
-            newAdapter = address(new YearnV2Adapter(newCreditManager, targetContract));
-        }
         /// ERC4626
         else if (aType == AdapterType.ERC4626_VAULT) {
             vm.prank(configurator);
@@ -189,15 +185,6 @@ contract IntegrationCloner is Test {
         else if (aType == AdapterType.LIDO_WSTETH_V1) {
             vm.prank(configurator);
             newAdapter = address(new WstETHV1Adapter(newCreditManager, targetContract));
-        }
-        /// BALANCER VAULT
-        else if (aType == AdapterType.BALANCER_VAULT) {
-            vm.prank(configurator);
-            newAdapter = address(new BalancerV2VaultAdapter(newCreditManager, targetContract));
-
-            /// CLONE BALANCER POOLS
-            /// event: SetPoolStatus(poolId, newStatus);
-            /// function: setPoolStatus(bytes32 poolId, PoolStatus newStatus)
         }
         /// CAMELOT V3
         else if (aType == AdapterType.CAMELOT_V3_ROUTER) {
@@ -329,40 +316,15 @@ contract IntegrationCloner is Test {
             vm.prank(configurator);
             newAdapter = address(new StakingRewardsAdapter(newCreditManager, targetContract, stakedPhantomToken, 0));
         }
-        /// MELLOW LRT VAULT
-        else if (aType == AdapterType.MELLOW_LRT_VAULT) {
-            vm.prank(configurator);
-            newAdapter = address(new MellowVaultAdapter(newCreditManager, targetContract));
-
-            // uint256 collateralTokensCount = ICreditManagerV3(newCreditManager).collateralTokensCount();
-
-            // for (uint256 i = 0; i < collateralTokensCount; ++i) {
-            //     address token = ICreditManagerV3(oldCreditManager).getTokenByMask(1 << i);
-
-            //     if (IOldMellowVaultAdapter(oldAdapter).isUnderlyingAllowed(token)) {
-            //         MellowUnderlyingStatus[] memory underlyings = new MellowUnderlyingStatus[](1);
-            //         underlyings[0] = MellowUnderlyingStatus({underlying: token, allowed: true});
-
-            //         vm.prank(configurator);
-            //         MellowVaultAdapter(newAdapter).setUnderlyingStatusBatch(underlyings);
-            //     }
-            // }
-        }
         /// BALANCER V3
         else if (aType == AdapterType.BALANCER_V3_ROUTER) {
             vm.prank(configurator);
             newAdapter = address(new BalancerV3RouterAdapter(newCreditManager, targetContract));
 
-            address[] memory pools = BalancerV3RouterAdapter(oldAdapter).getAllowedPools();
-
-            bool[] memory statuses = new bool[](pools.length);
-
-            for (uint256 i = 0; i < pools.length; ++i) {
-                statuses[i] = true;
-            }
+            BalancerV3PoolStatus[] memory pools = BalancerV3RouterAdapter(oldAdapter).getAllowedPools();
 
             vm.prank(configurator);
-            BalancerV3RouterAdapter(newAdapter).setPoolStatusBatch(pools, statuses);
+            BalancerV3RouterAdapter(newAdapter).setPoolStatusBatch(pools);
         }
         /// MELLOW ERC4626 VAULT
         else if (aType == AdapterType.MELLOW_ERC4626_VAULT) {

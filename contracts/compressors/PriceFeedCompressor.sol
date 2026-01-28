@@ -14,7 +14,6 @@ import {ILegacyPriceFeed, ILegacyPriceOracle, Legacy} from "../libraries/Legacy.
 import {AP_PRICE_FEED_COMPRESSOR} from "../libraries/Literals.sol";
 import {NestedPriceFeeds} from "../libraries/NestedPriceFeeds.sol";
 
-import {BPTWeightedPriceFeedSerializer} from "../serializers/oracles/BPTWeightedPriceFeedSerializer.sol";
 import {BoundedPriceFeedSerializer} from "../serializers/oracles/BoundedPriceFeedSerializer.sol";
 import {LPPriceFeedSerializer} from "../serializers/oracles/LPPriceFeedSerializer.sol";
 import {PendleTWAPPTPriceFeedSerializer} from "../serializers/oracles/PendleTWAPPTPriceFeedSerializer.sol";
@@ -49,17 +48,12 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
     constructor(address addressProvider_) BaseCompressor(addressProvider_) {
         // these types can be serialized as generic LP price feeds
         address lpSerializer = address(new LPPriceFeedSerializer());
-        serializers["PRICE_FEED::BALANCER_STABLE"] = lpSerializer;
         serializers["PRICE_FEED::CURVE_STABLE"] = lpSerializer;
         serializers["PRICE_FEED::CURVE_CRYPTO"] = lpSerializer;
-        serializers["PRICE_FEED::CURVE_USD"] = lpSerializer;
         serializers["PRICE_FEED::ERC4626"] = lpSerializer;
-        serializers["PRICE_FEED::MELLOW_LRT"] = lpSerializer;
         serializers["PRICE_FEED::WSTETH"] = lpSerializer;
-        serializers["PRICE_FEED::YEARN"] = lpSerializer;
 
         // these types need special serialization
-        serializers["PRICE_FEED::BALANCER_WEIGHTED"] = address(new BPTWeightedPriceFeedSerializer());
         serializers["PRICE_FEED::BOUNDED"] = address(new BoundedPriceFeedSerializer());
         serializers["PRICE_FEED::PENDLE_PT_TWAP"] = address(new PendleTWAPPTPriceFeedSerializer());
         serializers["PRICE_FEED::PYTH"] = address(new PythPriceFeedSerializer());
@@ -150,10 +144,7 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
             if (priceFeed == address(0)) continue;
 
             priceFeedMap[priceFeedMapSize++] = PriceFeedMapEntry({
-                token: token,
-                reserve: reserve,
-                priceFeed: priceFeed,
-                stalenessPeriod: stalenessPeriod
+                token: token, reserve: reserve, priceFeed: priceFeed, stalenessPeriod: stalenessPeriod
             });
         }
         // trim array to its actual size in case some tokens don't have reserve price feeds

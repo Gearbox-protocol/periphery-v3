@@ -20,17 +20,10 @@ import {CompositePriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles
 import {BoundedPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/BoundedPriceFeed.sol";
 import {RedstonePriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/updatable/RedstonePriceFeed.sol";
 import {ERC4626PriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/erc4626/ERC4626PriceFeed.sol";
-import {MellowLRTPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/mellow/MellowLRTPriceFeed.sol";
-import {YearnPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/yearn/YearnPriceFeed.sol";
 import {WstETHPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/lido/WstETHPriceFeed.sol";
 import {PendleTWAPPTPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/pendle/PendleTWAPPTPriceFeed.sol";
 import {CurveStableLPPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/curve/CurveStableLPPriceFeed.sol";
 import {CurveCryptoLPPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/curve/CurveCryptoLPPriceFeed.sol";
-import {BPTStablePriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/balancer/BPTStablePriceFeed.sol";
-import {BPTWeightedPriceFeed} from "@gearbox-protocol/oracles-v3/contracts/oracles/balancer/BPTWeightedPriceFeed.sol";
-
-import {IBalancerWeightedPool} from
-    "@gearbox-protocol/oracles-v3/contracts/interfaces/balancer/IBalancerWeightedPool.sol";
 
 interface IOldPriceOracle {
     function priceFeedParams(address token)
@@ -177,28 +170,6 @@ contract PriceFeedCloner is Test {
             newPriceFeed =
                 address(new ERC4626PriceFeed(configurator, lowerBound, vault, underlyingFeed, stalenessPeriod));
         }
-        /// MELLOW LRT ORACLE
-        else if (pfType == PriceFeedType.MELLOW_LRT_ORACLE) {
-            address vault = MellowLRTPriceFeed(oldPriceFeed).lpContract();
-            uint256 lowerBound = IERC4626(vault).convertToAssets(1e18);
-            uint32 stalenessPeriod = MellowLRTPriceFeed(oldPriceFeed).stalenessPeriod();
-            address underlyingFeed =
-                _migrateFromOld(token, MellowLRTPriceFeed(oldPriceFeed).priceFeed(), stalenessPeriod);
-
-            vm.prank(configurator);
-            newPriceFeed =
-                address(new ERC4626PriceFeed(configurator, lowerBound, vault, underlyingFeed, stalenessPeriod));
-        }
-        /// YEARN ORACLE
-        else if (pfType == PriceFeedType.YEARN_ORACLE) {
-            uint256 lowerBound = YearnPriceFeed(oldPriceFeed).getLPExchangeRate();
-            address vault = YearnPriceFeed(oldPriceFeed).lpContract();
-            uint32 stalenessPeriod = YearnPriceFeed(oldPriceFeed).stalenessPeriod();
-            address underlyingFeed = _migrateFromOld(token, YearnPriceFeed(oldPriceFeed).priceFeed(), stalenessPeriod);
-
-            vm.prank(configurator);
-            newPriceFeed = address(new YearnPriceFeed(configurator, lowerBound, vault, underlyingFeed, stalenessPeriod));
-        }
         /// WSTETH ORACLE
         else if (pfType == PriceFeedType.WSTETH_ORACLE) {
             uint256 lowerBound = WstETHPriceFeed(oldPriceFeed).getLPExchangeRate();
@@ -272,47 +243,6 @@ contract PriceFeedCloner is Test {
             vm.prank(configurator);
             newPriceFeed = address(new CurveCryptoLPPriceFeed(configurator, lowerBound, lpToken, pool, pfParams));
         }
-        /// BPT STABLE PRICE FEED
-        else if (pfType == PriceFeedType.BALANCER_STABLE_LP_ORACLE) {
-            uint256 lowerBound = BPTStablePriceFeed(oldPriceFeed).getLPExchangeRate();
-            address balancerPool = BPTStablePriceFeed(oldPriceFeed).lpContract();
-
-            PriceFeedParams[5] memory pfParams;
-
-            pfParams[0].stalenessPeriod = BPTStablePriceFeed(oldPriceFeed).stalenessPeriod0();
-            pfParams[0].priceFeed =
-                _migrateFromOld(token, BPTStablePriceFeed(oldPriceFeed).priceFeed0(), pfParams[0].stalenessPeriod);
-
-            pfParams[1].stalenessPeriod = BPTStablePriceFeed(oldPriceFeed).stalenessPeriod1();
-            pfParams[1].priceFeed =
-                _migrateFromOld(token, BPTStablePriceFeed(oldPriceFeed).priceFeed1(), pfParams[1].stalenessPeriod);
-
-            pfParams[2].stalenessPeriod = BPTStablePriceFeed(oldPriceFeed).stalenessPeriod2();
-            pfParams[2].priceFeed =
-                _migrateFromOld(token, BPTStablePriceFeed(oldPriceFeed).priceFeed2(), pfParams[2].stalenessPeriod);
-
-            pfParams[3].stalenessPeriod = BPTStablePriceFeed(oldPriceFeed).stalenessPeriod3();
-            pfParams[3].priceFeed =
-                _migrateFromOld(token, BPTStablePriceFeed(oldPriceFeed).priceFeed3(), pfParams[3].stalenessPeriod);
-
-            pfParams[4].stalenessPeriod = BPTStablePriceFeed(oldPriceFeed).stalenessPeriod4();
-            pfParams[4].priceFeed =
-                _migrateFromOld(token, BPTStablePriceFeed(oldPriceFeed).priceFeed4(), pfParams[4].stalenessPeriod);
-
-            vm.prank(configurator);
-            newPriceFeed = address(new BPTStablePriceFeed(configurator, lowerBound, balancerPool, pfParams));
-        }
-        /// BPT WEIGHTED PRICE FEED
-        else if (pfType == PriceFeedType.BALANCER_WEIGHTED_LP_ORACLE) {
-            PriceFeedParams[] memory pfParams = _getBPTWeightedPriceFeedParams(token, oldPriceFeed);
-
-            uint256 lowerBound = BPTWeightedPriceFeed(oldPriceFeed).getLPExchangeRate();
-            address balancerPool = BPTWeightedPriceFeed(oldPriceFeed).lpContract();
-            address vault = BPTWeightedPriceFeed(oldPriceFeed).vault();
-
-            vm.prank(configurator);
-            newPriceFeed = address(new BPTWeightedPriceFeed(configurator, lowerBound, vault, balancerPool, pfParams));
-        }
 
         oldToNewPriceFeed[oldPriceFeed] = newPriceFeed;
         stalenessPeriods[newPriceFeed] = oldStalenessPeriod;
@@ -363,85 +293,6 @@ contract PriceFeedCloner is Test {
     function _isCurvePriceFeedType(PriceFeedType pft) internal pure returns (bool) {
         return pft == PriceFeedType.CURVE_2LP_ORACLE || pft == PriceFeedType.CURVE_3LP_ORACLE
             || pft == PriceFeedType.CURVE_4LP_ORACLE;
-    }
-
-    function _getBPTWeightedPriceFeedParams(address token, address balancerPf)
-        internal
-        returns (PriceFeedParams[] memory pfParams)
-    {
-        address pool = BPTWeightedPriceFeed(balancerPf).lpContract();
-
-        uint256[] memory weights = IBalancerWeightedPool(pool).getNormalizedWeights();
-        uint256[] memory indices = _sort(weights);
-
-        uint256 numAssets = weights.length;
-        pfParams = new PriceFeedParams[](numAssets);
-
-        for (uint256 i = 0; i < numAssets; ++i) {
-            (address pf, uint32 sp) = _getBPTWeightedPriceFeedUPF(balancerPf, i);
-            pfParams[indices[i]].stalenessPeriod = sp;
-            pfParams[indices[i]].priceFeed = _migrateFromOld(token, pf, sp);
-        }
-    }
-
-    /// @dev Sorts array in-place in ascending order, also returns the resulting permutation
-    function _sort(uint256[] memory data) internal pure returns (uint256[] memory indices) {
-        uint256 len = data.length;
-        indices = new uint256[](len);
-        for (uint256 i; i < len; ++i) {
-            indices[i] = i;
-        }
-        _quickSort(data, indices, 0, len - 1);
-    }
-
-    /// @dev Quick sort sub-routine
-    function _quickSort(uint256[] memory data, uint256[] memory indices, uint256 low, uint256 high) private pure {
-        unchecked {
-            if (low < high) {
-                uint256 pVal = data[(low + high) / 2];
-
-                uint256 i = low;
-                uint256 j = high;
-                for (;;) {
-                    while (data[i] < pVal) i++;
-                    while (data[j] > pVal) j--;
-                    if (i >= j) break;
-                    if (data[i] != data[j]) {
-                        (data[i], data[j]) = (data[j], data[i]);
-                        (indices[i], indices[j]) = (indices[j], indices[i]);
-                    }
-                    i++;
-                    j--;
-                }
-                if (low < j) _quickSort(data, indices, low, j);
-                j++;
-                if (j < high) _quickSort(data, indices, j, high);
-            }
-        }
-    }
-
-    function _getBPTWeightedPriceFeedUPF(address balancerPf, uint256 pfNum)
-        internal
-        view
-        returns (address priceFeed, uint32 stalenessPeriod)
-    {
-        if (pfNum == 0) {
-            return (BPTWeightedPriceFeed(balancerPf).priceFeed0(), BPTWeightedPriceFeed(balancerPf).stalenessPeriod0());
-        } else if (pfNum == 1) {
-            return (BPTWeightedPriceFeed(balancerPf).priceFeed1(), BPTWeightedPriceFeed(balancerPf).stalenessPeriod1());
-        } else if (pfNum == 2) {
-            return (BPTWeightedPriceFeed(balancerPf).priceFeed2(), BPTWeightedPriceFeed(balancerPf).stalenessPeriod2());
-        } else if (pfNum == 3) {
-            return (BPTWeightedPriceFeed(balancerPf).priceFeed3(), BPTWeightedPriceFeed(balancerPf).stalenessPeriod3());
-        } else if (pfNum == 4) {
-            return (BPTWeightedPriceFeed(balancerPf).priceFeed4(), BPTWeightedPriceFeed(balancerPf).stalenessPeriod4());
-        } else if (pfNum == 5) {
-            return (BPTWeightedPriceFeed(balancerPf).priceFeed5(), BPTWeightedPriceFeed(balancerPf).stalenessPeriod5());
-        } else if (pfNum == 6) {
-            return (BPTWeightedPriceFeed(balancerPf).priceFeed6(), BPTWeightedPriceFeed(balancerPf).stalenessPeriod6());
-        } else if (pfNum == 7) {
-            return (BPTWeightedPriceFeed(balancerPf).priceFeed7(), BPTWeightedPriceFeed(balancerPf).stalenessPeriod7());
-        }
     }
 
     function _updateRedstonePriceFeed(address priceFeed) internal {

@@ -16,5 +16,5 @@ fs_permissions = [{access = "read-write", path = "./"}]
 gas_limit = 9223372036854775807
 ffi = true
 
-[profile.attach-test]
-evm_version = "cancun"
+[lint]
+lint_on_build = false
