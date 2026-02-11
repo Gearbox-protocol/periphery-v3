@@ -40,8 +40,8 @@ contract OnDemandSecuritizeUnderlying is DefaultSecuritizeUnderlying {
         _;
     }
 
-    modifier onlyCreditAccount(address caller) {
-        if (!_isCreditAccountFromFactory(caller)) revert CallerIsNotCreditAccountException(caller);
+    modifier onlyKnownCreditAccounts(address caller) {
+        if (!_isKnownCreditAccount(caller)) revert CallerIsNotCreditAccountException(caller);
         _;
     }
 
@@ -90,7 +90,7 @@ contract OnDemandSecuritizeUnderlying is DefaultSecuritizeUnderlying {
         internal
         virtual
         override
-        onlyCreditAccount(caller)
+        onlyKnownCreditAccounts(caller)
     {
         super._deposit(caller, receiver, assets, shares);
     }
@@ -100,7 +100,7 @@ contract OnDemandSecuritizeUnderlying is DefaultSecuritizeUnderlying {
         internal
         virtual
         override
-        onlyCreditAccount(caller)
+        onlyKnownCreditAccounts(caller)
     {
         super._withdraw(caller, receiver, owner, assets, shares);
     }
@@ -110,8 +110,8 @@ contract OnDemandSecuritizeUnderlying is DefaultSecuritizeUnderlying {
         bool toZero = to == address(0);
         bool fromPool = !fromZero && _poolsSet.contains(from);
         bool toPool = !toZero && _poolsSet.contains(to);
-        bool fromCreditAccount = !fromZero && !fromPool && _isCreditAccountFromFactory(from);
-        bool toCreditAccount = !toZero && !toPool && _isCreditAccountFromFactory(to);
+        bool fromCreditAccount = !fromZero && !fromPool && _isKnownCreditAccount(from);
+        bool toCreditAccount = !toZero && !toPool && _isKnownCreditAccount(to);
 
         bool allowed = (fromZero && (toPool || toCreditAccount)) || (fromPool && (toZero || toCreditAccount))
             || (fromCreditAccount && (toZero || toPool));
@@ -130,7 +130,7 @@ contract OnDemandSecuritizeUnderlying is DefaultSecuritizeUnderlying {
     }
 
     function _afterTokenTransfer(address from, address to, uint256 amount) internal override {
-        if (_poolsSet.contains(to) && _isCreditAccountFromFactory(from)) {
+        if (_poolsSet.contains(to) && _isKnownCreditAccount(from)) {
             // automatic withdrawal from the pool after a credit account repays funds
             _burn(to, amount);
         } else if (to == address(0) && _poolsSet.contains(from)) {
@@ -139,9 +139,9 @@ contract OnDemandSecuritizeUnderlying is DefaultSecuritizeUnderlying {
         }
     }
 
-    function _isCreditAccountFromFactory(address account) internal view returns (bool) {
+    function _isKnownCreditAccount(address account) internal view returns (bool) {
         // TODO: maybe need to check that CAs are open in the proper market
-        return FACTORY.isCreditAccountFromFactory(account);
+        return FACTORY.isKnownCreditAccount(account);
     }
 
     function _isFrozen(address creditAccount) internal view returns (bool) {

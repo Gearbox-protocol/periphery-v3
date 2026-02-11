@@ -55,6 +55,6 @@ contract DefaultSecuritizeUnderlying is ERC4626, IVersion {
     }
 
     function _isFrozenCreditAccount(address account) internal view returns (bool) {
-        return FACTORY.isCreditAccountFromFactory(account) && FACTORY.isFrozen(account);
+        return FACTORY.isKnownCreditAccount(account) && FACTORY.isFrozen(account);
     }
 }

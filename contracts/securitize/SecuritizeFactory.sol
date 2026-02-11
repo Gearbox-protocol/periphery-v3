@@ -78,7 +78,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         _;
     }
 
-    modifier onlyKnownCreditAccount(address creditAccount) {
+    modifier onlyKnownCreditAccounts(address creditAccount) {
         _ensureCreditAccountIsKnown(creditAccount);
         _;
     }
@@ -106,7 +106,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         if (registrar == address(0)) revert RegistrarNotSetForTokenException(token);
     }
 
-    function isCreditAccountFromFactory(address creditAccount) public view override returns (bool) {
+    function isKnownCreditAccount(address creditAccount) public view override returns (bool) {
         return _creditAccountInfo[creditAccount].wallet != address(0);
     }
 
@@ -114,7 +114,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         external
         view
         override
-        onlyKnownCreditAccount(creditAccount)
+        onlyKnownCreditAccounts(creditAccount)
         returns (address)
     {
         return _creditAccountInfo[creditAccount].wallet;
@@ -124,7 +124,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         external
         view
         override
-        onlyKnownCreditAccount(creditAccount)
+        onlyKnownCreditAccounts(creditAccount)
         returns (address)
     {
         return _creditAccountInfo[creditAccount].investor;
@@ -134,10 +134,20 @@ contract SecuritizeFactory is ISecuritizeFactory {
         external
         view
         override
-        onlyKnownCreditAccount(creditAccount)
+        onlyKnownCreditAccounts(creditAccount)
         returns (bool)
     {
         return _creditAccountInfo[creditAccount].frozen;
+    }
+
+    function getRegisteredTokens(address creditAccount)
+        external
+        view
+        override
+        onlyKnownCreditAccounts(creditAccount)
+        returns (address[] memory)
+    {
+        return _creditAccountInfo[creditAccount].tokens.values();
     }
 
     function getCreditAccounts(address investor) external view override returns (address[] memory) {
@@ -152,7 +162,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         return Create2.computeAddress(_getSalt(investor), keccak256(_getWalletBytecode(creditManager)));
     }
 
-    function openCreditAccount(address creditManager, address[] calldata tokensToRegister, bytes[] calldata walletCalls)
+    function openCreditAccount(address creditManager, bytes[] calldata walletCalls, address[] calldata tokensToRegister)
         external
         override
         returns (address creditAccount, address wallet)
@@ -210,7 +220,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         external
         override
         onlyAdmin
-        onlyKnownCreditAccount(creditAccount)
+        onlyKnownCreditAccounts(creditAccount)
     {
         if (_creditAccountInfo[creditAccount].frozen == frozen) return;
         _creditAccountInfo[creditAccount].frozen = frozen;
@@ -222,7 +232,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         override
         onlyAdmin
         nonZeroAddress(investor)
-        onlyKnownCreditAccount(creditAccount)
+        onlyKnownCreditAccounts(creditAccount)
     {
         CreditAccountInfo storage creditAccountInfo = _creditAccountInfo[creditAccount];
         address oldInvestor = creditAccountInfo.investor;
@@ -261,7 +271,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
     }
 
     function _ensureCreditAccountIsKnown(address creditAccount) internal view {
-        if (!isCreditAccountFromFactory(creditAccount)) revert UnknownCreditAccountException(creditAccount);
+        if (!isKnownCreditAccount(creditAccount)) revert UnknownCreditAccountException(creditAccount);
     }
 
     function _getSalt(address investor) internal view returns (bytes32) {

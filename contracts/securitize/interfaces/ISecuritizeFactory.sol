@@ -34,10 +34,11 @@ interface ISecuritizeFactory is IVersion {
 
     function getAdmin() external view returns (address);
     function getRegistrar(address token) external view returns (address);
-    function isCreditAccountFromFactory(address creditAccount) external view returns (bool);
+    function isKnownCreditAccount(address creditAccount) external view returns (bool);
     function getWallet(address creditAccount) external view returns (address);
     function getInvestor(address creditAccount) external view returns (address);
     function isFrozen(address creditAccount) external view returns (bool);
+    function getRegisteredTokens(address creditAccount) external view returns (address[] memory);
     function getCreditAccounts(address investor) external view returns (address[] memory);
 
     // -------------- //
@@ -45,7 +46,7 @@ interface ISecuritizeFactory is IVersion {
     // -------------- //
 
     function precomputeWalletAddress(address creditManager, address investor) external view returns (address);
-    function openCreditAccount(address creditManager, address[] calldata tokensToRegister, bytes[] calldata walletCalls)
+    function openCreditAccount(address creditManager, bytes[] calldata walletCalls, address[] calldata tokensToRegister)
         external
         returns (address creditAccount, address wallet);
     function executeWalletCalls(address creditAccount, bytes[] calldata calls, address[] calldata tokensToRegister)
