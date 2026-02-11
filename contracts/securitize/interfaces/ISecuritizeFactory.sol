@@ -48,8 +48,8 @@ interface ISecuritizeFactory is IVersion {
     function openCreditAccount(address creditManager, address[] calldata tokensToRegister, bytes[] calldata walletCalls)
         external
         returns (address creditAccount, address wallet);
-    function registerTokens(address creditAccount, address[] calldata tokens) external;
-    function executeWalletCalls(address creditAccount, bytes[] calldata calls) external;
+    function executeWalletCalls(address creditAccount, bytes[] calldata calls, address[] calldata tokensToRegister)
+        external;
 
     // --------------- //
     // ADMIN FUNCTIONS //

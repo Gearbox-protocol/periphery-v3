@@ -176,22 +176,15 @@ contract SecuritizeFactory is ISecuritizeFactory {
         _executeWalletCalls(wallet, walletCalls);
     }
 
-    function registerTokens(address creditAccount, address[] calldata tokens)
+    function executeWalletCalls(address creditAccount, bytes[] calldata calls, address[] calldata tokensToRegister)
         external
         override
         onlyInvestor(creditAccount)
         whenNotFrozen(creditAccount)
     {
-        _registerTokens(msg.sender, creditAccount, _creditAccountInfo[creditAccount].wallet, tokens);
-    }
-
-    function executeWalletCalls(address creditAccount, bytes[] calldata calls)
-        external
-        override
-        onlyInvestor(creditAccount)
-        whenNotFrozen(creditAccount)
-    {
-        _executeWalletCalls(_creditAccountInfo[creditAccount].wallet, calls);
+        address wallet = _creditAccountInfo[creditAccount].wallet;
+        _registerTokens(msg.sender, creditAccount, wallet, tokensToRegister);
+        _executeWalletCalls(wallet, calls);
     }
 
     // --------------- //
