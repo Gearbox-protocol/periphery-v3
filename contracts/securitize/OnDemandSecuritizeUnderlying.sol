@@ -102,7 +102,6 @@ contract OnDemandSecuritizeUnderlying is DefaultSecuritizeUnderlying {
         override
         onlyCreditAccount(caller)
     {
-        // NOTE: can also enforce owner and receiver to be a credit account (in case we don't trust our adapters)
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
@@ -141,6 +140,7 @@ contract OnDemandSecuritizeUnderlying is DefaultSecuritizeUnderlying {
     }
 
     function _isCreditAccountFromFactory(address account) internal view returns (bool) {
+        // TODO: maybe need to check that CAs are open in the proper market
         return FACTORY.isCreditAccountFromFactory(account);
     }
 

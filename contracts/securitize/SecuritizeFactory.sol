@@ -9,13 +9,8 @@ import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 
 import {SecuritizeWallet} from "./SecuritizeWallet.sol";
 import {ISecuritizeFactory} from "./interfaces/ISecuritizeFactory.sol";
-import {IVaultWhitelister} from "./interfaces/IVaultWhitelister.sol";
-import {
-    AP_SECURITIZE_ADMIN,
-    AP_SECURITIZE_FACTORY,
-    NO_VERSION_CONTROL,
-    AddressValidation
-} from "./libraries/AddressValidation.sol";
+import {IVaultRegistrar} from "./interfaces/IVaultRegistrar.sol";
+import {AP_SECURITIZE_FACTORY, NO_VERSION_CONTROL, AddressValidation} from "./libraries/AddressValidation.sol";
 
 /// @title Securitize Factory
 /// @author Gearbox Foundation
@@ -25,10 +20,15 @@ contract SecuritizeFactory is ISecuritizeFactory {
     using AddressValidation for IAddressProvider;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    // ----- //
+    // TYPES //
+    // ----- //
+
     struct CreditAccountInfo {
         address wallet;
         address investor;
         bool frozen;
+        EnumerableSet.AddressSet tokens;
     }
 
     struct InvestorInfo {
@@ -36,39 +36,75 @@ contract SecuritizeFactory is ISecuritizeFactory {
         EnumerableSet.AddressSet creditAccounts;
     }
 
+    // --------------- //
+    // STATE VARIABLES //
+    // --------------- //
+
     bytes32 public constant override contractType = AP_SECURITIZE_FACTORY;
+
     uint256 public constant override version = 3_10;
 
     IAddressProvider public immutable ADDRESS_PROVIDER;
 
-    mapping(address creditManager => address whitelister) internal _whitelisters;
+    address internal _admin;
+
+    mapping(address token => address registrar) internal _registrars;
 
     mapping(address creditAccount => CreditAccountInfo) internal _creditAccountInfo;
 
     mapping(address investor => InvestorInfo) internal _investorInfo;
 
-    modifier onlySecuritizeAdmin() {
-        _ensureCallerIsSecuritizeAdmin();
-        _;
-    }
+    // --------- //
+    // MODIFIERS //
+    // --------- //
 
     modifier nonZeroAddress(address addr) {
         _ensureAddressIsNotZero(addr);
         _;
     }
 
-    modifier onlyCreditAccountFromFactory(address creditAccount) {
-        _ensureCreditAccountIsFromFactory(creditAccount);
+    modifier onlyAdmin() {
+        _ensureCallerIsAdmin();
         _;
     }
 
-    constructor(IAddressProvider addressProvider) {
+    modifier onlyInvestor(address creditAccount) {
+        _ensureCallerIsInvestor(creditAccount);
+        _;
+    }
+
+    modifier whenNotFrozen(address creditAccount) {
+        _ensureCreditAccountIsNotFrozen(creditAccount);
+        _;
+    }
+
+    modifier onlyKnownCreditAccount(address creditAccount) {
+        _ensureCreditAccountIsKnown(creditAccount);
+        _;
+    }
+
+    // ----------- //
+    // CONSTRUCTOR //
+    // ----------- //
+
+    constructor(IAddressProvider addressProvider, address admin) nonZeroAddress(admin) {
         ADDRESS_PROVIDER = addressProvider;
+        _admin = admin;
+        emit SetAdmin(admin);
     }
 
     // ------- //
     // GETTERS //
     // ------- //
+
+    function getAdmin() external view override returns (address) {
+        return _admin;
+    }
+
+    function getRegistrar(address token) external view override returns (address registrar) {
+        registrar = _registrars[token];
+        if (registrar == address(0)) revert RegistrarNotSetForTokenException(token);
+    }
 
     function isCreditAccountFromFactory(address creditAccount) public view override returns (bool) {
         return _creditAccountInfo[creditAccount].wallet != address(0);
@@ -78,7 +114,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         external
         view
         override
-        onlyCreditAccountFromFactory(creditAccount)
+        onlyKnownCreditAccount(creditAccount)
         returns (address)
     {
         return _creditAccountInfo[creditAccount].wallet;
@@ -88,7 +124,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         external
         view
         override
-        onlyCreditAccountFromFactory(creditAccount)
+        onlyKnownCreditAccount(creditAccount)
         returns (address)
     {
         return _creditAccountInfo[creditAccount].investor;
@@ -98,7 +134,7 @@ contract SecuritizeFactory is ISecuritizeFactory {
         external
         view
         override
-        onlyCreditAccountFromFactory(creditAccount)
+        onlyKnownCreditAccount(creditAccount)
         returns (bool)
     {
         return _creditAccountInfo[creditAccount].frozen;
@@ -106,10 +142,6 @@ contract SecuritizeFactory is ISecuritizeFactory {
 
     function getCreditAccounts(address investor) external view override returns (address[] memory) {
         return _investorInfo[investor].creditAccounts.values();
-    }
-
-    function getWhitelister(address creditManager) external view override returns (address) {
-        return _whitelisters[creditManager];
     }
 
     // -------------- //
@@ -120,101 +152,123 @@ contract SecuritizeFactory is ISecuritizeFactory {
         return Create2.computeAddress(_getSalt(investor), keccak256(_getWalletBytecode(creditManager)));
     }
 
-    function openCreditAccount(address creditManager)
+    function openCreditAccount(address creditManager, address[] calldata tokensToRegister, bytes[] calldata walletCalls)
         external
         override
         returns (address creditAccount, address wallet)
     {
-        address whitelister = _whitelisters[creditManager];
-        if (whitelister == address(0)) revert CreditManagerNotAddedException(creditManager);
+        if (!ADDRESS_PROVIDER.isCreditManager(creditManager)) {
+            revert InvalidCreditManagerException(creditManager);
+        }
+        address underlying = ICreditManagerV3(creditManager).underlying();
+        if (!ADDRESS_PROVIDER.isSecuritizeUnderlying(underlying)) revert InvalidUnderlyingTokenException(underlying);
 
         wallet = Create2.deploy(0, _getSalt(msg.sender), _getWalletBytecode(creditManager));
-        creditAccount = SecuritizeWallet(wallet).CREDIT_ACCOUNT();
-
-        IVaultWhitelister(whitelister).whitelist(creditAccount, msg.sender);
-        IVaultWhitelister(whitelister).whitelist(wallet, msg.sender);
+        creditAccount = SecuritizeWallet(wallet).creditAccount();
 
         _investorInfo[msg.sender].nonce++;
         _investorInfo[msg.sender].creditAccounts.add(creditAccount);
-        _creditAccountInfo[creditAccount] = CreditAccountInfo({wallet: wallet, investor: msg.sender, frozen: false});
+        _creditAccountInfo[creditAccount].wallet = wallet;
+        _creditAccountInfo[creditAccount].investor = msg.sender;
+        emit CreateWallet(creditAccount, wallet, msg.sender);
 
-        emit OpenCreditAccount(creditAccount, wallet, msg.sender);
+        _registerTokens(msg.sender, creditAccount, wallet, tokensToRegister);
+        _executeWalletCalls(wallet, walletCalls);
+    }
+
+    function registerTokens(address creditAccount, address[] calldata tokens)
+        external
+        override
+        onlyInvestor(creditAccount)
+        whenNotFrozen(creditAccount)
+    {
+        _registerTokens(msg.sender, creditAccount, _creditAccountInfo[creditAccount].wallet, tokens);
+    }
+
+    function executeWalletCalls(address creditAccount, bytes[] calldata calls)
+        external
+        override
+        onlyInvestor(creditAccount)
+        whenNotFrozen(creditAccount)
+    {
+        _executeWalletCalls(_creditAccountInfo[creditAccount].wallet, calls);
     }
 
     // --------------- //
     // ADMIN FUNCTIONS //
     // --------------- //
 
-    /// @dev This factory is expected to have proper permissions in `whitelister`
-    function addCreditManager(address creditManager, address whitelister)
-        external
-        onlySecuritizeAdmin
-        nonZeroAddress(whitelister)
-    {
-        if (_whitelisters[creditManager] != address(0)) {
-            revert CreditManagerAlreadyAddedException(creditManager);
-        }
-        if (!ADDRESS_PROVIDER.isCreditManager(creditManager)) revert InvalidCreditManagerException(creditManager);
-        address underlying = ICreditManagerV3(creditManager).underlying();
-        if (!ADDRESS_PROVIDER.isSecuritizeUnderlying(underlying)) revert InvalidUnderlyingTokenException(underlying);
+    function setAdmin(address admin) external onlyAdmin nonZeroAddress(admin) {
+        if (admin == _admin) return;
+        _admin = admin;
+        emit SetAdmin(admin);
+    }
 
-        _whitelisters[creditManager] = whitelister;
-        emit AddCreditManager(creditManager, whitelister);
+    /// @dev This factory is expected to have proper permissions in `whitelister`
+    function addRegistrar(address registrar) external onlyAdmin nonZeroAddress(registrar) {
+        address token = IVaultRegistrar(registrar).token();
+        if (token == address(0)) revert ZeroAddressException();
+        if (_registrars[token] == registrar) return;
+        _registrars[token] = registrar;
+        emit SetRegistrar(token, registrar);
+    }
+
+    function setFrozenStatus(address creditAccount, bool frozen)
+        external
+        override
+        onlyAdmin
+        onlyKnownCreditAccount(creditAccount)
+    {
+        if (_creditAccountInfo[creditAccount].frozen == frozen) return;
+        _creditAccountInfo[creditAccount].frozen = frozen;
+        emit SetFrozenStatus(creditAccount, frozen);
     }
 
     function setInvestor(address creditAccount, address investor)
         external
         override
-        onlySecuritizeAdmin
+        onlyAdmin
         nonZeroAddress(investor)
-        onlyCreditAccountFromFactory(creditAccount)
+        onlyKnownCreditAccount(creditAccount)
     {
-        address oldInvestor = _creditAccountInfo[creditAccount].investor;
+        CreditAccountInfo storage creditAccountInfo = _creditAccountInfo[creditAccount];
+        address oldInvestor = creditAccountInfo.investor;
         if (investor == oldInvestor) return;
-        _creditAccountInfo[creditAccount].investor = investor;
-        _investorInfo[investor].creditAccounts.add(creditAccount);
-        _investorInfo[oldInvestor].creditAccounts.remove(creditAccount);
+        creditAccountInfo.investor = investor;
         emit SetInvestor(creditAccount, oldInvestor, investor);
-    }
 
-    function freeze(address creditAccount)
-        external
-        override
-        onlySecuritizeAdmin
-        onlyCreditAccountFromFactory(creditAccount)
-    {
-        if (_creditAccountInfo[creditAccount].frozen) return;
-        _creditAccountInfo[creditAccount].frozen = true;
-        emit FreezeCreditAccount(creditAccount);
-    }
-
-    function unfreeze(address creditAccount)
-        external
-        override
-        onlySecuritizeAdmin
-        onlyCreditAccountFromFactory(creditAccount)
-    {
-        if (!_creditAccountInfo[creditAccount].frozen) return;
-        _creditAccountInfo[creditAccount].frozen = false;
-        emit UnfreezeCreditAccount(creditAccount);
+        address wallet = creditAccountInfo.wallet;
+        address[] memory tokens = creditAccountInfo.tokens.values();
+        _investorInfo[oldInvestor].creditAccounts.remove(creditAccount);
+        _unregisterTokens(oldInvestor, creditAccount, wallet, tokens);
+        _investorInfo[investor].creditAccounts.add(creditAccount);
+        _registerTokens(investor, creditAccount, wallet, tokens);
     }
 
     // --------- //
     // INTERNALS //
     // --------- //
 
-    function _ensureCallerIsSecuritizeAdmin() internal view {
-        if (msg.sender != ADDRESS_PROVIDER.getAddressOrRevert(AP_SECURITIZE_ADMIN, NO_VERSION_CONTROL)) {
-            revert CallerIsNotSecuritizeAdminException(msg.sender);
+    function _ensureAddressIsNotZero(address addr) internal pure {
+        if (addr == address(0)) revert ZeroAddressException();
+    }
+
+    function _ensureCallerIsAdmin() internal view {
+        if (msg.sender != _admin) revert CallerIsNotAdminException(msg.sender);
+    }
+
+    function _ensureCallerIsInvestor(address creditAccount) internal view {
+        if (msg.sender != _creditAccountInfo[creditAccount].investor) {
+            revert CallerIsNotInvestorException(msg.sender, creditAccount);
         }
     }
 
-    function _ensureAddressIsNotZero(address addr) internal pure {
-        if (addr == address(0)) revert ZeroAddressException(addr);
+    function _ensureCreditAccountIsNotFrozen(address creditAccount) internal view {
+        if (_creditAccountInfo[creditAccount].frozen) revert FrozenCreditAccountException(creditAccount);
     }
 
-    function _ensureCreditAccountIsFromFactory(address creditAccount) internal view {
-        if (!isCreditAccountFromFactory(creditAccount)) revert CreditAccountNotFromFactoryException(creditAccount);
+    function _ensureCreditAccountIsKnown(address creditAccount) internal view {
+        if (!isCreditAccountFromFactory(creditAccount)) revert UnknownCreditAccountException(creditAccount);
     }
 
     function _getSalt(address investor) internal view returns (bytes32) {
@@ -223,5 +277,41 @@ contract SecuritizeFactory is ISecuritizeFactory {
 
     function _getWalletBytecode(address creditManager) internal view returns (bytes memory) {
         return abi.encodePacked(type(SecuritizeWallet).creationCode, abi.encode(address(this), creditManager));
+    }
+
+    function _registerTokens(address investor, address creditAccount, address wallet, address[] memory tokens)
+        internal
+    {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
+            address token = tokens[i];
+            address registrar = _registrars[token];
+            if (registrar == address(0)) revert RegistrarNotSetForTokenException(token);
+            IVaultRegistrar(registrar).registerVault(creditAccount, investor);
+            IVaultRegistrar(registrar).registerVault(wallet, investor);
+            _creditAccountInfo[creditAccount].tokens.add(token);
+        }
+    }
+
+    function _unregisterTokens(address investor, address creditAccount, address wallet, address[] memory tokens)
+        internal
+    {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
+            address token = tokens[i];
+            address registrar = _registrars[token];
+            if (registrar == address(0)) revert RegistrarNotSetForTokenException(token);
+            IVaultRegistrar(registrar).unregisterVault(creditAccount, investor);
+            IVaultRegistrar(registrar).unregisterVault(wallet, investor);
+            _creditAccountInfo[creditAccount].tokens.remove(token);
+        }
+    }
+
+    function _executeWalletCalls(address wallet, bytes[] calldata calls) internal {
+        uint256 length = calls.length;
+        for (uint256 i; i < length; ++i) {
+            (bool success, bytes memory result) = wallet.call(calls[i]);
+            if (!success) revert WalletCallExecutionFailedException(i, result);
+        }
     }
 }

@@ -23,7 +23,6 @@ import {
 import {Domain} from "@gearbox-protocol/permissionless/contracts/libraries/Domain.sol";
 
 bytes32 constant AP_SECURITIZE_FACTORY = "SECURITIZE_FACTORY";
-bytes32 constant AP_SECURITIZE_ADMIN = "GLOBAL::SECURITIZE_ADMIN";
 bytes32 constant DOMAIN_SECURITIZE_UNDERLYING = "SECURITIZE_UNDERLYING";
 
 library AddressValidation {

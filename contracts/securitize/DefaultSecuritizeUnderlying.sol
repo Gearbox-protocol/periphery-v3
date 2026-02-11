@@ -50,6 +50,7 @@ contract DefaultSecuritizeUnderlying is ERC4626, IVersion {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256) internal virtual override {
+        // TODO: try to limit to factory credit accounts after all
         if (_isFrozenCreditAccount(from) || _isFrozenCreditAccount(to)) revert FrozenCreditAccountException(from);
     }
 
