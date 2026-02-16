@@ -15,6 +15,7 @@ import {
 } from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
 import {
     AP_BYTECODE_REPOSITORY,
+    AP_INSTANCE_MANAGER_PROXY,
     AP_MARKET_CONFIGURATOR_FACTORY,
     DOMAIN_CREDIT_MANAGER,
     DOMAIN_POOL,
@@ -22,8 +23,9 @@ import {
 } from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
 import {Domain} from "@gearbox-protocol/permissionless/contracts/libraries/Domain.sol";
 
-bytes32 constant AP_SECURITIZE_FACTORY = "SECURITIZE_FACTORY";
-bytes32 constant DOMAIN_SECURITIZE_UNDERLYING = "SECURITIZE_UNDERLYING";
+bytes32 constant DOMAIN_KYC_FACTORY = "KYC_FACTORY";
+bytes32 constant DOMAIN_KYC_UNDERLYING = "KYC_UNDERLYING";
+bytes32 constant DOMAIN_ON_DEMAND_LP = "ON_DEMAND_LP";
 
 library AddressValidation {
     using Domain for bytes32;
@@ -50,11 +52,11 @@ library AddressValidation {
         if (!isDeployedFromBytecodeRepository(addressProvider, pool)) return false;
         if (IVersion(pool).contractType().extractDomain() != DOMAIN_POOL) return false;
 
-        address marketConfigurator = _getConfigurator(IACLTrait(pool));
+        address marketConfigurator = getMarketConfigurator(pool);
         if (!isMarketConfigurator(addressProvider, marketConfigurator)) return false;
 
         address contractsRegister = IMarketConfigurator(marketConfigurator).contractsRegister();
-        return !IContractsRegister(contractsRegister).isPool(pool);
+        return IContractsRegister(contractsRegister).isPool(pool);
     }
 
     function isCreditManager(IAddressProvider addressProvider, address creditManager) internal view returns (bool) {
@@ -62,23 +64,33 @@ library AddressValidation {
         if (IVersion(creditManager).contractType().extractDomain() != DOMAIN_CREDIT_MANAGER) return false;
 
         address creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
-        address marketConfigurator = _getConfigurator(IACLTrait(creditConfigurator));
+        address marketConfigurator = getMarketConfigurator(creditConfigurator);
         if (!isMarketConfigurator(addressProvider, marketConfigurator)) return false;
 
         address contractsRegister = IMarketConfigurator(marketConfigurator).contractsRegister();
         return IContractsRegister(contractsRegister).isCreditManager(creditManager);
     }
 
-    function isSecuritizeUnderlying(IAddressProvider addressProvider, address token) internal view returns (bool) {
+    function isKYCFactory(IAddressProvider addressProvider, address factory) internal view returns (bool) {
+        if (!isDeployedFromBytecodeRepository(addressProvider, factory)) return false;
+        return IVersion(factory).contractType().extractDomain() == DOMAIN_KYC_FACTORY;
+    }
+
+    function isKYCUnderlying(IAddressProvider addressProvider, address token) internal view returns (bool) {
         if (!isDeployedFromBytecodeRepository(addressProvider, token)) return false;
-        return IVersion(token).contractType().extractDomain() == DOMAIN_SECURITIZE_UNDERLYING;
+        return IVersion(token).contractType().extractDomain() == DOMAIN_KYC_UNDERLYING;
+    }
+
+    function isOnDemandLiquidityProvider(IAddressProvider addressProvider, address lp) internal view returns (bool) {
+        if (!isDeployedFromBytecodeRepository(addressProvider, lp)) return false;
+        return IVersion(lp).contractType().extractDomain() == DOMAIN_ON_DEMAND_LP;
+    }
+
+    function getMarketConfigurator(address aclTrait) internal view returns (address) {
+        return IACL(IACLTrait(aclTrait).acl()).getConfigurator();
     }
 
     function _getAddressOrRevert(IAddressProvider addressProvider, bytes32 key) private view returns (address) {
         return addressProvider.getAddressOrRevert(key, NO_VERSION_CONTROL);
-    }
-
-    function _getConfigurator(IACLTrait aclTrait) private view returns (address) {
-        return IACL(aclTrait.acl()).getConfigurator();
     }
 }

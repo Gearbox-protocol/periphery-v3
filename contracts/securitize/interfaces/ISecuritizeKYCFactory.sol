@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
+import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
+import {IKYCFactory} from "./base/IKYCFactory.sol";
 
-interface ISecuritizeFactory is IVersion {
+interface ISecuritizeKYCFactory is IKYCFactory {
     // ------ //
     // EVENTS //
     // ------ //
 
     event CreateWallet(address indexed creditAccount, address indexed wallet, address indexed investor);
-    event SetAdmin(address indexed admin);
     event SetFrozenStatus(address indexed creditAccount, bool frozen);
     event SetInvestor(address indexed creditAccount, address indexed oldInvestor, address indexed newInvestor);
     event SetRegistrar(address indexed token, address indexed registrar);
@@ -18,7 +18,7 @@ interface ISecuritizeFactory is IVersion {
     // ERRORS //
     // ------ //
 
-    error CallerIsNotAdminException(address caller);
+    error CallerIsNotInstanceOwnerException(address caller);
     error CallerIsNotInvestorException(address caller, address creditAccount);
     error FrozenCreditAccountException(address creditAccount);
     error InvalidCreditManagerException(address creditManager);
@@ -32,9 +32,7 @@ interface ISecuritizeFactory is IVersion {
     // GETTERS //
     // ------- //
 
-    function getAdmin() external view returns (address);
     function getRegistrar(address token) external view returns (address);
-    function isKnownCreditAccount(address creditAccount) external view returns (bool);
     function getWallet(address creditAccount) external view returns (address);
     function getInvestor(address creditAccount) external view returns (address);
     function isFrozen(address creditAccount) external view returns (bool);
@@ -46,17 +44,15 @@ interface ISecuritizeFactory is IVersion {
     // -------------- //
 
     function precomputeWalletAddress(address creditManager, address investor) external view returns (address);
-    function openCreditAccount(address creditManager, bytes[] calldata walletCalls, address[] calldata tokensToRegister)
+    function openCreditAccount(address creditManager, MultiCall[] calldata calls, address[] calldata tokensToRegister)
         external
         returns (address creditAccount, address wallet);
-    function executeWalletCalls(address creditAccount, bytes[] calldata calls, address[] calldata tokensToRegister)
-        external;
+    function multicall(address creditAccount, MultiCall[] calldata calls, address[] calldata tokensToRegister) external;
 
     // --------------- //
     // ADMIN FUNCTIONS //
     // --------------- //
 
-    function setAdmin(address admin) external;
     function addRegistrar(address registrar) external;
     function setFrozenStatus(address creditAccount, bool frozen) external;
     function setInvestor(address creditAccount, address investor) external;
