@@ -137,7 +137,7 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         vm.roll(block.number + 1);
     }
 
-    function test_openCreditAccount() public {
+    function test_open_credit_account_via_securitize_factory() public {
         deal({token: USDC, to: depositor, give: 1_000_000e6});
         deal({token: address(dsToken), to: investor, give: 60_000e18});
 

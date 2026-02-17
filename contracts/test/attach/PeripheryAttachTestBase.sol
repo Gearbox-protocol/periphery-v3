@@ -25,6 +25,8 @@ contract PeripheryAttachTestBase is AttachTestBase {
     address onePriceFeed;
 
     function _setUp() internal {
+        vm.skip(ADDRESS_PROVIDER.code.length == 0, "Not in an attach mode");
+
         // NOTE: even though we compile our contracts under Shanghai EVM version,
         // more recent one might be needed to interact with third-party contracts
         vm.setEvmVersion("osaka");
