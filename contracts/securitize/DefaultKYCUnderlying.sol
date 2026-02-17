@@ -10,7 +10,7 @@ import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/b
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
 import {IKYCFactory} from "./interfaces/base/IKYCFactory.sol";
-import {AddressValidation} from "./libraries/AddressValidation.sol";
+import {AP_DEFAULT_KYC_UNDERLYING, AddressValidation} from "./libraries/AddressValidation.sol";
 
 /// @title  Default KYC Underlying
 /// @author Gearbox Foundation
@@ -41,7 +41,7 @@ contract DefaultKYCUnderlying is ERC4626, IVersion, IStateSerializer {
     }
 
     function contractType() public pure virtual override returns (bytes32) {
-        return "KYC_UNDERLYING::DEFAULT";
+        return AP_DEFAULT_KYC_UNDERLYING;
     }
 
     function version() public pure virtual override returns (uint256) {

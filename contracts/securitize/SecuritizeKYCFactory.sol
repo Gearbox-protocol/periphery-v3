@@ -248,7 +248,6 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         external
         override
         onlyOwner
-        nonZeroAddress(investor)
         onlyKnownCreditAccounts(creditAccount)
     {
         CreditAccountInfo storage creditAccountInfo = _creditAccountInfo[creditAccount];
@@ -261,6 +260,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         address[] memory tokens = creditAccountInfo.tokens.values();
         _investorInfo[oldInvestor].creditAccounts.remove(creditAccount);
         _unregisterTokens(oldInvestor, creditAccount, wallet, tokens);
+        if (investor == address(0)) return;
         _investorInfo[investor].creditAccounts.add(creditAccount);
         _registerTokens(investor, creditAccount, wallet, tokens);
     }
