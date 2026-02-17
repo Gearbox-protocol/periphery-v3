@@ -6,13 +6,22 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
+import {IBytecodeRepository} from "@gearbox-protocol/permissionless/contracts/interfaces/IBytecodeRepository.sol";
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {SecuritizeWallet} from "./SecuritizeWallet.sol";
+import {ISecuritizeDegenNFT} from "./interfaces/ISecuritizeDegenNFT.sol";
 import {ISecuritizeKYCFactory} from "./interfaces/ISecuritizeKYCFactory.sol";
 import {IVaultRegistrar} from "./interfaces/IVaultRegistrar.sol";
-import {AP_INSTANCE_MANAGER_PROXY, NO_VERSION_CONTROL, AddressValidation} from "./libraries/AddressValidation.sol";
+import {
+    AP_BYTECODE_REPOSITORY,
+    AP_INSTANCE_MANAGER_PROXY,
+    AP_SECURITIZE_DEGEN_NFT,
+    AP_SECURITIZE_KYC_FACTORY,
+    NO_VERSION_CONTROL,
+    AddressValidation
+} from "./libraries/AddressValidation.sol";
 
 /// @title  Securitize KYC Factory
 /// @author Gearbox Foundation
@@ -42,10 +51,11 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // STATE VARIABLES //
     // --------------- //
 
-    bytes32 public constant override contractType = "KYC_FACTORY::SECURITIZE";
+    bytes32 public constant override contractType = AP_SECURITIZE_KYC_FACTORY;
     uint256 public constant override version = 3_10;
 
-    IAddressProvider public immutable ADDRESS_PROVIDER;
+    IAddressProvider internal immutable ADDRESS_PROVIDER;
+    address public immutable override degenNFT;
 
     mapping(address token => address registrar) internal _registrars;
 
@@ -88,6 +98,16 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
 
     constructor(IAddressProvider addressProvider, address owner_) nonZeroAddress(owner_) {
         ADDRESS_PROVIDER = addressProvider;
+
+        address bytecodeRepository = ADDRESS_PROVIDER.getAddressOrRevert(AP_BYTECODE_REPOSITORY, NO_VERSION_CONTROL);
+        degenNFT = IBytecodeRepository(bytecodeRepository)
+            .deploy({
+                contractType: AP_SECURITIZE_DEGEN_NFT,
+                version: 3_10,
+                constructorParams: abi.encode(ADDRESS_PROVIDER, this),
+                salt: bytes32(0)
+            });
+
         _transferOwnership(owner_);
     }
 
@@ -160,7 +180,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // USER FUNCTIONS //
     // -------------- //
 
-    function precomputeWalletAddress(address creditManager, address investor) external view override returns (address) {
+    function precomputeWalletAddress(address creditManager, address investor) public view override returns (address) {
         return Create2.computeAddress(_getSalt(investor), keccak256(_getWalletBytecode(creditManager)));
     }
 
@@ -175,6 +195,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         address underlying = ICreditManagerV3(creditManager).underlying();
         if (!ADDRESS_PROVIDER.isKYCUnderlying(underlying)) revert InvalidUnderlyingTokenException(underlying);
 
+        ISecuritizeDegenNFT(degenNFT).mint(precomputeWalletAddress(creditManager, msg.sender));
         wallet = Create2.deploy(0, _getSalt(msg.sender), _getWalletBytecode(creditManager));
         creditAccount = SecuritizeWallet(wallet).creditAccount();
 
