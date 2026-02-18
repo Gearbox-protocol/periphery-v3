@@ -10,6 +10,7 @@ import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/b
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
 import {IKYCFactory} from "./interfaces/base/IKYCFactory.sol";
+import {IKYCUnderlying} from "./interfaces/base/IKYCUnderlying.sol";
 import {AP_DEFAULT_KYC_UNDERLYING, AddressValidation} from "./libraries/AddressValidation.sol";
 
 /// @title  Default KYC Underlying
@@ -18,17 +19,15 @@ import {AP_DEFAULT_KYC_UNDERLYING, AddressValidation} from "./libraries/AddressV
 ///         Exists primarily to block liquidations of inactive credit accounts since both full and partial liquidations
 ///         involve minting shares and returning them to the pool.
 ///         Other interactions with inactive credit accounts are blocked directly in the KYC factory contract.
-contract DefaultKYCUnderlying is ERC4626, IVersion, IStateSerializer {
+contract DefaultKYCUnderlying is ERC4626, IKYCUnderlying {
     using AddressValidation for IAddressProvider;
 
-    IAddressProvider public immutable ADDRESS_PROVIDER;
-    IKYCFactory public immutable FACTORY;
-
-    error InactiveCreditAccountException(address creditAccount);
+    IAddressProvider internal immutable ADDRESS_PROVIDER;
+    IKYCFactory internal immutable FACTORY;
 
     constructor(
         IAddressProvider addressProvider,
-        IKYCFactory factory,
+        IKYCFactory factory_,
         ERC20 underlying,
         string memory namePrefix,
         string memory symbolPrefix
@@ -37,7 +36,7 @@ contract DefaultKYCUnderlying is ERC4626, IVersion, IStateSerializer {
         ERC4626(underlying)
     {
         ADDRESS_PROVIDER = addressProvider;
-        FACTORY = factory;
+        FACTORY = factory_;
     }
 
     function contractType() public pure virtual override returns (bytes32) {
@@ -52,6 +51,10 @@ contract DefaultKYCUnderlying is ERC4626, IVersion, IStateSerializer {
         return abi.encode(FACTORY, asset());
     }
 
+    function factory() external view override returns (address) {
+        return address(FACTORY);
+    }
+
     function _convertToAssets(uint256 shares, Math.Rounding) internal view virtual override returns (uint256) {
         return shares;
     }
@@ -61,11 +64,11 @@ contract DefaultKYCUnderlying is ERC4626, IVersion, IStateSerializer {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256) internal virtual override {
-        if (_isInactiveCreditAccount(from)) revert InactiveCreditAccountException(from);
-        if (_isInactiveCreditAccount(to)) revert InactiveCreditAccountException(to);
+        _revertIfInactiveCreditAccount(from);
+        _revertIfInactiveCreditAccount(to);
     }
 
-    function _isInactiveCreditAccount(address account) internal view returns (bool) {
-        return FACTORY.isInactiveCreditAccount(account);
+    function _revertIfInactiveCreditAccount(address account) internal view {
+        if (FACTORY.isInactiveCreditAccount(account)) revert InactiveCreditAccountException(account);
     }
 }

@@ -28,6 +28,7 @@ import {
 import {SecuritizeKYCFactory} from "../contracts/securitize/SecuritizeKYCFactory.sol";
 import {DefaultKYCUnderlying} from "../contracts/securitize/DefaultKYCUnderlying.sol";
 import {SecuritizeDegenNFT} from "../contracts/securitize/SecuritizeDegenNFT.sol";
+import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 import {PriceFeedMock} from "@gearbox-protocol/core-v3/contracts/test/mocks/oracles/PriceFeedMock.sol";
 import {BytecodeRepositoryMock} from "./BytecodeRepositoryMock.sol";
 import {MockDSToken} from "../contracts/test/attach/securitize/mocks/MockDSToken.sol";
@@ -105,22 +106,27 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
     }
 
     function _getContractsBytecodes() internal pure returns (Bytecode[] memory bytecodes) {
-        bytecodes = new Bytecode[](3);
+        bytecodes = new Bytecode[](4);
         bytecodes[0].contractType = "KYC_FACTORY::SECURITIZE";
         bytecodes[0].version = 3_10;
         bytecodes[0].initCode = type(SecuritizeKYCFactory).creationCode;
         bytecodes[0].source =
-        "https://github.com/Gearbox-protocol/periphery-v3/blob/main/contracts/securitize/SecuritizeKYCFactory.sol";
+            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/securitize/SecuritizeKYCFactory.sol";
         bytecodes[1].contractType = "KYC_UNDERLYING::DEFAULT";
         bytecodes[1].version = 3_10;
         bytecodes[1].initCode = type(DefaultKYCUnderlying).creationCode;
         bytecodes[1].source =
-        "https://github.com/Gearbox-protocol/periphery-v3/blob/main/contracts/securitize/DefaultKYCUnderlying.sol";
+            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/securitize/DefaultKYCUnderlying.sol";
         bytecodes[2].contractType = "DEGEN_NFT::SECURITIZE";
         bytecodes[2].version = 3_10;
         bytecodes[2].initCode = type(SecuritizeDegenNFT).creationCode;
         bytecodes[2].source =
-        "https://github.com/Gearbox-protocol/periphery-v3/blob/main/contracts/securitize/SecuritizeDegenNFT.sol";
+            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/securitize/SecuritizeDegenNFT.sol";
+        bytecodes[3].contractType = "ZAPPER::ERC4626_UNDERLYING";
+        bytecodes[3].version = 3_10;
+        bytecodes[3].initCode = type(ERC4626UnderlyingZapper).creationCode;
+        bytecodes[3].source =
+            "https://github.com/Gearbox-protocol/integrations-v3/tree/erc-4626-underlying-zapper/contracts/zappers/ERC4626UnderlyingZapper.sol";
     }
 
     function _createMockMarketConfigurator() internal {
@@ -174,19 +180,22 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
 
         pool = IMarketConfigurator(marketConfigurator)
             .createMarket({
-            minorVersion: 3_10,
-            underlying: kycUnderlying,
-            name: params.name,
-            symbol: params.symbol,
-            interestRateModelParams: params.interestRateModelParams,
-            rateKeeperParams: params.rateKeeperParams,
-            lossPolicyParams: params.lossPolicyParams,
-            underlyingPriceFeed: params.underlyingPriceFeed
-        });
+                minorVersion: 3_10,
+                underlying: kycUnderlying,
+                name: params.name,
+                symbol: params.symbol,
+                interestRateModelParams: params.interestRateModelParams,
+                rateKeeperParams: params.rateKeeperParams,
+                lossPolicyParams: params.lossPolicyParams,
+                underlyingPriceFeed: params.underlyingPriceFeed
+            });
 
         _addToken(USDC);
         _addToken(address(dsToken));
         IMarketConfigurator(marketConfigurator).configureRateKeeper(pool, abi.encodeCall(ITumblerV3.updateRates, ()));
+
+        address zapper = bytecodeRepository.deploy("ZAPPER::ERC4626_UNDERLYING", 3_10, abi.encode(pool), bytes32(0));
+        IMarketConfigurator(marketConfigurator).addPeripheryContract(zapper);
     }
 
     function _getDefaultCreditSuiteParams() internal view returns (CreditSuiteParams memory) {
@@ -249,10 +258,10 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
                 abi.encodeCall(
                     ICreditConfigureActions.allowAdapter,
                     (DeployParams({
-                        postfix: "ERC4626_VAULT",
-                        salt: "GEARBOX",
-                        constructorParams: abi.encode(creditManager, kycUnderlying, address(0))
-                    }))
+                            postfix: "ERC4626_VAULT",
+                            salt: "GEARBOX",
+                            constructorParams: abi.encode(creditManager, kycUnderlying, address(0))
+                        }))
                 )
             );
     }

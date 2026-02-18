@@ -10,11 +10,12 @@ import {DefaultKYCUnderlying} from "../../../securitize/DefaultKYCUnderlying.sol
 import {SecuritizeDegenNFT} from "../../../securitize/SecuritizeDegenNFT.sol";
 import {SecuritizeKYCFactory} from "../../../securitize/SecuritizeKYCFactory.sol";
 
-import {ICreditFacadeV3, MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
+import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/erc4626/IERC4626Adapter.sol";
+import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {MockDSToken} from "./mocks/MockDSToken.sol";
 import {MockRegistrar} from "./mocks/MockRegistrar.sol";
@@ -38,6 +39,7 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
 
     address public pool;
     address public creditManager;
+    address public zapper;
 
     function setUp() public {
         super._setUp();
@@ -60,6 +62,7 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         _uploadContract("DEGEN_NFT::SECURITIZE", 3_10, type(SecuritizeDegenNFT).creationCode);
         _uploadContract("KYC_FACTORY::SECURITIZE", 3_10, type(SecuritizeKYCFactory).creationCode);
         _uploadContract("KYC_UNDERLYING::DEFAULT", 3_10, type(DefaultKYCUnderlying).creationCode);
+        _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
 
         factory = _deploy("KYC_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
         cUSDC = _deploy("KYC_UNDERLYING::DEFAULT", 3_10, abi.encode(addressProvider, factory, USDC, "Compliant ", "c"));
@@ -122,6 +125,9 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         // NOTE: updating rates also adds new tokens to the quota keeper
         _updateQuotaRates(pool);
 
+        zapper = _deploy("ZAPPER::ERC4626_UNDERLYING", 3_10, abi.encode(pool));
+        _addPeripheryContract(zapper);
+
         CreditSuiteParams memory creditSuiteParams = _getDefaultCreditSuiteParams();
         creditSuiteParams.debtLimit = 1_000_000e6;
         creditSuiteParams.minDebt = 50_000e6;
@@ -142,10 +148,8 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         deal({token: address(dsToken), to: investor, give: 60_000e18});
 
         vm.startPrank(depositor);
-        ERC20(USDC).approve(cUSDC, 1_000_000e6);
-        ERC4626(cUSDC).deposit(1_000_000e6, depositor);
-        ERC20(cUSDC).approve(pool, 1_000_000e6);
-        ERC4626(pool).deposit(1_000_000e6, depositor);
+        ERC20(USDC).approve(zapper, 1_000_000e6);
+        ERC4626UnderlyingZapper(zapper).deposit(1_000_000e6, depositor);
         vm.stopPrank();
 
         address wallet = SecuritizeKYCFactory(factory).precomputeWalletAddress(creditManager, investor);
