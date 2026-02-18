@@ -30,13 +30,19 @@ cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $AUTHOR_ADDRESS 0x56BC75E2D6310
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $IM_PROXY 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $USDC_DONOR 0x56BC75E2D63100000
 
-# Merge stderr into stdout (2>&1) and force line buffering (stdbuf) so forge output
-# is visible when run in Docker without a TTY and when collected by Loki log driver.
-# stdbuf is in coreutils, present on Ubuntu 22.04 (Foundry image base).
-if command -v stdbuf >/dev/null 2>&1; then
-    stdbuf -oL -eL forge script script/DeploySecuritizeContract.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation 2>&1
+FORGE_CMD="forge script script/DeploySecuritizeContract.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation 2>&1"
+
+# When stdout is not a TTY (e.g. Docker without -t), forge skips per-transaction output.
+# Run forge under `script` to attach a pseudo-TTY so we get full logs (tx hashes, etc.).
+# When we already have a TTY, run forge directly.
+if [ -t 1 ]; then
+    if command -v stdbuf >/dev/null 2>&1; then
+        stdbuf -oL -eL eval "$FORGE_CMD"
+    else
+        eval "$FORGE_CMD"
+    fi
 else
-    forge script script/DeploySecuritizeContract.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation 2>&1
+    script -q -c "$FORGE_CMD" /dev/null
 fi
 
 echo "bash script executed successfully"
