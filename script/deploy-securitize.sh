@@ -30,7 +30,7 @@ cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $AUTHOR_ADDRESS 0x56BC75E2D6310
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $IM_PROXY 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $USDC_DONOR 0x56BC75E2D63100000
 
-forge script script/DeploySecuritizeContract.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation
+forge script script/DeploySecuritizeContract.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation 2>&1
 
 echo "bash script executed successfully"
 
