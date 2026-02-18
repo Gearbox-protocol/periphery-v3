@@ -18,12 +18,10 @@ import {
     ICreditConfigureActions
 } from "@gearbox-protocol/permissionless/contracts/interfaces/factories/ICreditConfigureActions.sol";
 import {ITumblerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ITumblerV3.sol";
-import {
-    IPoolConfigureActions
-} from "@gearbox-protocol/permissionless/contracts/interfaces/factories/IPoolConfigureActions.sol";
-import {
-    IPriceOracleConfigureActions
-} from "@gearbox-protocol/permissionless/contracts/interfaces/factories/IPriceOracleConfigureActions.sol";
+import {IPoolConfigureActions} from
+    "@gearbox-protocol/permissionless/contracts/interfaces/factories/IPoolConfigureActions.sol";
+import {IPriceOracleConfigureActions} from
+    "@gearbox-protocol/permissionless/contracts/interfaces/factories/IPriceOracleConfigureActions.sol";
 
 import {SecuritizeKYCFactory} from "../contracts/securitize/SecuritizeKYCFactory.sol";
 import {DefaultKYCUnderlying} from "../contracts/securitize/DefaultKYCUnderlying.sol";
@@ -136,25 +134,33 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
             curatorName: "Compliant Curator",
             deployGovernor: false
         });
+        console.log("MarketConfigurator deployed to", address(marketConfigurator));
+
         IMarketConfigurator(marketConfigurator).addPeripheryContract(degenNFT);
     }
 
     function _getDefaultMarketParams(address underlying) internal view returns (MarketParams memory params) {
         string memory name = string.concat("Diesel ", ERC20(underlying).name());
         string memory symbol = string.concat("d", ERC20(underlying).symbol());
-        address poolAddr = IMarketConfigurator(marketConfigurator)
-            .previewCreateMarket({minorVersion: 3_10, underlying: underlying, name: name, symbol: symbol});
+        address poolAddr = IMarketConfigurator(marketConfigurator).previewCreateMarket({
+            minorVersion: 3_10,
+            underlying: underlying,
+            name: name,
+            symbol: symbol
+        });
         return MarketParams({
             name: name,
             symbol: symbol,
             interestRateModelParams: DeployParams({
-                postfix: "LINEAR", salt: "GEARBOX", constructorParams: abi.encode(5000, 9000, 10_00, 0, 0, 0, false)
+                postfix: "LINEAR",
+                salt: "GEARBOX",
+                constructorParams: abi.encode(5000, 9000, 10_00, 0, 0, 0, false)
             }),
-            rateKeeperParams: DeployParams({
-                postfix: "TUMBLER", salt: "GEARBOX", constructorParams: abi.encode(poolAddr, 0)
-            }),
+            rateKeeperParams: DeployParams({postfix: "TUMBLER", salt: "GEARBOX", constructorParams: abi.encode(poolAddr, 0)}),
             lossPolicyParams: DeployParams({
-                postfix: "ALIASED", salt: "GEARBOX", constructorParams: abi.encode(poolAddr, ADDRESS_PROVIDER)
+                postfix: "ALIASED",
+                salt: "GEARBOX",
+                constructorParams: abi.encode(poolAddr, ADDRESS_PROVIDER)
             }),
             underlyingPriceFeed: address(onePriceFeed)
         });
@@ -162,14 +168,15 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
 
     function _addToken(address token) internal {
         IMarketConfigurator(marketConfigurator).addToken({pool: pool, token: token, priceFeed: address(onePriceFeed)});
-        IMarketConfigurator(marketConfigurator)
-            .configurePriceOracle(
-                pool, abi.encodeCall(IPriceOracleConfigureActions.setReservePriceFeed, (token, address(onePriceFeed)))
-            );
-        IMarketConfigurator(marketConfigurator)
-            .configurePool(pool, abi.encodeCall(IPoolConfigureActions.setTokenLimit, (token, 10_000_000e6)));
-        IMarketConfigurator(marketConfigurator)
-            .configureRateKeeper(pool, abi.encodeCall(ITumblerV3.setRate, (token, 1)));
+        IMarketConfigurator(marketConfigurator).configurePriceOracle(
+            pool, abi.encodeCall(IPriceOracleConfigureActions.setReservePriceFeed, (token, address(onePriceFeed)))
+        );
+        IMarketConfigurator(marketConfigurator).configurePool(
+            pool, abi.encodeCall(IPoolConfigureActions.setTokenLimit, (token, 10_000_000e6))
+        );
+        IMarketConfigurator(marketConfigurator).configureRateKeeper(
+            pool, abi.encodeCall(ITumblerV3.setRate, (token, 1))
+        );
     }
 
     function _createMockMarket() internal {
@@ -178,17 +185,17 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         DefaultKYCUnderlying(kycUnderlying).deposit(1e5, author.addr);
         ERC20(kycUnderlying).transfer(address(marketConfigurator), 1e5);
 
-        pool = IMarketConfigurator(marketConfigurator)
-            .createMarket({
-                minorVersion: 3_10,
-                underlying: kycUnderlying,
-                name: params.name,
-                symbol: params.symbol,
-                interestRateModelParams: params.interestRateModelParams,
-                rateKeeperParams: params.rateKeeperParams,
-                lossPolicyParams: params.lossPolicyParams,
-                underlyingPriceFeed: params.underlyingPriceFeed
-            });
+        pool = IMarketConfigurator(marketConfigurator).createMarket({
+            minorVersion: 3_10,
+            underlying: kycUnderlying,
+            name: params.name,
+            symbol: params.symbol,
+            interestRateModelParams: params.interestRateModelParams,
+            rateKeeperParams: params.rateKeeperParams,
+            lossPolicyParams: params.lossPolicyParams,
+            underlyingPriceFeed: params.underlyingPriceFeed
+        });
+        console.log("Market deployed to", address(pool));
 
         _addToken(USDC);
         _addToken(address(dsToken));
@@ -213,7 +220,9 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
             expirable: false,
             migrateBotList: false,
             accountFactoryParams: DeployParams({
-                postfix: "DEFAULT", salt: "GEARBOX", constructorParams: abi.encode(ADDRESS_PROVIDER)
+                postfix: "DEFAULT",
+                salt: "GEARBOX",
+                constructorParams: abi.encode(ADDRESS_PROVIDER)
             })
         });
     }
@@ -234,36 +243,39 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         });
 
         CreditFacadeParams memory cfParams = CreditFacadeParams({
-            degenNFT: params.degenNFT, expirable: params.expirable, migrateBotList: params.migrateBotList
+            degenNFT: params.degenNFT,
+            expirable: params.expirable,
+            migrateBotList: params.migrateBotList
         });
 
-        creditManager = IMarketConfigurator(marketConfigurator)
-            .createCreditSuite({minorVersion: 3_10, pool: pool, encdodedParams: abi.encode(cmParams, cfParams)});
+        creditManager = IMarketConfigurator(marketConfigurator).createCreditSuite({
+            minorVersion: 3_10,
+            pool: pool,
+            encdodedParams: abi.encode(cmParams, cfParams)
+        });
 
-        IMarketConfigurator(marketConfigurator)
-            .configurePool(
-                pool, abi.encodeCall(IPoolConfigureActions.setCreditManagerDebtLimit, (creditManager, params.debtLimit))
-            );
-        IMarketConfigurator(marketConfigurator)
-            .configureCreditSuite(
-                creditManager, abi.encodeCall(ICreditConfigureActions.addCollateralToken, (USDC, 98_00))
-            );
-        IMarketConfigurator(marketConfigurator)
-            .configureCreditSuite(
-                creditManager, abi.encodeCall(ICreditConfigureActions.addCollateralToken, (address(dsToken), 90_00))
-            );
-        IMarketConfigurator(marketConfigurator)
-            .configureCreditSuite(
-                creditManager,
-                abi.encodeCall(
-                    ICreditConfigureActions.allowAdapter,
-                    (DeployParams({
-                            postfix: "ERC4626_VAULT",
-                            salt: "GEARBOX",
-                            constructorParams: abi.encode(creditManager, kycUnderlying, address(0))
-                        }))
+        IMarketConfigurator(marketConfigurator).configurePool(
+            pool, abi.encodeCall(IPoolConfigureActions.setCreditManagerDebtLimit, (creditManager, params.debtLimit))
+        );
+        IMarketConfigurator(marketConfigurator).configureCreditSuite(
+            creditManager, abi.encodeCall(ICreditConfigureActions.addCollateralToken, (USDC, 98_00))
+        );
+        IMarketConfigurator(marketConfigurator).configureCreditSuite(
+            creditManager, abi.encodeCall(ICreditConfigureActions.addCollateralToken, (address(dsToken), 90_00))
+        );
+        IMarketConfigurator(marketConfigurator).configureCreditSuite(
+            creditManager,
+            abi.encodeCall(
+                ICreditConfigureActions.allowAdapter,
+                (
+                    DeployParams({
+                        postfix: "ERC4626_VAULT",
+                        salt: "GEARBOX",
+                        constructorParams: abi.encode(creditManager, kycUnderlying, address(0))
+                    })
                 )
-            );
+            )
+        );
     }
 
     function run() external {
