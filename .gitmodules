@@ -4,6 +4,7 @@
 [submodule "lib/@gearbox-protocol/integrations-v3"]
 	path = lib/@gearbox-protocol/integrations-v3
 	url = https://github.com/Gearbox-protocol/integrations-v3
+	branch = erc-4626-underlying-zapper
 [submodule "lib/@gearbox-protocol/oracles-v3"]
 	path = lib/@gearbox-protocol/oracles-v3
 	url = https://github.com/Gearbox-protocol/oracles-v3
