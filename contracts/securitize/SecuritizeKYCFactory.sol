@@ -57,6 +57,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     IAddressProvider internal immutable ADDRESS_PROVIDER;
     address public immutable override degenNFT;
 
+    EnumerableSet.AddressSet internal _DSTokensSet;
     mapping(address token => address registrar) internal _registrars;
 
     mapping(address creditAccount => CreditAccountInfo) internal _creditAccountInfo;
@@ -114,6 +115,10 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // ------- //
     // GETTERS //
     // ------- //
+
+    function getDSTokens() external view override returns (address[] memory) {
+        return _DSTokensSet.values();
+    }
 
     function getRegistrar(address token) public view override returns (address registrar) {
         registrar = _registrars[token];
@@ -229,6 +234,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         address token = IVaultRegistrar(registrar).token();
         if (token == address(0)) revert ZeroAddressException();
         if (_registrars[token] == registrar) return;
+        _DSTokensSet.add(token);
         _registrars[token] = registrar;
         emit SetRegistrar(token, registrar);
     }

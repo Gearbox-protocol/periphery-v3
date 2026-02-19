@@ -33,6 +33,7 @@ interface ISecuritizeKYCFactory is IKYCFactory {
     // ------- //
 
     function degenNFT() external view returns (address);
+    function getDSTokens() external view returns (address[] memory);
     function getRegistrar(address token) external view returns (address);
     function getWallet(address creditAccount) external view returns (address);
     function getInvestor(address creditAccount) external view returns (address);
