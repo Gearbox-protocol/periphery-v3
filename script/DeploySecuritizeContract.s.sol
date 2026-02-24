@@ -288,8 +288,11 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         BytecodeRepositoryMock(address(bytecodeRepository)).exposed_addBytecode(bytecodes);
 
         dsToken = new MockDSToken(author.addr);
+        console.log("DS Token deployed to", address(dsToken));
         registrar = new MockRegistrar(author.addr, address(dsToken));
+        console.log("Registrar deployed to", address(registrar));
         onePriceFeed = new PriceFeedMock({_price: 1e8, _decimals: 8});
+        console.log("One Price Feed deployed to", address(onePriceFeed));
 
         bytes memory factoryConstructorParams = abi.encode(address(addressProvider), author.addr);
         kycFactory = bytecodeRepository.deploy(
