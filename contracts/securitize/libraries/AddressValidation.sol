@@ -25,17 +25,36 @@ import {
 } from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
 import {Domain} from "@gearbox-protocol/permissionless/contracts/libraries/Domain.sol";
 
-bytes32 constant AP_SECURITIZE_DEGEN_NFT = "DEGEN_NFT::SECURITIZE";
-bytes32 constant AP_SECURITIZE_KYC_FACTORY = "KYC_FACTORY::SECURITIZE";
-bytes32 constant AP_DEFAULT_KYC_UNDERLYING = "KYC_UNDERLYING::DEFAULT";
-bytes32 constant AP_ON_DEMAND_KYC_UNDERLYING = "KYC_UNDERLYING::ON_DEMAND";
-bytes32 constant AP_MONOPOLIZED_ON_DEMAND_LP = "ON_DEMAND_LP::MONOPOLIZED";
 bytes32 constant DOMAIN_KYC_FACTORY = "KYC_FACTORY";
 bytes32 constant DOMAIN_KYC_UNDERLYING = "KYC_UNDERLYING";
 bytes32 constant DOMAIN_ON_DEMAND_LP = "ON_DEMAND_LP";
 
+bytes32 constant TYPE_SECURITIZE_DEGEN_NFT = "DEGEN_NFT::SECURITIZE";
+bytes32 constant TYPE_SECURITIZE_KYC_FACTORY = "KYC_FACTORY::SECURITIZE";
+bytes32 constant TYPE_DEFAULT_KYC_UNDERLYING = "KYC_UNDERLYING::DEFAULT";
+bytes32 constant TYPE_ON_DEMAND_KYC_UNDERLYING = "KYC_UNDERLYING::ON_DEMAND";
+bytes32 constant TYPE_MONOPOLIZED_ON_DEMAND_LP = "ON_DEMAND_LP::MONOPOLIZED";
+
 library AddressValidation {
     using Domain for bytes32;
+
+    function hasType(IAddressProvider addressProvider, address deployedContract, bytes32 contractType)
+        internal
+        view
+        returns (bool)
+    {
+        return isDeployedFromBytecodeRepository(addressProvider, deployedContract)
+            && IVersion(deployedContract).contractType() == contractType;
+    }
+
+    function hasDomain(IAddressProvider addressProvider, address deployedContract, bytes32 domain)
+        internal
+        view
+        returns (bool)
+    {
+        return isDeployedFromBytecodeRepository(addressProvider, deployedContract)
+            && IVersion(deployedContract).contractType().extractDomain() == domain;
+    }
 
     function isDeployedFromBytecodeRepository(IAddressProvider addressProvider, address deployedContract)
         internal
@@ -56,60 +75,42 @@ library AddressValidation {
     }
 
     function isPool(IAddressProvider addressProvider, address pool) internal view returns (bool) {
-        if (!isDeployedFromBytecodeRepository(addressProvider, pool)) return false;
-        if (IVersion(pool).contractType().extractDomain() != DOMAIN_POOL) return false;
-
+        if (!hasDomain(addressProvider, pool, DOMAIN_POOL)) return false;
         address marketConfigurator = getMarketConfigurator(pool);
-        if (!isMarketConfigurator(addressProvider, marketConfigurator)) return false;
-
-        address contractsRegister = IMarketConfigurator(marketConfigurator).contractsRegister();
-        return IContractsRegister(contractsRegister).isPool(pool);
+        return isMarketConfigurator(addressProvider, marketConfigurator) && isRegisteredPool(marketConfigurator, pool);
     }
 
     function isCreditManager(IAddressProvider addressProvider, address creditManager) internal view returns (bool) {
-        if (!isDeployedFromBytecodeRepository(addressProvider, creditManager)) return false;
-        if (IVersion(creditManager).contractType().extractDomain() != DOMAIN_CREDIT_MANAGER) return false;
-
+        if (!hasDomain(addressProvider, creditManager, DOMAIN_CREDIT_MANAGER)) return false;
         address creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
         address marketConfigurator = getMarketConfigurator(creditConfigurator);
-        if (!isMarketConfigurator(addressProvider, marketConfigurator)) return false;
-
-        address contractsRegister = IMarketConfigurator(marketConfigurator).contractsRegister();
-        return IContractsRegister(contractsRegister).isCreditManager(creditManager);
+        return isMarketConfigurator(addressProvider, marketConfigurator)
+            && isRegisteredCreditManager(marketConfigurator, creditManager);
     }
 
     function isCreditFacade(IAddressProvider addressProvider, address creditFacade) internal view returns (bool) {
-        if (!isDeployedFromBytecodeRepository(addressProvider, creditFacade)) return false;
-        if (IVersion(creditFacade).contractType() != AP_CREDIT_FACADE) return false;
-
+        if (!hasType(addressProvider, creditFacade, AP_CREDIT_FACADE)) return false;
         address creditManager = ICreditFacadeV3(creditFacade).creditManager();
-        if (!isCreditManager(addressProvider, creditManager)) return false;
-
-        return ICreditManagerV3(creditManager).creditFacade() == creditFacade;
-    }
-
-    function isKYCFactory(IAddressProvider addressProvider, address factory) internal view returns (bool) {
-        if (!isDeployedFromBytecodeRepository(addressProvider, factory)) return false;
-        return IVersion(factory).contractType().extractDomain() == DOMAIN_KYC_FACTORY;
-    }
-
-    function isKYCUnderlying(IAddressProvider addressProvider, address token) internal view returns (bool) {
-        if (!isDeployedFromBytecodeRepository(addressProvider, token)) return false;
-        return IVersion(token).contractType().extractDomain() == DOMAIN_KYC_UNDERLYING;
-    }
-
-    function isOnDemandKYCUnderlying(IAddressProvider addressProvider, address token) internal view returns (bool) {
-        if (!isDeployedFromBytecodeRepository(addressProvider, token)) return false;
-        return IVersion(token).contractType() == AP_ON_DEMAND_KYC_UNDERLYING;
-    }
-
-    function isOnDemandLiquidityProvider(IAddressProvider addressProvider, address lp) internal view returns (bool) {
-        if (!isDeployedFromBytecodeRepository(addressProvider, lp)) return false;
-        return IVersion(lp).contractType().extractDomain() == DOMAIN_ON_DEMAND_LP;
+        return isCreditManager(addressProvider, creditManager)
+            && ICreditManagerV3(creditManager).creditFacade() == creditFacade;
     }
 
     function getMarketConfigurator(address aclTrait) internal view returns (address) {
         return IACL(IACLTrait(aclTrait).acl()).getConfigurator();
+    }
+
+    function getContractsRegister(address marketConfigurator) internal view returns (address) {
+        return IMarketConfigurator(marketConfigurator).contractsRegister();
+    }
+
+    function isRegisteredPool(address marketConfigurator, address pool) internal view returns (bool) {
+        address contractsRegister = getContractsRegister(marketConfigurator);
+        return IContractsRegister(contractsRegister).isPool(pool);
+    }
+
+    function isRegisteredCreditManager(address marketConfigurator, address creditManager) internal view returns (bool) {
+        address contractsRegister = getContractsRegister(marketConfigurator);
+        return IContractsRegister(contractsRegister).isCreditManager(creditManager);
     }
 
     function _getAddressOrRevert(IAddressProvider addressProvider, bytes32 key) private view returns (address) {

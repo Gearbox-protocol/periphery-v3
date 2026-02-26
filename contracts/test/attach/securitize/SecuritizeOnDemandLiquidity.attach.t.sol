@@ -6,7 +6,8 @@ import {PriceFeedMock} from "@gearbox-protocol/core-v3/contracts/test/mocks/orac
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
-import {DefaultKYCUnderlying} from "../../../securitize/DefaultKYCUnderlying.sol";
+import {MonopolizedOnDemandLP} from "../../../securitize/MonopolizedOnDemandLP.sol";
+import {OnDemandKYCUnderlying} from "../../../securitize/OnDemandKYCUnderlying.sol";
 import {SecuritizeDegenNFT} from "../../../securitize/SecuritizeDegenNFT.sol";
 import {SecuritizeKYCFactory} from "../../../securitize/SecuritizeKYCFactory.sol";
 
@@ -15,18 +16,18 @@ import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/inte
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/erc4626/IERC4626Adapter.sol";
-import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {MockDSToken} from "./mocks/MockDSToken.sol";
 import {MockRegistrar} from "./mocks/MockRegistrar.sol";
 
 import {PeripheryAttachTestBase} from "../PeripheryAttachTestBase.sol";
 
-contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
+contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
 
     address public factory;
+    address public liquidityProvider;
     address public cUSDC;
 
     MockDSToken public dsToken;
@@ -39,7 +40,6 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
 
     address public pool;
     address public creditManager;
-    address public zapper;
 
     function setUp() public {
         super._setUp();
@@ -58,14 +58,21 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
 
         _addPublicDomain("KYC_FACTORY");
         _addPublicDomain("KYC_UNDERLYING");
+        _addPublicDomain("ON_DEMAND_LP");
 
         _uploadContract("DEGEN_NFT::SECURITIZE", 3_10, type(SecuritizeDegenNFT).creationCode);
         _uploadContract("KYC_FACTORY::SECURITIZE", 3_10, type(SecuritizeKYCFactory).creationCode);
-        _uploadContract("KYC_UNDERLYING::DEFAULT", 3_10, type(DefaultKYCUnderlying).creationCode);
-        _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
+        _uploadContract("KYC_UNDERLYING::ON_DEMAND", 3_10, type(OnDemandKYCUnderlying).creationCode);
+        _uploadContract("ON_DEMAND_LP::MONOPOLIZED", 3_10, type(MonopolizedOnDemandLP).creationCode);
 
         factory = _deploy("KYC_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
-        cUSDC = _deploy("KYC_UNDERLYING::DEFAULT", 3_10, abi.encode(factory, USDC, "Compliant ", "c"));
+        liquidityProvider =
+            _deploy("ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor));
+        cUSDC = _deploy(
+            "KYC_UNDERLYING::ON_DEMAND",
+            3_10,
+            abi.encode(addressProvider, factory, marketConfigurator, liquidityProvider, USDC, "Compliant ", "c")
+        );
 
         // Securitize actions ---------------------------------------------------------------------------------------- //
 
@@ -99,9 +106,9 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         ERC4626(cUSDC).deposit(1e5, address(marketConfigurator));
         vm.stopPrank();
 
-        MarketParams memory marketParams = _getDefaultMarketParams(cUSDC);
+        MarketParams memory marketParams = _getDefaultMarketParams(address(cUSDC));
         marketParams.underlyingPriceFeed = address(USDC_PRICE_FEED);
-        pool = _createMockMarket(cUSDC, marketParams);
+        pool = _createMockMarket(address(cUSDC), marketParams);
         _addToken(
             pool,
             TokenConfig({
@@ -125,8 +132,12 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         // NOTE: updating rates also adds new tokens to the quota keeper
         _updateQuotaRates(pool);
 
-        zapper = _deploy("ZAPPER::ERC4626_UNDERLYING", 3_10, abi.encode(pool));
-        _addPeripheryContract(zapper);
+        vm.startPrank(riskCurator);
+        OnDemandKYCUnderlying(cUSDC).setPool(pool);
+        // NOTE: in real setup, will need to whitelist both the DAO treasury and MC's fee admin as well
+        OnDemandKYCUnderlying(cUSDC).setUserStatus(marketConfigurator.treasury(), true);
+        MonopolizedOnDemandLP(liquidityProvider).addPool(pool);
+        vm.stopPrank();
 
         CreditSuiteParams memory creditSuiteParams = _getDefaultCreditSuiteParams();
         creditSuiteParams.debtLimit = 1_000_000e6;
@@ -147,10 +158,8 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         deal({token: USDC, to: depositor, give: 1_000_000e6});
         deal({token: address(dsToken), to: investor, give: 60_000e18});
 
-        vm.startPrank(depositor);
-        ERC20(USDC).approve(zapper, 1_000_000e6);
-        ERC4626UnderlyingZapper(zapper).deposit(1_000_000e6, depositor);
-        vm.stopPrank();
+        vm.prank(depositor);
+        ERC20(USDC).approve(liquidityProvider, 1_000_000e6);
 
         address wallet = SecuritizeKYCFactory(factory).precomputeWalletAddress(creditManager, investor);
         vm.prank(investor);

@@ -7,7 +7,7 @@ import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/inter
 
 import {ISecuritizeDegenNFT} from "./interfaces/ISecuritizeDegenNFT.sol";
 import {ISecuritizeKYCFactory} from "./interfaces/ISecuritizeKYCFactory.sol";
-import {AP_SECURITIZE_DEGEN_NFT, AddressValidation} from "./libraries/AddressValidation.sol";
+import {TYPE_SECURITIZE_DEGEN_NFT, AddressValidation} from "./libraries/AddressValidation.sol";
 
 /// @title  Securitize Degen NFT
 /// @author Gearbox Foundation
@@ -15,7 +15,7 @@ import {AP_SECURITIZE_DEGEN_NFT, AddressValidation} from "./libraries/AddressVal
 contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     using AddressValidation for IAddressProvider;
 
-    bytes32 public constant override contractType = AP_SECURITIZE_DEGEN_NFT;
+    bytes32 public constant override contractType = TYPE_SECURITIZE_DEGEN_NFT;
     uint256 public constant override version = 3_10;
 
     IAddressProvider internal immutable ADDRESS_PROVIDER;

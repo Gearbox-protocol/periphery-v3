@@ -19,12 +19,8 @@ interface ISecuritizeKYCFactory is IKYCFactory {
     // ------ //
 
     error CallerIsNotInstanceOwnerException(address caller);
-    error CallerIsNotInvestorException(address caller, address creditAccount);
-    error FrozenCreditAccountException(address creditAccount);
     error InvalidCreditManagerException(address creditManager);
     error InvalidUnderlyingTokenException(address underlying);
-    error UnknownCreditAccountException(address creditAccount);
-    error WalletCallExecutionFailedException(uint256 index, bytes reason);
     error RegistrarNotSetForTokenException(address token);
     error ZeroAddressException();
 
@@ -32,14 +28,10 @@ interface ISecuritizeKYCFactory is IKYCFactory {
     // GETTERS //
     // ------- //
 
-    function degenNFT() external view returns (address);
+    function getDegenNFT() external view returns (address);
     function getDSTokens() external view returns (address[] memory);
     function getRegistrar(address token) external view returns (address);
-    function getWallet(address creditAccount) external view returns (address);
-    function getInvestor(address creditAccount) external view returns (address);
-    function isFrozen(address creditAccount) external view returns (bool);
     function getRegisteredTokens(address creditAccount) external view returns (address[] memory);
-    function getCreditAccounts(address investor) external view returns (address[] memory);
 
     // -------------- //
     // USER FUNCTIONS //

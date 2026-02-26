@@ -95,9 +95,7 @@ contract PeripheryAttachTestBase is AttachTestBase {
     }
 
     function _createMockMarket(address underlying, MarketParams memory params) internal returns (address pool) {
-        vm.startPrank(riskCurator);
-        ERC20(underlying).transfer(address(marketConfigurator), 1e5);
-
+        vm.prank(riskCurator);
         pool = marketConfigurator.createMarket({
             minorVersion: 3_10,
             underlying: underlying,
@@ -108,7 +106,6 @@ contract PeripheryAttachTestBase is AttachTestBase {
             lossPolicyParams: params.lossPolicyParams,
             underlyingPriceFeed: params.underlyingPriceFeed
         });
-        vm.stopPrank();
     }
 
     struct CreditSuiteParams {

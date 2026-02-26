@@ -5,7 +5,9 @@ import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/b
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
 interface IKYCUnderlying is IVersion, IStateSerializer {
-    error InactiveCreditAccountException(address creditAccount);
+    error CallerIsNotWalletException(address caller, address creditAccount);
+    error FrozenCreditAccountException(address creditAccount);
 
-    function factory() external view returns (address);
+    function getFactory() external view returns (address);
+    function beforeTokenBorrow(address creditAccount, uint256 amount) external;
 }

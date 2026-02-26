@@ -9,6 +9,7 @@ interface ISecuritizeWallet {
     error ForbiddenCallException();
 
     function factory() external view returns (address);
+    function underlying() external view returns (address);
     function creditManager() external view returns (address);
     function creditAccount() external view returns (address);
     function multicall(MultiCall[] calldata calls) external;

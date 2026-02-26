@@ -17,9 +17,10 @@ import {IVaultRegistrar} from "./interfaces/IVaultRegistrar.sol";
 import {
     AP_BYTECODE_REPOSITORY,
     AP_INSTANCE_MANAGER_PROXY,
-    AP_SECURITIZE_DEGEN_NFT,
-    AP_SECURITIZE_KYC_FACTORY,
+    DOMAIN_KYC_UNDERLYING,
     NO_VERSION_CONTROL,
+    TYPE_SECURITIZE_DEGEN_NFT,
+    TYPE_SECURITIZE_KYC_FACTORY,
     AddressValidation
 } from "./libraries/AddressValidation.sol";
 
@@ -51,11 +52,11 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // STATE VARIABLES //
     // --------------- //
 
-    bytes32 public constant override contractType = AP_SECURITIZE_KYC_FACTORY;
+    bytes32 public constant override contractType = TYPE_SECURITIZE_KYC_FACTORY;
     uint256 public constant override version = 3_10;
 
-    IAddressProvider internal immutable ADDRESS_PROVIDER;
-    address public immutable override degenNFT;
+    IAddressProvider internal immutable _ADDRESS_PROVIDER;
+    ISecuritizeDegenNFT internal immutable _DEGEN_NFT;
 
     EnumerableSet.AddressSet internal _DSTokensSet;
     mapping(address token => address registrar) internal _registrars;
@@ -97,24 +98,30 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // CONSTRUCTOR //
     // ----------- //
 
-    constructor(IAddressProvider addressProvider, address owner_) nonZeroAddress(owner_) {
-        ADDRESS_PROVIDER = addressProvider;
+    constructor(IAddressProvider addressProvider, address securitizeAdmin) nonZeroAddress(securitizeAdmin) {
+        _ADDRESS_PROVIDER = addressProvider;
 
-        address bytecodeRepository = ADDRESS_PROVIDER.getAddressOrRevert(AP_BYTECODE_REPOSITORY, NO_VERSION_CONTROL);
-        degenNFT = IBytecodeRepository(bytecodeRepository)
-            .deploy({
-                contractType: AP_SECURITIZE_DEGEN_NFT,
-                version: 3_10,
-                constructorParams: abi.encode(ADDRESS_PROVIDER, this),
-                salt: bytes32(0)
-            });
+        address bytecodeRepository = _ADDRESS_PROVIDER.getAddressOrRevert(AP_BYTECODE_REPOSITORY, NO_VERSION_CONTROL);
+        _DEGEN_NFT = ISecuritizeDegenNFT(
+            IBytecodeRepository(bytecodeRepository)
+                .deploy({
+                    contractType: TYPE_SECURITIZE_DEGEN_NFT,
+                    version: 3_10,
+                    constructorParams: abi.encode(_ADDRESS_PROVIDER, this),
+                    salt: bytes32(0)
+                })
+        );
 
-        _transferOwnership(owner_);
+        _transferOwnership(securitizeAdmin);
     }
 
     // ------- //
     // GETTERS //
     // ------- //
+
+    function getDegenNFT() external view override returns (address) {
+        return address(_DEGEN_NFT);
+    }
 
     function getDSTokens() external view override returns (address[] memory) {
         return _DSTokensSet.values();
@@ -127,14 +134,6 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
 
     function isCreditAccount(address creditAccount) public view override returns (bool) {
         return _creditAccountInfo[creditAccount].wallet != address(0);
-    }
-
-    function isActiveCreditAccount(address creditAccount) external view override returns (bool) {
-        return isCreditAccount(creditAccount) && !_creditAccountInfo[creditAccount].frozen;
-    }
-
-    function isInactiveCreditAccount(address creditAccount) external view override returns (bool) {
-        return isCreditAccount(creditAccount) && _creditAccountInfo[creditAccount].frozen;
     }
 
     function getWallet(address creditAccount)
@@ -194,13 +193,15 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         override
         returns (address creditAccount, address wallet)
     {
-        if (!ADDRESS_PROVIDER.isCreditManager(creditManager)) {
+        if (!_ADDRESS_PROVIDER.isCreditManager(creditManager)) {
             revert InvalidCreditManagerException(creditManager);
         }
         address underlying = ICreditManagerV3(creditManager).underlying();
-        if (!ADDRESS_PROVIDER.isKYCUnderlying(underlying)) revert InvalidUnderlyingTokenException(underlying);
+        if (!_ADDRESS_PROVIDER.hasDomain(underlying, DOMAIN_KYC_UNDERLYING)) {
+            revert InvalidUnderlyingTokenException(underlying);
+        }
 
-        ISecuritizeDegenNFT(degenNFT).mint(precomputeWalletAddress(creditManager, msg.sender));
+        _DEGEN_NFT.mint(precomputeWalletAddress(creditManager, msg.sender));
         wallet = Create2.deploy(0, _getSalt(msg.sender), _getWalletBytecode(creditManager));
         creditAccount = SecuritizeWallet(wallet).creditAccount();
 
@@ -280,7 +281,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     }
 
     function _ensureCallerIsInstanceOwner() internal view {
-        if (msg.sender != ADDRESS_PROVIDER.getAddressOrRevert(AP_INSTANCE_MANAGER_PROXY, NO_VERSION_CONTROL)) {
+        if (msg.sender != _ADDRESS_PROVIDER.getAddressOrRevert(AP_INSTANCE_MANAGER_PROXY, NO_VERSION_CONTROL)) {
             revert CallerIsNotInstanceOwnerException(msg.sender);
         }
     }

@@ -5,7 +5,6 @@ import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/b
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
 interface IOnDemandLiquidityProvider is IVersion, IStateSerializer {
-    function allowanceOf(address token, address pool) external view returns (uint256);
-    function onBorrow(address token, address pool, address creditAccount, uint256 amount) external;
-    function onRepay(address token, address pool, address creditAccount, uint256 amount) external;
+    function allowanceOf(address pool) external view returns (uint256);
+    function pullLiquidity(address pool, uint256 amount) external;
 }

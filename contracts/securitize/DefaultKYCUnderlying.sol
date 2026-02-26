@@ -5,70 +5,55 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
-import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IStateSerializer.sol";
-import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
-
 import {IKYCFactory} from "./interfaces/base/IKYCFactory.sol";
 import {IKYCUnderlying} from "./interfaces/base/IKYCUnderlying.sol";
-import {AP_DEFAULT_KYC_UNDERLYING, AddressValidation} from "./libraries/AddressValidation.sol";
+import {TYPE_DEFAULT_KYC_UNDERLYING} from "./libraries/AddressValidation.sol";
 
 /// @title  Default KYC Underlying
 /// @author Gearbox Foundation
 /// @notice An ERC4626-like token wrapper to use as underlying in markets with KYC compliance.
-///         Exists primarily to block liquidations of inactive credit accounts since both full and partial liquidations
+///         Exists primarily to block liquidations of frozen credit accounts since both full and partial liquidations
 ///         involve minting shares and returning them to the pool.
-///         Other interactions with inactive credit accounts are blocked directly in the KYC factory contract.
-contract DefaultKYCUnderlying is ERC4626, IKYCUnderlying {
-    using AddressValidation for IAddressProvider;
+///         Other interactions with frozen credit accounts are blocked directly in the KYC factory contract.
+contract DefaultKYCUnderlying is IKYCUnderlying, ERC4626 {
+    bytes32 public constant override contractType = TYPE_DEFAULT_KYC_UNDERLYING;
+    uint256 public constant override version = 3_10;
 
-    IAddressProvider internal immutable ADDRESS_PROVIDER;
-    IKYCFactory internal immutable FACTORY;
+    IKYCFactory internal immutable _FACTORY;
 
-    constructor(
-        IAddressProvider addressProvider,
-        IKYCFactory factory_,
-        ERC20 underlying,
-        string memory namePrefix,
-        string memory symbolPrefix
-    )
+    constructor(IKYCFactory factory, ERC20 underlying, string memory namePrefix, string memory symbolPrefix)
         ERC20(string.concat(namePrefix, underlying.name()), string.concat(symbolPrefix, underlying.symbol()))
         ERC4626(underlying)
     {
-        ADDRESS_PROVIDER = addressProvider;
-        FACTORY = factory_;
-    }
-
-    function contractType() public pure virtual override returns (bytes32) {
-        return AP_DEFAULT_KYC_UNDERLYING;
-    }
-
-    function version() public pure virtual override returns (uint256) {
-        return 3_10;
+        _FACTORY = factory;
     }
 
     function serialize() external view virtual override returns (bytes memory) {
-        return abi.encode(FACTORY, asset());
+        return abi.encode(_FACTORY, asset());
     }
 
-    function factory() external view override returns (address) {
-        return address(FACTORY);
+    function getFactory() external view override returns (address) {
+        return address(_FACTORY);
     }
 
-    function _convertToAssets(uint256 shares, Math.Rounding) internal view virtual override returns (uint256) {
+    function beforeTokenBorrow(address creditAccount, uint256 amount) external view override {}
+
+    function _convertToAssets(uint256 shares, Math.Rounding) internal pure override returns (uint256) {
         return shares;
     }
 
-    function _convertToShares(uint256 assets, Math.Rounding) internal view virtual override returns (uint256) {
+    function _convertToShares(uint256 assets, Math.Rounding) internal pure override returns (uint256) {
         return assets;
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256) internal virtual override {
-        _revertIfInactiveCreditAccount(from);
-        _revertIfInactiveCreditAccount(to);
+    function _beforeTokenTransfer(address from, address to, uint256) internal view override {
+        _revertIfFrozenCreditAccount(from);
+        _revertIfFrozenCreditAccount(to);
     }
 
-    function _revertIfInactiveCreditAccount(address account) internal view {
-        if (FACTORY.isInactiveCreditAccount(account)) revert InactiveCreditAccountException(account);
+    function _revertIfFrozenCreditAccount(address account) internal view {
+        if (_FACTORY.isCreditAccount(account) && _FACTORY.isFrozen(account)) {
+            revert FrozenCreditAccountException(account);
+        }
     }
 }
