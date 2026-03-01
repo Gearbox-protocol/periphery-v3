@@ -25,9 +25,9 @@ import {
     IPriceOracleConfigureActions
 } from "@gearbox-protocol/permissionless/contracts/interfaces/factories/IPriceOracleConfigureActions.sol";
 
-import {SecuritizeKYCFactory} from "../contracts/securitize/SecuritizeKYCFactory.sol";
-import {DefaultKYCUnderlying} from "../contracts/securitize/DefaultKYCUnderlying.sol";
-import {SecuritizeDegenNFT} from "../contracts/securitize/SecuritizeDegenNFT.sol";
+import {SecuritizeKYCFactory} from "../contracts/kyc/SecuritizeKYCFactory.sol";
+import {DefaultKYCUnderlying} from "../contracts/kyc/DefaultKYCUnderlying.sol";
+import {SecuritizeDegenNFT} from "../contracts/kyc/SecuritizeDegenNFT.sol";
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 import {PriceFeedMock} from "@gearbox-protocol/core-v3/contracts/test/mocks/oracles/PriceFeedMock.sol";
 import {BytecodeRepositoryMock} from "./BytecodeRepositoryMock.sol";
@@ -111,17 +111,17 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         bytecodes[0].version = 3_10;
         bytecodes[0].initCode = type(SecuritizeKYCFactory).creationCode;
         bytecodes[0].source =
-            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/securitize/SecuritizeKYCFactory.sol";
+            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/kyc/SecuritizeKYCFactory.sol";
         bytecodes[1].contractType = "KYC_UNDERLYING::DEFAULT";
         bytecodes[1].version = 3_10;
         bytecodes[1].initCode = type(DefaultKYCUnderlying).creationCode;
         bytecodes[1].source =
-            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/securitize/DefaultKYCUnderlying.sol";
+            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/kyc/DefaultKYCUnderlying.sol";
         bytecodes[2].contractType = "DEGEN_NFT::SECURITIZE";
         bytecodes[2].version = 3_10;
         bytecodes[2].initCode = type(SecuritizeDegenNFT).creationCode;
         bytecodes[2].source =
-            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/securitize/SecuritizeDegenNFT.sol";
+            "https://github.com/Gearbox-protocol/periphery-v3/tree/securitize-integration/contracts/kyc/SecuritizeDegenNFT.sol";
         bytecodes[3].contractType = "ZAPPER::ERC4626_UNDERLYING";
         bytecodes[3].version = 3_10;
         bytecodes[3].initCode = type(ERC4626UnderlyingZapper).creationCode;

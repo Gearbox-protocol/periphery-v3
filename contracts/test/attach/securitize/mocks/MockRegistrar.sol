@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {IVaultRegistrar} from "../../../../securitize/interfaces/IVaultRegistrar.sol";
+import {IVaultRegistrar} from "../../../../interfaces/external/IVaultRegistrar.sol";
 import {MockDSToken} from "./MockDSToken.sol";
 
 contract MockRegistrar is IVaultRegistrar {

@@ -11,9 +11,9 @@ import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditF
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {SecuritizeWallet} from "./SecuritizeWallet.sol";
-import {ISecuritizeDegenNFT} from "./interfaces/ISecuritizeDegenNFT.sol";
-import {ISecuritizeKYCFactory} from "./interfaces/ISecuritizeKYCFactory.sol";
-import {IVaultRegistrar} from "./interfaces/IVaultRegistrar.sol";
+import {ISecuritizeDegenNFT} from "../interfaces/ISecuritizeDegenNFT.sol";
+import {ISecuritizeKYCFactory} from "../interfaces/ISecuritizeKYCFactory.sol";
+import {IVaultRegistrar} from "../interfaces/external/IVaultRegistrar.sol";
 import {
     AP_BYTECODE_REPOSITORY,
     AP_INSTANCE_MANAGER_PROXY,
@@ -22,7 +22,7 @@ import {
     TYPE_SECURITIZE_DEGEN_NFT,
     TYPE_SECURITIZE_KYC_FACTORY,
     AddressValidation
-} from "./libraries/AddressValidation.sol";
+} from "../libraries/AddressValidation.sol";
 
 /// @title  Securitize KYC Factory
 /// @author Gearbox Foundation

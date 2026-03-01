@@ -10,13 +10,13 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
 import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 
-import {IMonopolizedOnDemandLP} from "./interfaces/IMonopolizedOnDemandLP.sol";
-import {IOnDemandKYCUnderlying} from "./interfaces/IOnDemandKYCUnderlying.sol";
+import {IMonopolizedOnDemandLP} from "../interfaces/IMonopolizedOnDemandLP.sol";
+import {IOnDemandKYCUnderlying} from "../interfaces/IOnDemandKYCUnderlying.sol";
 import {
     TYPE_MONOPOLIZED_ON_DEMAND_LP,
     TYPE_ON_DEMAND_KYC_UNDERLYING,
     AddressValidation
-} from "./libraries/AddressValidation.sol";
+} from "../libraries/AddressValidation.sol";
 
 /// @title  Monopolized On-demand LP
 /// @author Gearbox Foundation

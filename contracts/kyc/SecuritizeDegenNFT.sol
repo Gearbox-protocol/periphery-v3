@@ -5,9 +5,9 @@ pragma solidity ^0.8.23;
 import {IDegenNFT} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IDegenNFT.sol";
 import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
 
-import {ISecuritizeDegenNFT} from "./interfaces/ISecuritizeDegenNFT.sol";
-import {ISecuritizeKYCFactory} from "./interfaces/ISecuritizeKYCFactory.sol";
-import {TYPE_SECURITIZE_DEGEN_NFT, AddressValidation} from "./libraries/AddressValidation.sol";
+import {ISecuritizeDegenNFT} from "../interfaces/ISecuritizeDegenNFT.sol";
+import {ISecuritizeKYCFactory} from "../interfaces/ISecuritizeKYCFactory.sol";
+import {TYPE_SECURITIZE_DEGEN_NFT, AddressValidation} from "../libraries/AddressValidation.sol";
 
 /// @title  Securitize Degen NFT
 /// @author Gearbox Foundation

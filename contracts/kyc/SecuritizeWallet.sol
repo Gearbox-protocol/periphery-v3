@@ -9,9 +9,9 @@ import {ICreditFacadeV3, MultiCall} from "@gearbox-protocol/core-v3/contracts/in
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {ISecuritizeKYCFactory} from "./interfaces/ISecuritizeKYCFactory.sol";
-import {ISecuritizeWallet} from "./interfaces/ISecuritizeWallet.sol";
-import {IKYCUnderlying} from "./interfaces/base/IKYCUnderlying.sol";
+import {ISecuritizeKYCFactory} from "../interfaces/ISecuritizeKYCFactory.sol";
+import {ISecuritizeWallet} from "../interfaces/ISecuritizeWallet.sol";
+import {IKYCUnderlying} from "../interfaces/base/IKYCUnderlying.sol";
 
 /// @title  Securitize Wallet
 /// @author Gearbox Foundation

@@ -12,10 +12,14 @@ import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/in
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {DOMAIN_ON_DEMAND_LP, TYPE_ON_DEMAND_KYC_UNDERLYING, AddressValidation} from "./libraries/AddressValidation.sol";
-import {IOnDemandKYCUnderlying} from "./interfaces/IOnDemandKYCUnderlying.sol";
-import {IKYCFactory} from "./interfaces/base/IKYCFactory.sol";
-import {IOnDemandLiquidityProvider} from "./interfaces/base/IOnDemandLiquidityProvider.sol";
+import {IOnDemandKYCUnderlying} from "../interfaces/IOnDemandKYCUnderlying.sol";
+import {IKYCFactory} from "../interfaces/base/IKYCFactory.sol";
+import {IOnDemandLiquidityProvider} from "../interfaces/base/IOnDemandLiquidityProvider.sol";
+import {
+    DOMAIN_ON_DEMAND_LP,
+    TYPE_ON_DEMAND_KYC_UNDERLYING,
+    AddressValidation
+} from "../libraries/AddressValidation.sol";
 
 /// @title  On-demand KYC Underlying
 /// @author Gearbox Foundation

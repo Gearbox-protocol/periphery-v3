@@ -6,9 +6,9 @@ import {PriceFeedMock} from "@gearbox-protocol/core-v3/contracts/test/mocks/orac
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
-import {DefaultKYCUnderlying} from "../../../securitize/DefaultKYCUnderlying.sol";
-import {SecuritizeDegenNFT} from "../../../securitize/SecuritizeDegenNFT.sol";
-import {SecuritizeKYCFactory} from "../../../securitize/SecuritizeKYCFactory.sol";
+import {DefaultKYCUnderlying} from "../../../kyc/DefaultKYCUnderlying.sol";
+import {SecuritizeDegenNFT} from "../../../kyc/SecuritizeDegenNFT.sol";
+import {SecuritizeKYCFactory} from "../../../kyc/SecuritizeKYCFactory.sol";
 
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";

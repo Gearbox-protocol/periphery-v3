@@ -5,9 +5,9 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IKYCFactory} from "./interfaces/base/IKYCFactory.sol";
-import {IKYCUnderlying} from "./interfaces/base/IKYCUnderlying.sol";
-import {TYPE_DEFAULT_KYC_UNDERLYING} from "./libraries/AddressValidation.sol";
+import {IKYCFactory} from "../interfaces/base/IKYCFactory.sol";
+import {IKYCUnderlying} from "../interfaces/base/IKYCUnderlying.sol";
+import {TYPE_DEFAULT_KYC_UNDERLYING} from "../libraries/AddressValidation.sol";
 
 /// @title  Default KYC Underlying
 /// @author Gearbox Foundation
