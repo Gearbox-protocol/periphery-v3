@@ -14,11 +14,13 @@ import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/in
 import {
     IMarketConfiguratorFactory
 } from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
+import {IPriceFeedStore} from "@gearbox-protocol/permissionless/contracts/interfaces/IPriceFeedStore.sol";
 import {
-    AP_BYTECODE_REPOSITORY,
-    AP_CREDIT_FACADE,
-    AP_INSTANCE_MANAGER_PROXY,
-    AP_MARKET_CONFIGURATOR_FACTORY,
+    AP_BYTECODE_REPOSITORY as TYPE_BYTECODE_REPOSITORY,
+    AP_CREDIT_FACADE as TYPE_CREDIT_FACADE,
+    AP_INSTANCE_MANAGER_PROXY as TYPE_INSTANCE_MANAGER_PROXY,
+    AP_MARKET_CONFIGURATOR_FACTORY as TYPE_MARKET_CONFIGURATOR_FACTORY,
+    AP_PRICE_FEED_STORE as TYPE_PRICE_FEED_STORE,
     DOMAIN_CREDIT_MANAGER,
     DOMAIN_POOL,
     NO_VERSION_CONTROL
@@ -44,7 +46,7 @@ library AddressValidation {
         returns (bool)
     {
         return isDeployedFromBytecodeRepository(addressProvider, deployedContract)
-            && IVersion(deployedContract).contractType() == contractType;
+            && _getContractType(deployedContract) == contractType;
     }
 
     function hasDomain(IAddressProvider addressProvider, address deployedContract, bytes32 domain)
@@ -53,7 +55,7 @@ library AddressValidation {
         returns (bool)
     {
         return isDeployedFromBytecodeRepository(addressProvider, deployedContract)
-            && IVersion(deployedContract).contractType().extractDomain() == domain;
+            && _getContractType(deployedContract).extractDomain() == domain;
     }
 
     function isDeployedFromBytecodeRepository(IAddressProvider addressProvider, address deployedContract)
@@ -61,7 +63,7 @@ library AddressValidation {
         view
         returns (bool)
     {
-        address bytecodeRepository = _getAddressOrRevert(addressProvider, AP_BYTECODE_REPOSITORY);
+        address bytecodeRepository = getGlobalAddress(addressProvider, TYPE_BYTECODE_REPOSITORY);
         return IBytecodeRepository(bytecodeRepository).getDeployedContractBytecodeHash(deployedContract) != 0;
     }
 
@@ -70,8 +72,13 @@ library AddressValidation {
         view
         returns (bool)
     {
-        address marketConfiguratorFactory = _getAddressOrRevert(addressProvider, AP_MARKET_CONFIGURATOR_FACTORY);
+        address marketConfiguratorFactory = getGlobalAddress(addressProvider, TYPE_MARKET_CONFIGURATOR_FACTORY);
         return IMarketConfiguratorFactory(marketConfiguratorFactory).isMarketConfigurator(marketConfigurator);
+    }
+
+    function isKnownToken(IAddressProvider addressProvider, address token) internal view returns (bool) {
+        address priceFeedStore = getGlobalAddress(addressProvider, TYPE_PRICE_FEED_STORE);
+        return IPriceFeedStore(priceFeedStore).isKnownToken(token);
     }
 
     function isPool(IAddressProvider addressProvider, address pool) internal view returns (bool) {
@@ -89,7 +96,7 @@ library AddressValidation {
     }
 
     function isCreditFacade(IAddressProvider addressProvider, address creditFacade) internal view returns (bool) {
-        if (!hasType(addressProvider, creditFacade, AP_CREDIT_FACADE)) return false;
+        if (!hasType(addressProvider, creditFacade, TYPE_CREDIT_FACADE)) return false;
         address creditManager = ICreditFacadeV3(creditFacade).creditManager();
         return isCreditManager(addressProvider, creditManager)
             && ICreditManagerV3(creditManager).creditFacade() == creditFacade;
@@ -113,7 +120,11 @@ library AddressValidation {
         return IContractsRegister(contractsRegister).isCreditManager(creditManager);
     }
 
-    function _getAddressOrRevert(IAddressProvider addressProvider, bytes32 key) private view returns (address) {
+    function getGlobalAddress(IAddressProvider addressProvider, bytes32 key) internal view returns (address) {
         return addressProvider.getAddressOrRevert(key, NO_VERSION_CONTROL);
+    }
+
+    function _getContractType(address deployedContract) private view returns (bytes32) {
+        return IVersion(deployedContract).contractType();
     }
 }

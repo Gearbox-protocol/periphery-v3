@@ -8,13 +8,14 @@ interface IOnDemandKYCUnderlying is IKYCUnderlying {
     // EVENTS //
     // ------ //
 
-    event SetUserStatus(address indexed user, bool allowed);
+    event SetDepositorStatus(address indexed account, bool allowed);
     event SetPool(address indexed pool);
 
     // ------ //
     // ERRORS //
     // ------ //
 
+    error AccountNotAllowedToDepositException(address account);
     error CallerIsNotMarketConfiguratorAdminException(address caller);
     error InvalidCreditAccountException(address creditAccount);
     error InvalidLiquidityProviderException(address liquidityProvider);
@@ -22,7 +23,6 @@ interface IOnDemandKYCUnderlying is IKYCUnderlying {
     error InvalidPoolException(address pool);
     error PoolAlreadySetException();
     error PoolNotSetException();
-    error UserNotAllowedException(address user);
 
     // --------- //
     // FUNCTIONS //
@@ -32,5 +32,7 @@ interface IOnDemandKYCUnderlying is IKYCUnderlying {
     function getMarketConfigurator() external view returns (address);
     function getPool() external view returns (address);
     function setPool(address pool) external;
-    function setUserStatus(address user, bool allowed) external;
+    function getAllowedDepositors() external view returns (address[] memory);
+    function isAllowedDepositor(address account) external view returns (bool);
+    function setDepositorStatus(address account, bool allowed) external;
 }

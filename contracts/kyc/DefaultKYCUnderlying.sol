@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
+import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
 
 import {IKYCFactory} from "../interfaces/base/IKYCFactory.sol";
 import {IKYCUnderlying} from "../interfaces/base/IKYCUnderlying.sol";
-import {TYPE_DEFAULT_KYC_UNDERLYING} from "../libraries/AddressValidation.sol";
+import {AddressValidation, DOMAIN_KYC_FACTORY, TYPE_DEFAULT_KYC_UNDERLYING} from "../libraries/AddressValidation.sol";
 
 /// @title  Default KYC Underlying
 /// @author Gearbox Foundation
@@ -16,15 +18,26 @@ import {TYPE_DEFAULT_KYC_UNDERLYING} from "../libraries/AddressValidation.sol";
 ///         involve minting shares and returning them to the pool.
 ///         Other interactions with frozen credit accounts are blocked directly in the KYC factory contract.
 contract DefaultKYCUnderlying is IKYCUnderlying, ERC4626 {
+    using AddressValidation for IAddressProvider;
+
     bytes32 public constant override contractType = TYPE_DEFAULT_KYC_UNDERLYING;
     uint256 public constant override version = 3_10;
 
     IKYCFactory internal immutable _FACTORY;
 
-    constructor(IKYCFactory factory, ERC20 underlying, string memory namePrefix, string memory symbolPrefix)
+    constructor(
+        IAddressProvider addressProvider,
+        IKYCFactory factory,
+        ERC20 underlying,
+        string memory namePrefix,
+        string memory symbolPrefix
+    )
         ERC20(string.concat(namePrefix, underlying.name()), string.concat(symbolPrefix, underlying.symbol()))
         ERC4626(underlying)
     {
+        if (!addressProvider.hasDomain(address(factory), DOMAIN_KYC_FACTORY)) {
+            revert InvalidKYCFactoryException(address(factory));
+        }
         _FACTORY = factory;
     }
 
@@ -36,7 +49,7 @@ contract DefaultKYCUnderlying is IKYCUnderlying, ERC4626 {
         return address(_FACTORY);
     }
 
-    function beforeTokenBorrow(address creditAccount, uint256 amount) external view override {}
+    function beforeTokenBorrow(address, uint256) external pure override {}
 
     function _convertToAssets(uint256 shares, Math.Rounding) internal pure override returns (uint256) {
         return shares;

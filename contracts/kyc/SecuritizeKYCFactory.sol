@@ -13,15 +13,12 @@ import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 import {SecuritizeWallet} from "./SecuritizeWallet.sol";
 import {ISecuritizeDegenNFT} from "../interfaces/ISecuritizeDegenNFT.sol";
 import {ISecuritizeKYCFactory} from "../interfaces/ISecuritizeKYCFactory.sol";
-import {IVaultRegistrar} from "../interfaces/external/IVaultRegistrar.sol";
 import {
-    AP_BYTECODE_REPOSITORY,
-    AP_INSTANCE_MANAGER_PROXY,
+    AddressValidation,
     DOMAIN_KYC_UNDERLYING,
-    NO_VERSION_CONTROL,
+    TYPE_BYTECODE_REPOSITORY,
     TYPE_SECURITIZE_DEGEN_NFT,
-    TYPE_SECURITIZE_KYC_FACTORY,
-    AddressValidation
+    TYPE_SECURITIZE_KYC_FACTORY
 } from "../libraries/AddressValidation.sol";
 
 /// @title  Securitize KYC Factory
@@ -40,7 +37,6 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         address wallet;
         address investor;
         bool frozen;
-        EnumerableSet.AddressSet tokens;
     }
 
     struct InvestorInfo {
@@ -58,11 +54,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
     ISecuritizeDegenNFT internal immutable _DEGEN_NFT;
 
-    EnumerableSet.AddressSet internal _DSTokensSet;
-    mapping(address token => address registrar) internal _registrars;
-
     mapping(address creditAccount => CreditAccountInfo) internal _creditAccountInfo;
-
     mapping(address investor => InvestorInfo) internal _investorInfo;
 
     // --------- //
@@ -71,21 +63,6 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
 
     modifier nonZeroAddress(address addr) {
         _ensureAddressIsNotZero(addr);
-        _;
-    }
-
-    modifier onlyInstanceOwner() {
-        _ensureCallerIsInstanceOwner();
-        _;
-    }
-
-    modifier onlyInvestor(address creditAccount) {
-        _ensureCallerIsInvestor(creditAccount);
-        _;
-    }
-
-    modifier whenNotFrozen(address creditAccount) {
-        _ensureCreditAccountIsNotFrozen(creditAccount);
         _;
     }
 
@@ -101,7 +78,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     constructor(IAddressProvider addressProvider, address securitizeAdmin) nonZeroAddress(securitizeAdmin) {
         _ADDRESS_PROVIDER = addressProvider;
 
-        address bytecodeRepository = _ADDRESS_PROVIDER.getAddressOrRevert(AP_BYTECODE_REPOSITORY, NO_VERSION_CONTROL);
+        address bytecodeRepository = _ADDRESS_PROVIDER.getGlobalAddress(TYPE_BYTECODE_REPOSITORY);
         _DEGEN_NFT = ISecuritizeDegenNFT(
             IBytecodeRepository(bytecodeRepository)
                 .deploy({
@@ -119,17 +96,12 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // GETTERS //
     // ------- //
 
+    function serialize() external view override returns (bytes memory) {
+        return abi.encode(owner(), _DEGEN_NFT);
+    }
+
     function getDegenNFT() external view override returns (address) {
         return address(_DEGEN_NFT);
-    }
-
-    function getDSTokens() external view override returns (address[] memory) {
-        return _DSTokensSet.values();
-    }
-
-    function getRegistrar(address token) public view override returns (address registrar) {
-        registrar = _registrars[token];
-        if (registrar == address(0)) revert RegistrarNotSetForTokenException(token);
     }
 
     function isCreditAccount(address creditAccount) public view override returns (bool) {
@@ -166,23 +138,13 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         return _creditAccountInfo[creditAccount].frozen;
     }
 
-    function getRegisteredTokens(address creditAccount)
-        external
-        view
-        override
-        onlyKnownCreditAccounts(creditAccount)
-        returns (address[] memory)
-    {
-        return _creditAccountInfo[creditAccount].tokens.values();
-    }
-
     function getCreditAccounts(address investor) external view override returns (address[] memory) {
         return _investorInfo[investor].creditAccounts.values();
     }
 
-    // -------------- //
-    // USER FUNCTIONS //
-    // -------------- //
+    // ------------ //
+    // USER ACTIONS //
+    // ------------ //
 
     function precomputeWalletAddress(address creditManager, address investor) public view override returns (address) {
         return Create2.computeAddress(_getSalt(investor), keccak256(_getWalletBytecode(creditManager)));
@@ -203,7 +165,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
 
         _DEGEN_NFT.mint(precomputeWalletAddress(creditManager, msg.sender));
         wallet = Create2.deploy(0, _getSalt(msg.sender), _getWalletBytecode(creditManager));
-        creditAccount = SecuritizeWallet(wallet).creditAccount();
+        creditAccount = SecuritizeWallet(wallet).getCreditAccount();
 
         _investorInfo[msg.sender].nonce++;
         _investorInfo[msg.sender].creditAccounts.add(creditAccount);
@@ -211,34 +173,24 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         _creditAccountInfo[creditAccount].investor = msg.sender;
         emit CreateWallet(creditAccount, wallet, msg.sender);
 
-        _registerTokens(msg.sender, creditAccount, wallet, tokensToRegister);
+        _registerCreditAccount(creditAccount, tokensToRegister);
         _multicall(wallet, calls);
     }
 
     function multicall(address creditAccount, MultiCall[] calldata calls, address[] calldata tokensToRegister)
         external
         override
-        onlyInvestor(creditAccount)
-        whenNotFrozen(creditAccount)
     {
-        address wallet = _creditAccountInfo[creditAccount].wallet;
-        _registerTokens(msg.sender, creditAccount, wallet, tokensToRegister);
-        _multicall(wallet, calls);
+        CreditAccountInfo memory creditAccountInfo = _creditAccountInfo[creditAccount];
+        if (msg.sender != creditAccountInfo.investor) revert CallerIsNotInvestorException(msg.sender, creditAccount);
+        if (creditAccountInfo.frozen) revert FrozenCreditAccountException(creditAccount);
+        _registerCreditAccount(creditAccount, tokensToRegister);
+        _multicall(creditAccountInfo.wallet, calls);
     }
 
-    // --------------- //
-    // ADMIN FUNCTIONS //
-    // --------------- //
-
-    /// @dev This factory is expected to have proper permissions in `registrar`
-    function addRegistrar(address registrar) external onlyInstanceOwner nonZeroAddress(registrar) {
-        address token = IVaultRegistrar(registrar).token();
-        if (token == address(0)) revert ZeroAddressException();
-        if (_registrars[token] == registrar) return;
-        _DSTokensSet.add(token);
-        _registrars[token] = registrar;
-        emit SetRegistrar(token, registrar);
-    }
+    // ------------- //
+    // ADMIN ACTIONS //
+    // ------------- //
 
     function setFrozenStatus(address creditAccount, bool frozen)
         external
@@ -251,10 +203,13 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         emit SetFrozenStatus(creditAccount, frozen);
     }
 
+    /// @dev `investor` is expected to be a recognized wallet in all required registries
+    ///       under the same investor ID as original investor of `creditAccount`
     function setInvestor(address creditAccount, address investor)
         external
         override
         onlyOwner
+        nonZeroAddress(investor)
         onlyKnownCreditAccounts(creditAccount)
     {
         CreditAccountInfo storage creditAccountInfo = _creditAccountInfo[creditAccount];
@@ -263,13 +218,8 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         creditAccountInfo.investor = investor;
         emit SetInvestor(creditAccount, oldInvestor, investor);
 
-        address wallet = creditAccountInfo.wallet;
-        address[] memory tokens = creditAccountInfo.tokens.values();
         _investorInfo[oldInvestor].creditAccounts.remove(creditAccount);
-        _unregisterTokens(oldInvestor, creditAccount, wallet, tokens);
-        if (investor == address(0)) return;
         _investorInfo[investor].creditAccounts.add(creditAccount);
-        _registerTokens(investor, creditAccount, wallet, tokens);
     }
 
     // --------- //
@@ -278,22 +228,6 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
 
     function _ensureAddressIsNotZero(address addr) internal pure {
         if (addr == address(0)) revert ZeroAddressException();
-    }
-
-    function _ensureCallerIsInstanceOwner() internal view {
-        if (msg.sender != _ADDRESS_PROVIDER.getAddressOrRevert(AP_INSTANCE_MANAGER_PROXY, NO_VERSION_CONTROL)) {
-            revert CallerIsNotInstanceOwnerException(msg.sender);
-        }
-    }
-
-    function _ensureCallerIsInvestor(address creditAccount) internal view {
-        if (msg.sender != _creditAccountInfo[creditAccount].investor) {
-            revert CallerIsNotInvestorException(msg.sender, creditAccount);
-        }
-    }
-
-    function _ensureCreditAccountIsNotFrozen(address creditAccount) internal view {
-        if (_creditAccountInfo[creditAccount].frozen) revert FrozenCreditAccountException(creditAccount);
     }
 
     function _ensureCreditAccountIsKnown(address creditAccount) internal view {
@@ -308,39 +242,11 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         return abi.encodePacked(type(SecuritizeWallet).creationCode, abi.encode(address(this), creditManager));
     }
 
-    function _registerTokens(address investor, address creditAccount, address wallet, address[] memory tokens)
-        internal
-    {
-        uint256 length = tokens.length;
-        for (uint256 i; i < length; ++i) {
-            address registrar = getRegistrar(tokens[i]);
-            _registerVault(registrar, creditAccount, investor);
-            _registerVault(registrar, wallet, investor);
-            _creditAccountInfo[creditAccount].tokens.add(tokens[i]);
-        }
-    }
-
-    function _unregisterTokens(address investor, address creditAccount, address wallet, address[] memory tokens)
-        internal
-    {
-        uint256 length = tokens.length;
-        for (uint256 i; i < length; ++i) {
-            address registrar = getRegistrar(tokens[i]);
-            _unregisterVault(registrar, creditAccount, investor);
-            _unregisterVault(registrar, wallet, investor);
-            _creditAccountInfo[creditAccount].tokens.remove(tokens[i]);
-        }
+    function _registerCreditAccount(address creditAccount, address[] memory tokens) internal {
+        _DEGEN_NFT.registerCreditAccount(creditAccount, tokens);
     }
 
     function _multicall(address wallet, MultiCall[] calldata calls) internal {
         SecuritizeWallet(wallet).multicall(calls);
-    }
-
-    function _registerVault(address registrar, address vault, address investor) internal {
-        IVaultRegistrar(registrar).registerVault(vault, investor);
-    }
-
-    function _unregisterVault(address registrar, address vault, address investor) internal {
-        IVaultRegistrar(registrar).unregisterVault(vault, investor);
     }
 }

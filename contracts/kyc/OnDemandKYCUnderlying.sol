@@ -16,9 +16,11 @@ import {IOnDemandKYCUnderlying} from "../interfaces/IOnDemandKYCUnderlying.sol";
 import {IKYCFactory} from "../interfaces/base/IKYCFactory.sol";
 import {IOnDemandLiquidityProvider} from "../interfaces/base/IOnDemandLiquidityProvider.sol";
 import {
+    AddressValidation,
+    DOMAIN_KYC_FACTORY,
     DOMAIN_ON_DEMAND_LP,
-    TYPE_ON_DEMAND_KYC_UNDERLYING,
-    AddressValidation
+    DOMAIN_POOL,
+    TYPE_ON_DEMAND_KYC_UNDERLYING
 } from "../libraries/AddressValidation.sol";
 
 /// @title  On-demand KYC Underlying
@@ -26,8 +28,8 @@ import {
 /// @notice An ERC4626-like token wrapper to use as underlying in markets with KYC compliance and on-demand liquidity
 ///         provision. On top of blocking liquidations of frozen credit accounts, it also lets compliant users pull
 ///         liquidity from an on-demand LP contract right before borrowing, increasing capital efficiency for lenders.
-///         Besides the pool, liquidity provider and credit accounts, only users whitelisted by the market configurator
-///         admin can interact with the token in order to prevent dissolution of lenders' profits.
+///         Besides the liquidity provider and credit accounts, only users whitelisted by the market configurator admin
+///         can send underlying to the pool in order to prevent dissolution of lenders' profits.
 contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
     using AddressValidation for IAddressProvider;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -37,10 +39,10 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
 
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
     IKYCFactory internal immutable _FACTORY;
-    IMarketConfigurator internal immutable _MARKET_CONFIGURATOR;
     IOnDemandLiquidityProvider internal immutable _LIQUIDITY_PROVIDER;
+    IMarketConfigurator internal immutable _MARKET_CONFIGURATOR;
     address internal _pool;
-    EnumerableSet.AddressSet internal _allowedUsers;
+    EnumerableSet.AddressSet internal _allowedDepositors;
 
     modifier onlyMarketConfiguratorAdmin() {
         _ensureCallerIsMarketConfiguratorAdmin();
@@ -50,8 +52,8 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
     constructor(
         IAddressProvider addressProvider,
         IKYCFactory factory,
-        IMarketConfigurator marketConfigurator,
         IOnDemandLiquidityProvider liquidityProvider,
+        IMarketConfigurator marketConfigurator,
         ERC20 underlying,
         string memory namePrefix,
         string memory symbolPrefix
@@ -59,32 +61,35 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
         ERC20(string.concat(namePrefix, underlying.name()), string.concat(symbolPrefix, underlying.symbol()))
         ERC4626(underlying)
     {
-        if (!addressProvider.isMarketConfigurator(address(marketConfigurator))) {
-            revert InvalidMarketConfiguratorException(address(marketConfigurator));
+        if (!addressProvider.hasDomain(address(factory), DOMAIN_KYC_FACTORY)) {
+            revert InvalidKYCFactoryException(address(factory));
         }
         if (!addressProvider.hasDomain(address(liquidityProvider), DOMAIN_ON_DEMAND_LP)) {
             revert InvalidLiquidityProviderException(address(liquidityProvider));
         }
+        if (!addressProvider.isMarketConfigurator(address(marketConfigurator))) {
+            revert InvalidMarketConfiguratorException(address(marketConfigurator));
+        }
         _ADDRESS_PROVIDER = addressProvider;
         _FACTORY = factory;
-        _MARKET_CONFIGURATOR = marketConfigurator;
         _LIQUIDITY_PROVIDER = liquidityProvider;
+        _MARKET_CONFIGURATOR = marketConfigurator;
     }
 
     function serialize() external view override returns (bytes memory) {
-        return abi.encode(_FACTORY, asset(), _pool, _MARKET_CONFIGURATOR, _LIQUIDITY_PROVIDER);
+        return abi.encode(_FACTORY, asset(), _pool, _LIQUIDITY_PROVIDER, _MARKET_CONFIGURATOR);
     }
 
     function getFactory() external view override returns (address) {
         return address(_FACTORY);
     }
 
-    function getMarketConfigurator() external view override returns (address) {
-        return address(_MARKET_CONFIGURATOR);
-    }
-
     function getLiquidityProvider() external view override returns (address) {
         return address(_LIQUIDITY_PROVIDER);
+    }
+
+    function getMarketConfigurator() external view override returns (address) {
+        return address(_MARKET_CONFIGURATOR);
     }
 
     function getPool() public view override returns (address pool) {
@@ -93,19 +98,31 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
     }
 
     function setPool(address pool) external override onlyMarketConfiguratorAdmin {
-        if (ERC4626(pool).asset() != address(this)) revert InvalidPoolException(pool);
         if (_pool != address(0)) revert PoolAlreadySetException();
+        if (
+            !_ADDRESS_PROVIDER.hasDomain(pool, DOMAIN_POOL) || ERC4626(pool).asset() != address(this)
+                || !AddressValidation.isRegisteredPool(address(_MARKET_CONFIGURATOR), pool)
+        ) revert InvalidPoolException(pool);
         _pool = pool;
         emit SetPool(pool);
     }
 
-    function setUserStatus(address user, bool allowed) external override onlyMarketConfiguratorAdmin {
-        if (allowed && _allowedUsers.add(user) || !allowed && _allowedUsers.remove(user)) {
-            emit SetUserStatus(user, allowed);
+    function getAllowedDepositors() external view override returns (address[] memory) {
+        return _allowedDepositors.values();
+    }
+
+    function isAllowedDepositor(address account) public view override returns (bool) {
+        return account == address(_LIQUIDITY_PROVIDER) || _FACTORY.isCreditAccount(account)
+            || _allowedDepositors.contains(account);
+    }
+
+    function setDepositorStatus(address account, bool allowed) external override onlyMarketConfiguratorAdmin {
+        if (allowed && _allowedDepositors.add(account) || !allowed && _allowedDepositors.remove(account)) {
+            emit SetDepositorStatus(account, allowed);
         }
     }
 
-    function beforeTokenBorrow(address creditAccount, uint256 amount) external override {
+    function beforeTokenBorrow(address creditAccount, uint256 underlyingAmount) external override {
         address pool = getPool();
         if (msg.sender != _FACTORY.getWallet(creditAccount)) {
             revert CallerIsNotWalletException(msg.sender, creditAccount);
@@ -113,7 +130,7 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
         if (pool != ICreditManagerV3(ICreditAccountV3(creditAccount).creditManager()).pool()) {
             revert InvalidCreditAccountException(creditAccount);
         }
-        _LIQUIDITY_PROVIDER.pullLiquidity(pool, amount);
+        _LIQUIDITY_PROVIDER.deposit(pool, creditAccount, underlyingAmount);
     }
 
     /// @dev Even though pools are assumed to use IRMs independent of utilization, this adjustment
@@ -121,13 +138,13 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
     function balanceOf(address account) public view override(ERC20, IERC20) returns (uint256) {
         address pool = _pool;
         return super.balanceOf(account)
-            + ((pool != address(0) && account == pool) ? _LIQUIDITY_PROVIDER.allowanceOf(pool) : 0);
+            + (pool != address(0) && account == pool ? _LIQUIDITY_PROVIDER.depositAllowance(pool) : 0);
     }
 
     /// @dev Just to be a little more consistent with the `balanceOf` adjustment
     function totalSupply() public view override(ERC20, IERC20) returns (uint256) {
         address pool = _pool;
-        return super.totalSupply() + (pool != address(0) ? _LIQUIDITY_PROVIDER.allowanceOf(pool) : 0);
+        return super.totalSupply() + (pool != address(0) ? _LIQUIDITY_PROVIDER.depositAllowance(pool) : 0);
     }
 
     function _convertToAssets(uint256 shares, Math.Rounding) internal pure override returns (uint256) {
@@ -139,21 +156,18 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256) internal view override {
-        _checkAccount(from);
-        _checkAccount(to);
+        _revertIfFrozenCreditAccount(from);
+        _revertIfFrozenCreditAccount(to);
+
+        address pool = _pool;
+        if (pool != address(0) && to == pool && !isAllowedDepositor(from)) {
+            revert AccountNotAllowedToDepositException(from);
+        }
     }
 
-    function _checkAccount(address account) internal view {
-        address pool = _pool;
-        // anyone can interact with the token before the pool is set to simplify the setup process
-        if (
-            account == address(0) || pool == address(0) || account == pool || account == address(_LIQUIDITY_PROVIDER)
-                || _allowedUsers.contains(account)
-        ) return;
-        if (_FACTORY.isCreditAccount(account)) {
-            if (_FACTORY.isFrozen(account)) revert FrozenCreditAccountException(account);
-        } else {
-            revert UserNotAllowedException(account);
+    function _revertIfFrozenCreditAccount(address account) internal view {
+        if (_FACTORY.isCreditAccount(account) && _FACTORY.isFrozen(account)) {
+            revert FrozenCreditAccountException(account);
         }
     }
 

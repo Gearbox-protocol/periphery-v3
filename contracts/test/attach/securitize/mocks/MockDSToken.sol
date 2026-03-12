@@ -57,11 +57,6 @@ contract MockDSToken is ERC20 {
         registeredVaults[vault] = investor;
     }
 
-    function unregisterVault(address vault, address investor) external onlyRegistrar {
-        if (registeredVaults[vault] != investor) revert VaultNotRegisteredForInvestor(vault, investor);
-        delete registeredVaults[vault];
-    }
-
     function _beforeTokenTransfer(address from, address to, uint256) internal view override {
         if (from != address(0) && !_canTransfer(from) || to != address(0) && !_canTransfer(to)) {
             revert CannotTransfer(from, to);

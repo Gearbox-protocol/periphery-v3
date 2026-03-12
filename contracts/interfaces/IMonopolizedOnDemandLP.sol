@@ -10,15 +10,15 @@ interface IMonopolizedOnDemandLP is IOnDemandLiquidityProvider {
 
     struct Pool {
         address pool;
-        address underlying;
-        address token;
+        address wrappedUnderlying;
+        address unwrappedUnderlying;
     }
 
     // ------ //
     // EVENTS //
     // ------ //
 
-    event AddPool(address indexed token, address indexed underlying, address indexed pool);
+    event AddPool(address indexed pool, address indexed wrappedUnderlying, address indexed unwrappedUnderlying);
 
     // ------ //
     // ERRORS //
@@ -26,14 +26,8 @@ interface IMonopolizedOnDemandLP is IOnDemandLiquidityProvider {
 
     error CallerIsNotDepositorException(address caller);
     error CallerIsNotMarketConfiguratorAdminException(address caller);
-    error CallerIsNotUnderlyingException(address caller);
-    error InvalidKYCFactoryException(address factory);
     error InvalidMarketConfiguratorException(address marketConfigurator);
-    error InvalidPoolException(address pool);
-    error InvalidUnderlyingTokenException(address underlying);
-    error PoolAlreadyAddedException(address pool);
-    error PoolNotAddedException(address pool);
-    error TokenAlreadyAddedException(address token);
+    error UnderlyingAlreadyAddedException(address underlying);
 
     // --------- //
     // FUNCTIONS //
@@ -42,6 +36,7 @@ interface IMonopolizedOnDemandLP is IOnDemandLiquidityProvider {
     function getMarketConfigurator() external view returns (address);
     function getDepositor() external view returns (address);
     function getPools() external view returns (Pool[] memory);
+    function isPool(address pool) external view returns (bool);
     function addPool(address pool) external;
-    function claim(address pool) external;
+    function withdraw(address pool) external;
 }

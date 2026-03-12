@@ -27,6 +27,7 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
     address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
 
     address public factory;
+    address public degenNFT;
     address public cUSDC;
 
     MockDSToken public dsToken;
@@ -65,19 +66,18 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
 
         factory = _deploy("KYC_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
-        cUSDC = _deploy("KYC_UNDERLYING::DEFAULT", 3_10, abi.encode(factory, USDC, "Compliant ", "c"));
+        cUSDC = _deploy("KYC_UNDERLYING::DEFAULT", 3_10, abi.encode(addressProvider, factory, USDC, "Compliant ", "c"));
+        degenNFT = SecuritizeKYCFactory(factory).getDegenNFT();
 
         // Securitize actions ---------------------------------------------------------------------------------------- //
 
         vm.startPrank(securitize);
         dsToken.authorize(investor);
         dsToken.setRegistrar(address(registrar), true);
-        registrar.grantOperator(factory);
+        registrar.grantOperator(degenNFT);
         vm.stopPrank();
 
         // Instance owner actions ------------------------------------------------------------------------------------ //
-
-        _configureLocal(factory, abi.encodeCall(SecuritizeKYCFactory.addRegistrar, (address(registrar))));
 
         _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
         _allowPriceFeed(USDC, USDC_PRICE_FEED);
@@ -86,10 +86,11 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
         _addPriceFeed(address(dsTokenPriceFeed), 1 days, "Mock DSToken price feed");
         _allowPriceFeed(address(dsToken), address(dsTokenPriceFeed));
 
+        _configureLocal(degenNFT, abi.encodeCall(SecuritizeDegenNFT.addRegistrar, (address(registrar))));
+
         // Risk curator actions -------------------------------------------------------------------------------------- //
 
         // NOTE: adding degen NFT as periphery contract is required to use it in the credit suite
-        address degenNFT = SecuritizeKYCFactory(factory).getDegenNFT();
         _addPeripheryContract(degenNFT);
 
         // NOTE: mint small amount of underlying to risk curator to mint dead pool shares

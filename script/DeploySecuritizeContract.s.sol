@@ -290,7 +290,7 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
             bytecodes[0].contractType, bytecodes[0].version, factoryConstructorParams, bytes32(0)
         );
 
-        bytes memory underlyingConstructorParams = abi.encode(kycFactory, USDC, "compliant ", "c");
+        bytes memory underlyingConstructorParams = abi.encode(addressProvider, kycFactory, USDC, "compliant ", "c");
 
         kycUnderlying = bytecodeRepository.deploy(
             bytecodes[1].contractType, bytecodes[1].version, underlyingConstructorParams, bytes32(0)
@@ -301,17 +301,17 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         dsToken.authorize(author.addr);
         dsToken.setRegistrar(address(registrar), true);
         dsToken.mint(author.addr, 1000000 ether);
-        registrar.grantOperator(kycFactory);
+        registrar.grantOperator(degenNFT);
 
         vm.stopBroadcast();
 
         vm.startBroadcast(ioProxy);
-        SecuritizeKYCFactory(kycFactory).addRegistrar(address(registrar));
-
         priceFeedStore.addPriceFeed(address(onePriceFeed), 1 days, "$1 price feed");
         priceFeedStore.allowPriceFeed(address(dsToken), address(onePriceFeed));
         priceFeedStore.allowPriceFeed(USDC, address(onePriceFeed));
         priceFeedStore.allowPriceFeed(address(kycUnderlying), address(onePriceFeed));
+
+        SecuritizeDegenNFT(degenNFT).addRegistrar(address(registrar));
         vm.stopBroadcast();
 
         vm.startBroadcast(USDC_DONOR);

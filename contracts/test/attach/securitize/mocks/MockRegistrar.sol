@@ -42,8 +42,4 @@ contract MockRegistrar is IVaultRegistrar {
     function registerVault(address vaultAddress, address investorWalletAddress) external override onlyOperator {
         MockDSToken(token).registerVault(vaultAddress, investorWalletAddress);
     }
-
-    function unregisterVault(address vaultAddress, address investorWalletAddress) external override onlyOperator {
-        MockDSToken(token).unregisterVault(vaultAddress, investorWalletAddress);
-    }
 }

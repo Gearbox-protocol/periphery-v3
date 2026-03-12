@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {ICreditFacadeV3, MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
@@ -18,32 +18,52 @@ import {IKYCUnderlying} from "../interfaces/base/IKYCUnderlying.sol";
 /// @notice A simple wallet contract that owns a credit account and allows investor to interact with it,
 ///         while also allowing Securitize to enforce compliance
 contract SecuritizeWallet is ISecuritizeWallet {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ERC20;
 
-    address public immutable override factory;
-    address public immutable override underlying;
-    address public immutable override creditManager;
-    address public immutable override creditAccount;
+    ISecuritizeKYCFactory internal immutable _FACTORY;
+    IKYCUnderlying internal immutable _UNDERLYING;
+    ICreditManagerV3 internal immutable _CREDIT_MANAGER;
+    address internal immutable _CREDIT_ACCOUNT;
 
     modifier onlyFactory() {
-        if (msg.sender != factory) revert CallerIsNotFactoryException(msg.sender);
+        if (msg.sender != address(_FACTORY)) revert CallerIsNotFactoryException(msg.sender);
         _;
     }
 
     modifier onlyInvestor() {
-        if (msg.sender != _investor()) revert CallerIsNotInvestorException(msg.sender, creditAccount);
+        if (msg.sender != getInvestor()) revert CallerIsNotInvestorException(msg.sender, _CREDIT_ACCOUNT);
         _;
     }
 
-    constructor(address factory_, address creditManager_) {
-        factory = factory_;
-        underlying = ICreditManagerV3(creditManager_).underlying();
-        creditManager = creditManager_;
-        creditAccount = _creditFacade().openCreditAccount(address(this), new MultiCall[](0), 0);
+    constructor(ISecuritizeKYCFactory factory, ICreditManagerV3 creditManager) {
+        _FACTORY = factory;
+        _UNDERLYING = IKYCUnderlying(creditManager.underlying());
+        _CREDIT_MANAGER = creditManager;
+        _CREDIT_ACCOUNT = _creditFacade().openCreditAccount(address(this), new MultiCall[](0), 0);
+    }
+
+    function getFactory() external view override returns (address) {
+        return address(_FACTORY);
+    }
+
+    function getUnderlying() external view override returns (address) {
+        return address(_UNDERLYING);
+    }
+
+    function getCreditManager() external view override returns (address) {
+        return address(_CREDIT_MANAGER);
+    }
+
+    function getCreditAccount() external view override returns (address) {
+        return _CREDIT_ACCOUNT;
+    }
+
+    function getInvestor() public view override returns (address) {
+        return _FACTORY.getInvestor(_CREDIT_ACCOUNT);
     }
 
     function multicall(MultiCall[] calldata calls) external override onlyFactory {
-        address investor = _investor();
+        address investor = getInvestor();
         uint256 length = calls.length;
         for (uint256 i; i < length; ++i) {
             if (bytes4(calls[i].callData[:4]) == ICreditFacadeV3Multicall.addCollateral.selector) {
@@ -56,28 +76,24 @@ contract SecuritizeWallet is ISecuritizeWallet {
                 _addCollateral(token, investor, amount);
             } else if (bytes4(calls[i].callData[:4]) == ICreditFacadeV3Multicall.increaseDebt.selector) {
                 uint256 amount = abi.decode(calls[i].callData[4:], (uint256));
-                IKYCUnderlying(underlying).beforeTokenBorrow(creditAccount, amount);
+                _UNDERLYING.beforeTokenBorrow(_CREDIT_ACCOUNT, amount);
             } else if (bytes4(calls[i].callData[:4]) == ICreditFacadeV3Multicall.setBotPermissions.selector) {
                 revert ForbiddenCallException();
             }
         }
-        _creditFacade().multicall(creditAccount, calls);
+        _creditFacade().multicall(_CREDIT_ACCOUNT, calls);
     }
 
     function rescueToken(address token, address to) external override onlyInvestor {
-        IERC20(token).safeTransfer(to, IERC20(token).balanceOf(address(this)));
+        ERC20(token).safeTransfer(to, ERC20(token).balanceOf(address(this)));
     }
 
     function _addCollateral(address token, address investor, uint256 amount) internal {
-        IERC20(token).safeTransferFrom(investor, address(this), amount);
-        IERC20(token).forceApprove(creditManager, amount);
+        ERC20(token).safeTransferFrom(investor, address(this), amount);
+        ERC20(token).forceApprove(address(_CREDIT_MANAGER), amount);
     }
 
     function _creditFacade() internal view returns (ICreditFacadeV3) {
-        return ICreditFacadeV3(ICreditManagerV3(creditManager).creditFacade());
-    }
-
-    function _investor() internal view returns (address) {
-        return ISecuritizeKYCFactory(factory).getInvestor(creditAccount);
+        return ICreditFacadeV3(_CREDIT_MANAGER.creditFacade());
     }
 }

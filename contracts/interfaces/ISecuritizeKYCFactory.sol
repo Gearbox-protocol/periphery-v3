@@ -12,16 +12,13 @@ interface ISecuritizeKYCFactory is IKYCFactory {
     event CreateWallet(address indexed creditAccount, address indexed wallet, address indexed investor);
     event SetFrozenStatus(address indexed creditAccount, bool frozen);
     event SetInvestor(address indexed creditAccount, address indexed oldInvestor, address indexed newInvestor);
-    event SetRegistrar(address indexed token, address indexed registrar);
 
     // ------ //
     // ERRORS //
     // ------ //
 
-    error CallerIsNotInstanceOwnerException(address caller);
     error InvalidCreditManagerException(address creditManager);
     error InvalidUnderlyingTokenException(address underlying);
-    error RegistrarNotSetForTokenException(address token);
     error ZeroAddressException();
 
     // ------- //
@@ -29,13 +26,10 @@ interface ISecuritizeKYCFactory is IKYCFactory {
     // ------- //
 
     function getDegenNFT() external view returns (address);
-    function getDSTokens() external view returns (address[] memory);
-    function getRegistrar(address token) external view returns (address);
-    function getRegisteredTokens(address creditAccount) external view returns (address[] memory);
 
-    // -------------- //
-    // USER FUNCTIONS //
-    // -------------- //
+    // ------------ //
+    // USER ACTIONS //
+    // ------------ //
 
     function precomputeWalletAddress(address creditManager, address investor) external view returns (address);
     function openCreditAccount(address creditManager, MultiCall[] calldata calls, address[] calldata tokensToRegister)
@@ -43,11 +37,10 @@ interface ISecuritizeKYCFactory is IKYCFactory {
         returns (address creditAccount, address wallet);
     function multicall(address creditAccount, MultiCall[] calldata calls, address[] calldata tokensToRegister) external;
 
-    // --------------- //
-    // ADMIN FUNCTIONS //
-    // --------------- //
+    // ------------- //
+    // ADMIN ACTIONS //
+    // ------------- //
 
-    function addRegistrar(address registrar) external;
     function setFrozenStatus(address creditAccount, bool frozen) external;
     function setInvestor(address creditAccount, address investor) external;
 }
