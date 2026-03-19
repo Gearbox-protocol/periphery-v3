@@ -178,10 +178,12 @@ contract SecuritizeDefaultLiquidityAttachTest is PeripheryAttachTestBase {
             callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (address(dsToken), 54_000e6, 0))
         });
 
-        address[] memory tokensToRegister = new address[](1);
-        tokensToRegister[0] = address(dsToken);
+        SecuritizeDegenNFT.RegisterMessage[] memory messages = new SecuritizeDegenNFT.RegisterMessage[](1);
+        messages[0].token = address(dsToken);
+        messages[0].signature.deadline = type(uint256).max;
+        messages[0].signature.signature = "";
 
         vm.prank(investor);
-        SecuritizeKYCFactory(factory).openCreditAccount(creditManager, calls, tokensToRegister);
+        SecuritizeKYCFactory(factory).openCreditAccount(creditManager, calls, messages);
     }
 }

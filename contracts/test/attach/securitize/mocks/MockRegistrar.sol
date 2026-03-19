@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {IVaultRegistrar} from "../../../../interfaces/external/IVaultRegistrar.sol";
+import {IVaultRegistrar} from "../../../../interfaces/external/securitize/IVaultRegistrar.sol";
 import {MockDSToken} from "./MockDSToken.sol";
 
 contract MockRegistrar is IVaultRegistrar {
@@ -34,12 +34,23 @@ contract MockRegistrar is IVaultRegistrar {
         isOperator[account] = true;
     }
 
-    function isRegistered(address vaultAddress, address investorWalletAddress) external view override returns (bool) {
-        return MockDSToken(token).registeredVaults(vaultAddress) == investorWalletAddress
-            && MockDSToken(token).isAuthorized(investorWalletAddress);
+    function isRegistered(address vault, address investor) external view override returns (bool) {
+        return MockDSToken(token).registeredVaults(vault) == investor && MockDSToken(token).isAuthorized(investor);
     }
 
-    function registerVault(address vaultAddress, address investorWalletAddress) external override onlyOperator {
-        MockDSToken(token).registerVault(vaultAddress, investorWalletAddress);
+    function registerVault(address vault, address investor, uint256 deadline, bytes calldata signature)
+        external
+        override
+        onlyOperator
+    {
+        MockDSToken(token).registerVault(vault, investor);
+    }
+
+    function operatorNonce(address investor, address operator) external view override returns (uint256) {
+        return 0;
+    }
+
+    function invalidateOperatorPermission(address operator) external override onlyAdmin {
+        isOperator[operator] = false;
     }
 }

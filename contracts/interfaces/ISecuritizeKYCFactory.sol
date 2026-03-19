@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {IKYCFactory} from "./base/IKYCFactory.sol";
+import {ISecuritizeDegenNFT} from "./ISecuritizeDegenNFT.sol";
 
 interface ISecuritizeKYCFactory is IKYCFactory {
     // ------ //
@@ -32,10 +33,16 @@ interface ISecuritizeKYCFactory is IKYCFactory {
     // ------------ //
 
     function precomputeWalletAddress(address creditManager, address investor) external view returns (address);
-    function openCreditAccount(address creditManager, MultiCall[] calldata calls, address[] calldata tokensToRegister)
-        external
-        returns (address creditAccount, address wallet);
-    function multicall(address creditAccount, MultiCall[] calldata calls, address[] calldata tokensToRegister) external;
+    function openCreditAccount(
+        address creditManager,
+        MultiCall[] calldata calls,
+        ISecuritizeDegenNFT.RegisterMessage[] calldata messages
+    ) external returns (address creditAccount, address wallet);
+    function multicall(
+        address creditAccount,
+        MultiCall[] calldata calls,
+        ISecuritizeDegenNFT.RegisterMessage[] calldata messages
+    ) external;
 
     // ------------- //
     // ADMIN ACTIONS //

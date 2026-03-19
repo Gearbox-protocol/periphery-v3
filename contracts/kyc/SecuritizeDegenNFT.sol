@@ -7,7 +7,7 @@ import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/inter
 
 import {ISecuritizeDegenNFT} from "../interfaces/ISecuritizeDegenNFT.sol";
 import {ISecuritizeKYCFactory} from "../interfaces/ISecuritizeKYCFactory.sol";
-import {IVaultRegistrar} from "../interfaces/external/IVaultRegistrar.sol";
+import {IVaultRegistrar} from "../interfaces/external/securitize/IVaultRegistrar.sol";
 import {
     AddressValidation,
     TYPE_INSTANCE_MANAGER_PROXY,
@@ -16,7 +16,8 @@ import {
 
 /// @title  Securitize Degen NFT
 /// @author Gearbox Foundation
-/// @notice A Degen NFT contract that can be used to prevent users from opening non-compliant credit accounts.
+/// @notice A Degen NFT that handles the registration of credit accounts and helper accounts in Securitize registries
+///         through `VaultRegistrar` contracts, and prevents users from opening non-compliant credit accounts.
 contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     using AddressValidation for IAddressProvider;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -32,6 +33,7 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     mapping(address token => address) internal _registrars;
     mapping(address token => EnumerableSet.AddressSet) internal _operatorsSet;
     mapping(address creditAccount => EnumerableSet.AddressSet) internal _registeredTokensSet;
+    mapping(address investor => mapping(address token => Signature)) internal _cachedSignatures;
 
     // --------- //
     // MODIFIERS //
@@ -105,6 +107,15 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         return _registeredTokensSet[creditAccount].values();
     }
 
+    function getCachedSignature(address creditAccount, address token)
+        external
+        view
+        override
+        returns (Signature memory)
+    {
+        return _cachedSignatures[_getInvestor(creditAccount)][token];
+    }
+
     // ------- //
     // ACTIONS //
     // ------- //
@@ -119,16 +130,32 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         emit Burn(wallet);
     }
 
-    function registerCreditAccount(address creditAccount, address[] calldata tokens) external override onlyFactory {
-        address investor = _FACTORY.getInvestor(creditAccount);
+    function registerCreditAccount(address creditAccount, RegisterMessage[] calldata messages)
+        external
+        override
+        onlyFactory
+    {
+        address investor = _getInvestor(creditAccount);
         address wallet = _FACTORY.getWallet(creditAccount);
-        uint256 length = tokens.length;
+        uint256 length = messages.length;
         for (uint256 i; i < length; ++i) {
-            address token = tokens[i];
+            address token = messages[i].token;
             if (!_registeredTokensSet[creditAccount].add(token)) continue;
-            _registerVault(token, investor, creditAccount);
-            _registerVault(token, investor, wallet);
+            address registrar = getRegistrar(token);
+            _registerVault(registrar, investor, creditAccount, messages[i].signature);
+            _registerVault(registrar, investor, wallet, messages[i].signature);
+            _cachedSignatures[investor][token] = messages[i].signature;
         }
+    }
+
+    function registerHelperAccount(address creditAccount, address helperAccount, RegisterMessage calldata message)
+        external
+        override
+        onlyOperator(message.token)
+    {
+        address investor = _getInvestor(creditAccount);
+        _registerVault(getRegistrar(message.token), investor, helperAccount, message.signature);
+        _cachedSignatures[investor][message.token] = message.signature;
     }
 
     function registerHelperAccount(address creditAccount, address helperAccount, address token)
@@ -136,13 +163,12 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         override
         onlyOperator(token)
     {
-        // NOTE: this really works because Securitize contracts don't distinguish `investorWalletAddress` and
-        // `vaultAddress` under the hood, both are just accounts registered under the same investor ID;
-        // be very cautious when reusing this codebase for other projects with `VaultRegistrar`
-        _registerVault(token, creditAccount, helperAccount);
+        address investor = _getInvestor(creditAccount);
+        Signature memory signature = _cachedSignatures[investor][token];
+        _registerVault(getRegistrar(token), investor, helperAccount, signature);
     }
 
-    /// @dev This contract is expected to have proper permissions in `registrar`
+    /// @dev This contract is expected to have the operator role in `registrar`
     function addRegistrar(address registrar) external override onlyInstanceOwner {
         address token = IVaultRegistrar(registrar).token();
         if (!_ADDRESS_PROVIDER.isKnownToken(token)) revert UnknownTokenException(token);
@@ -176,10 +202,12 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         }
     }
 
-    function _registerVault(address token, address wallet, address vault) internal {
-        address registrar = getRegistrar(token);
-        // NOTE: in case multiple DS tokens share the same registry service
-        if (IVaultRegistrar(registrar).isRegistered(vault, wallet)) return;
-        IVaultRegistrar(registrar).registerVault(vault, wallet);
+    function _getInvestor(address creditAccount) internal view returns (address) {
+        return _FACTORY.getInvestor(creditAccount);
+    }
+
+    function _registerVault(address registrar, address investor, address vault, Signature memory signature) internal {
+        if (IVaultRegistrar(registrar).isRegistered(vault, investor)) return;
+        IVaultRegistrar(registrar).registerVault(vault, investor, signature.deadline, signature.signature);
     }
 }
