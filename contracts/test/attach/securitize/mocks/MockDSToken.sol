@@ -2,27 +2,38 @@
 pragma solidity ^0.8.23;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-contract MockDSToken is ERC20 {
-    address public immutable admin;
+import {IDSRegistryService} from "../../../../interfaces/external/securitize/IDSRegistryService.sol";
+import {IDSToken} from "../../../../interfaces/external/securitize/IDSToken.sol";
+
+contract MockDSToken is ERC20, IDSToken, IDSRegistryService {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    uint256 public constant override REGISTRY_SERVICE = 4;
+    uint256 public constant override TRUST_SERVICE = 8;
+
+    address public admin;
     mapping(address registrar => bool) public isRegistrar;
-    mapping(address investor => bool) public isAuthorized;
-    mapping(address vault => address investor) public registeredVaults;
+
+    mapping(string investorId => bool) public override isInvestor;
+    mapping(string investorId => EnumerableSet.AddressSet) internal _wallets;
+    mapping(address wallet => string investorId) internal _investorId;
 
     error CallerIsNotAdmin(address caller);
-    error CallerIsNotRegistrar(address caller);
-    error InvestorAlreadyAuthorized(address investor);
-    error InvestorNotAuthorized(address investor);
-    error VaultNotRegisteredForInvestor(address vault, address investor);
+    error CallerIsNotAdminOrRegistrar(address caller);
     error CannotTransfer(address from, address to);
+    error InvalidServiceId(uint256 serviceId);
+    error InvestorNotFound(address wallet);
+    error InvestorNotRegistered(string investorId);
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert CallerIsNotAdmin(msg.sender);
         _;
     }
 
-    modifier onlyRegistrar() {
-        if (!isRegistrar[msg.sender]) revert CallerIsNotRegistrar(msg.sender);
+    modifier onlyAdminOrRegistrar() {
+        if (msg.sender != admin && !isRegistrar[msg.sender]) revert CallerIsNotAdminOrRegistrar(msg.sender);
         _;
     }
 
@@ -30,40 +41,46 @@ contract MockDSToken is ERC20 {
         admin = admin_;
     }
 
+    function getDSService(uint256 serviceId) external view override returns (address) {
+        if (serviceId != REGISTRY_SERVICE && serviceId != TRUST_SERVICE) revert InvalidServiceId(serviceId);
+        return address(this);
+    }
+
+    function registerInvestor(string calldata investorId, string calldata) external override onlyAdmin {
+        isInvestor[investorId] = true;
+    }
+
+    function addWallet(address wallet, string calldata investorId) external override onlyAdminOrRegistrar {
+        if (!isInvestor[investorId]) revert InvestorNotRegistered(investorId);
+        _wallets[investorId].add(wallet);
+        _investorId[wallet] = investorId;
+    }
+
+    function getInvestor(address wallet) external view override returns (string memory) {
+        return _investorId[wallet];
+    }
+
+    function isWallet(address wallet) public view override returns (bool) {
+        return bytes(_investorId[wallet]).length > 0;
+    }
+
     function setRegistrar(address retistrar, bool status) external onlyAdmin {
         isRegistrar[retistrar] = status;
     }
 
-    function mint(address to, uint256 amount) external onlyAdmin {
+    function issueTokens(address to, uint256 amount) external override onlyAdmin {
+        if (!isWallet(to)) revert InvestorNotFound(to);
         _mint(to, amount);
     }
 
-    function burn(address from, uint256 amount) external onlyAdmin {
+    function burn(address from, uint256 amount, string calldata) external override onlyAdmin {
+        if (!isWallet(from)) revert InvestorNotFound(from);
         _burn(from, amount);
     }
 
-    function authorize(address investor) external onlyAdmin {
-        if (isAuthorized[investor]) revert InvestorAlreadyAuthorized(investor);
-        isAuthorized[investor] = true;
-    }
-
-    function unauthorize(address investor) external onlyAdmin {
-        if (!isAuthorized[investor]) revert InvestorNotAuthorized(investor);
-        isAuthorized[investor] = false;
-    }
-
-    function registerVault(address vault, address investor) external onlyRegistrar {
-        if (!isAuthorized[investor]) revert InvestorNotAuthorized(investor);
-        registeredVaults[vault] = investor;
-    }
-
     function _beforeTokenTransfer(address from, address to, uint256) internal view override {
-        if (from != address(0) && !_canTransfer(from) || to != address(0) && !_canTransfer(to)) {
+        if (from != address(0) && !isWallet(from) || to != address(0) && !isWallet(to)) {
             revert CannotTransfer(from, to);
         }
-    }
-
-    function _canTransfer(address account) internal view returns (bool) {
-        return isAuthorized[account] || isAuthorized[registeredVaults[account]];
     }
 }

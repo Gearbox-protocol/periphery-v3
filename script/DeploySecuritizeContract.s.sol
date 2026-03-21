@@ -32,7 +32,7 @@ import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contrac
 import {PriceFeedMock} from "@gearbox-protocol/core-v3/contracts/test/mocks/oracles/PriceFeedMock.sol";
 import {BytecodeRepositoryMock} from "./BytecodeRepositoryMock.sol";
 import {MockDSToken} from "../contracts/test/attach/securitize/mocks/MockDSToken.sol";
-import {MockRegistrar} from "../contracts/test/attach/securitize/mocks/MockRegistrar.sol";
+import {MockVaultRegistrar} from "../contracts/test/attach/securitize/mocks/MockVaultRegistrar.sol";
 
 import "forge-std/console.sol";
 
@@ -74,7 +74,7 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
     address public degenNFT;
 
     MockDSToken public dsToken;
-    MockRegistrar public registrar;
+    MockVaultRegistrar public registrar;
     PriceFeedMock public onePriceFeed;
 
     address public ioProxy;
@@ -280,7 +280,7 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
 
         dsToken = new MockDSToken(author.addr);
         console.log("DS Token deployed to", address(dsToken));
-        registrar = new MockRegistrar(author.addr, address(dsToken));
+        registrar = new MockVaultRegistrar(author.addr, address(dsToken));
         console.log("Registrar deployed to", address(registrar));
         onePriceFeed = new PriceFeedMock({_price: 1e8, _decimals: 8});
         console.log("One Price Feed deployed to", address(onePriceFeed));
@@ -298,10 +298,11 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
 
         degenNFT = SecuritizeKYCFactory(kycFactory).getDegenNFT();
 
-        dsToken.authorize(author.addr);
+        dsToken.registerInvestor("Fake investor", "Fake investor");
+        dsToken.addWallet(author.addr, "Fake investor");
         dsToken.setRegistrar(address(registrar), true);
-        dsToken.mint(author.addr, 1000000 ether);
-        registrar.grantOperator(degenNFT);
+        dsToken.issueTokens(author.addr, 1000000 ether);
+        registrar.addOperator(degenNFT);
 
         vm.stopBroadcast();
 

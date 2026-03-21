@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {PriceFeedMock} from "@gearbox-protocol/core-v3/contracts/test/mocks/oracles/PriceFeedMock.sol";
+import {VmSafe} from "forge-std/Vm.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-
-import {MonopolizedOnDemandLP} from "../../../kyc/MonopolizedOnDemandLP.sol";
-import {OnDemandKYCUnderlying} from "../../../kyc/OnDemandKYCUnderlying.sol";
-import {SecuritizeDegenNFT} from "../../../kyc/SecuritizeDegenNFT.sol";
-import {SecuritizeKYCFactory} from "../../../kyc/SecuritizeKYCFactory.sol";
 
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
@@ -17,25 +12,24 @@ import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 
 import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/erc4626/IERC4626Adapter.sol";
 
-import {MockDSToken} from "./mocks/MockDSToken.sol";
-import {MockRegistrar} from "./mocks/MockRegistrar.sol";
+import {IMonopolizedOnDemandLP} from "../../../interfaces/IMonopolizedOnDemandLP.sol";
+import {IOnDemandKYCUnderlying} from "../../../interfaces/IOnDemandKYCUnderlying.sol";
+import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
+import {ISecuritizeKYCFactory} from "../../../interfaces/ISecuritizeKYCFactory.sol";
+import {IDSToken} from "../../../interfaces/external/securitize/IDSToken.sol";
 
-import {PeripheryAttachTestBase} from "../PeripheryAttachTestBase.sol";
+import {SecuritizeAttachTestHelper} from "./SecuritizeAttachTestHelper.sol";
 
-contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
-    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
-
+contract SecuritizeOnDemandLiquidityAttachTest is SecuritizeAttachTestHelper {
     address public factory;
     address public degenNFT;
     address public liquidityProvider;
     address public cUSDC;
 
-    MockDSToken public dsToken;
-    MockRegistrar public registrar;
-    PriceFeedMock public dsTokenPriceFeed;
+    address public dsToken;
+    address public registrar;
 
-    address public securitize;
+    VmSafe.Wallet public investorWallet;
     address public investor;
     address public depositor;
 
@@ -43,28 +37,14 @@ contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
     address public creditManager;
 
     function setUp() public {
-        super._setUp();
-        vm.skip(block.chainid != 1, "Not Ethereum mainnet");
+        _setUp();
         _attachMarketConfigurator();
 
-        // Roles, mocks and contracts deployment --------------------------------------------------------------------- //
+        // Roles and contracts deployment ---------------------------------------------------------------------------- //
 
-        securitize = makeAddr("securitize");
-        investor = makeAddr("investor");
+        investorWallet = vm.createWallet("investor");
+        investor = investorWallet.addr;
         depositor = makeAddr("depositor");
-
-        dsToken = new MockDSToken(securitize);
-        registrar = new MockRegistrar(securitize, address(dsToken));
-        dsTokenPriceFeed = new PriceFeedMock({_price: 1e8, _decimals: 8});
-
-        _addPublicDomain("KYC_FACTORY");
-        _addPublicDomain("KYC_UNDERLYING");
-        _addPublicDomain("ON_DEMAND_LP");
-
-        _uploadContract("DEGEN_NFT::SECURITIZE", 3_10, type(SecuritizeDegenNFT).creationCode);
-        _uploadContract("KYC_FACTORY::SECURITIZE", 3_10, type(SecuritizeKYCFactory).creationCode);
-        _uploadContract("KYC_UNDERLYING::ON_DEMAND", 3_10, type(OnDemandKYCUnderlying).creationCode);
-        _uploadContract("ON_DEMAND_LP::MONOPOLIZED", 3_10, type(MonopolizedOnDemandLP).creationCode);
 
         factory = _deploy("KYC_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
         liquidityProvider =
@@ -74,26 +54,20 @@ contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
             3_10,
             abi.encode(addressProvider, factory, liquidityProvider, marketConfigurator, USDC, "Compliant ", "c")
         );
-        degenNFT = SecuritizeKYCFactory(factory).getDegenNFT();
+        degenNFT = ISecuritizeKYCFactory(factory).getDegenNFT();
 
-        // Securitize actions ---------------------------------------------------------------------------------------- //
-
-        vm.startPrank(securitize);
-        dsToken.authorize(investor);
-        dsToken.setRegistrar(address(registrar), true);
-        registrar.grantOperator(degenNFT);
-        vm.stopPrank();
+        DSTokenInfo memory info = _attachSecuritize(degenNFT, investor);
+        dsToken = info.token;
+        registrar = info.registrar;
 
         // Instance owner actions ------------------------------------------------------------------------------------ //
 
         _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
         _allowPriceFeed(USDC, USDC_PRICE_FEED);
         _allowPriceFeed(cUSDC, USDC_PRICE_FEED);
+        _allowPriceFeed(dsToken, onePriceFeed);
 
-        _addPriceFeed(address(dsTokenPriceFeed), 1 days, "Mock DSToken price feed");
-        _allowPriceFeed(address(dsToken), address(dsTokenPriceFeed));
-
-        _configureLocal(degenNFT, abi.encodeCall(SecuritizeDegenNFT.addRegistrar, (address(registrar))));
+        _configureLocal(degenNFT, abi.encodeCall(ISecuritizeDegenNFT.addRegistrar, (registrar)));
 
         // Risk curator actions -------------------------------------------------------------------------------------- //
 
@@ -108,11 +82,11 @@ contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
         vm.stopPrank();
 
         MarketParams memory marketParams = _getDefaultMarketParams(address(cUSDC));
-        marketParams.underlyingPriceFeed = address(USDC_PRICE_FEED);
+        marketParams.underlyingPriceFeed = USDC_PRICE_FEED;
         pool = _createMockMarket(address(cUSDC), marketParams);
         _addToken(
             pool,
-            TokenConfig({
+            TokenParams({
                 token: USDC,
                 priceFeed: USDC_PRICE_FEED,
                 reservePriceFeed: USDC_PRICE_FEED,
@@ -122,10 +96,10 @@ contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
         );
         _addToken(
             pool,
-            TokenConfig({
-                token: address(dsToken),
-                priceFeed: address(dsTokenPriceFeed),
-                reservePriceFeed: address(dsTokenPriceFeed),
+            TokenParams({
+                token: dsToken,
+                priceFeed: onePriceFeed,
+                reservePriceFeed: onePriceFeed,
                 quotaLimit: 10_000_000e6,
                 quotaRate: 1
             })
@@ -134,8 +108,8 @@ contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
         _updateQuotaRates(pool);
 
         vm.startPrank(riskCurator);
-        OnDemandKYCUnderlying(cUSDC).setPool(pool);
-        MonopolizedOnDemandLP(liquidityProvider).addPool(pool);
+        IOnDemandKYCUnderlying(cUSDC).setPool(pool);
+        IMonopolizedOnDemandLP(liquidityProvider).addPool(pool);
         vm.stopPrank();
 
         CreditSuiteParams memory creditSuiteParams = _getDefaultCreditSuiteParams();
@@ -146,7 +120,7 @@ contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
         creditManager = _createMockCreditSuite(pool, creditSuiteParams);
 
         _addCollateralToken(creditManager, USDC, 98_00);
-        _addCollateralToken(creditManager, address(dsToken), 90_00);
+        _addCollateralToken(creditManager, dsToken, 90_00);
         _allowAdapter(creditManager, "ERC4626_VAULT", abi.encode(creditManager, cUSDC, address(0)));
 
         // NOTE: can't borrow in the same block as facade deployment
@@ -155,14 +129,15 @@ contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
 
     function test_open_credit_account_via_securitize_factory() public {
         deal({token: USDC, to: depositor, give: 1_000_000e6});
-        deal({token: address(dsToken), to: investor, give: 60_000e18});
+        vm.prank(securitize);
+        IDSToken(dsToken).issueTokens(investor, 60_000e18);
 
         vm.prank(depositor);
         ERC20(USDC).approve(liquidityProvider, 1_000_000e6);
 
-        address wallet = SecuritizeKYCFactory(factory).precomputeWalletAddress(creditManager, investor);
+        address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManager, investor);
         vm.prank(investor);
-        ERC20(address(dsToken)).approve(wallet, 60_000e18);
+        ERC20(dsToken).approve(wallet, 60_000e18);
 
         address creditFacade = ICreditManagerV3(creditManager).creditFacade();
         address adapter = ICreditManagerV3(creditManager).contractToAdapter(cUSDC);
@@ -177,20 +152,16 @@ contract SecuritizeOnDemandLiquidityAttachTest is PeripheryAttachTestBase {
             callData: abi.encodeCall(ICreditFacadeV3Multicall.withdrawCollateral, (USDC, type(uint256).max, investor))
         });
         calls[3] = MultiCall({
-            target: creditFacade,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (address(dsToken), 60_000e18))
+            target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (dsToken, 60_000e18))
         });
         calls[4] = MultiCall({
-            target: creditFacade,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (address(dsToken), 54_000e6, 0))
+            target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (dsToken, 54_000e6, 0))
         });
 
-        SecuritizeDegenNFT.RegisterMessage[] memory messages = new SecuritizeDegenNFT.RegisterMessage[](1);
-        messages[0].token = address(dsToken);
-        messages[0].signature.deadline = type(uint256).max;
-        messages[0].signature.signature = "";
+        ISecuritizeDegenNFT.RegisterMessage[] memory messages = new ISecuritizeDegenNFT.RegisterMessage[](1);
+        messages[0] = _signRegisterVaultMessage(investorWallet, registrar, degenNFT);
 
         vm.prank(investor);
-        SecuritizeKYCFactory(factory).openCreditAccount(creditManager, calls, messages);
+        ISecuritizeKYCFactory(factory).openCreditAccount(creditManager, calls, messages);
     }
 }

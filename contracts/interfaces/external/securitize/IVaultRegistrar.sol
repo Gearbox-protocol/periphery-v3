@@ -28,4 +28,8 @@ interface IVaultRegistrar {
     /// @notice Invalidates all signatures the caller previously granted to an operator
     /// @param operator The operator address whose permission should be invalidated
     function invalidateOperatorPermission(address operator) external;
+
+    /// @notice Grants operator role to an address
+    /// @param operator Address to grant operator role
+    function addOperator(address operator) external;
 }
