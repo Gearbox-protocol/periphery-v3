@@ -18,6 +18,12 @@ interface ISecuritizeDegenNFT is IDegenNFT {
         Signature signature;
     }
 
+    struct DSTokenData {
+        address token;
+        address registrar;
+        address[] operators;
+    }
+
     // ------ //
     // EVENTS //
     // ------ //
@@ -35,6 +41,7 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     error CallerIsNotFactoryException(address caller);
     error CallerIsNotInstanceOwnerException(address caller);
     error CallerIsNotOperatorException(address token, address caller);
+    error CreditAccountNotRegisteredException(address creditAccount, address token);
     error RegistrarNotSetForTokenException(address token);
     error UnknownTokenException(address token);
     error UnknownWalletException(address wallet);
@@ -44,11 +51,12 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     // ------- //
 
     function getFactory() external view returns (address);
-    function getOperators(address token) external view returns (address[] memory);
-    function isOperator(address token, address operator) external view returns (bool);
+    function getDSTokensData() external view returns (DSTokenData[] memory);
     function getDSTokens() external view returns (address[] memory);
     function isDSToken(address token) external view returns (bool);
     function getRegistrar(address token) external view returns (address);
+    function getOperators(address token) external view returns (address[] memory);
+    function isOperator(address token, address operator) external view returns (bool);
     function getRegisteredTokens(address creditAccount) external view returns (address[] memory);
     function getCachedSignature(address creditAccount, address token) external view returns (Signature memory);
 
@@ -63,5 +71,4 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     function registerCreditAccount(address creditAccount, RegisterMessage[] calldata messages) external;
     function registerHelperAccount(address creditAccount, address helperAccount, RegisterMessage calldata message)
         external;
-    function registerHelperAccount(address creditAccount, address helperAccount, address token) external;
 }

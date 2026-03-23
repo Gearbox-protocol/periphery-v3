@@ -22,6 +22,12 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     using AddressValidation for IAddressProvider;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    struct TokenInfo {
+        address registrar;
+        EnumerableSet.AddressSet operators;
+        mapping(address investor => Signature) cachedSignatures;
+    }
+
     bytes32 public constant override contractType = TYPE_SECURITIZE_DEGEN_NFT;
     uint256 public constant override version = 3_10;
 
@@ -29,11 +35,8 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     ISecuritizeKYCFactory internal immutable _FACTORY;
 
     EnumerableSet.AddressSet internal _walletsSet;
-    EnumerableSet.AddressSet internal _DSTokensSet;
-    mapping(address token => address) internal _registrars;
-    mapping(address token => EnumerableSet.AddressSet) internal _operatorsSet;
-    mapping(address creditAccount => EnumerableSet.AddressSet) internal _registeredTokensSet;
-    mapping(address investor => mapping(address token => Signature)) internal _cachedSignatures;
+    EnumerableSet.AddressSet internal _tokensSet;
+    mapping(address token => TokenInfo) internal _tokenInfo;
 
     // --------- //
     // MODIFIERS //
@@ -68,43 +71,58 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     // ------- //
 
     function serialize() external view override returns (bytes memory) {
-        uint256 length = _DSTokensSet.length();
-        address[] memory tokens = new address[](length);
-        address[] memory registrars = new address[](length);
-        for (uint256 i; i < length; ++i) {
-            tokens[i] = _DSTokensSet.at(i);
-            registrars[i] = _registrars[tokens[i]];
-        }
-        return abi.encode(_FACTORY, tokens, registrars);
+        return abi.encode(_FACTORY, getDSTokensData());
     }
 
     function getFactory() external view override returns (address) {
         return address(_FACTORY);
     }
 
-    function getOperators(address token) external view override returns (address[] memory) {
-        return _operatorsSet[token].values();
-    }
-
-    function isOperator(address token, address operator) external view override returns (bool) {
-        return _operatorsSet[token].contains(operator);
+    function getDSTokensData() public view override returns (DSTokenData[] memory tokens) {
+        uint256 length = _tokensSet.length();
+        tokens = new DSTokenData[](length);
+        for (uint256 i; i < length; ++i) {
+            address token = _tokensSet.at(i);
+            TokenInfo storage info = _tokenInfo[token];
+            tokens[i] = DSTokenData({token: token, registrar: info.registrar, operators: info.operators.values()});
+        }
     }
 
     function getDSTokens() external view override returns (address[] memory) {
-        return _DSTokensSet.values();
+        return _tokensSet.values();
     }
 
     function isDSToken(address token) external view override returns (bool) {
-        return _DSTokensSet.contains(token);
+        return _tokensSet.contains(token);
     }
 
     function getRegistrar(address token) public view override returns (address registrar) {
-        registrar = _registrars[token];
+        registrar = _tokenInfo[token].registrar;
         if (registrar == address(0)) revert RegistrarNotSetForTokenException(token);
     }
 
-    function getRegisteredTokens(address creditAccount) external view override returns (address[] memory) {
-        return _registeredTokensSet[creditAccount].values();
+    function getOperators(address token) external view override returns (address[] memory) {
+        if (!_tokensSet.contains(token)) revert RegistrarNotSetForTokenException(token);
+        return _tokenInfo[token].operators.values();
+    }
+
+    function isOperator(address token, address operator) public view override returns (bool) {
+        if (!_tokensSet.contains(token)) revert RegistrarNotSetForTokenException(token);
+        return _tokenInfo[token].operators.contains(operator);
+    }
+
+    function getRegisteredTokens(address creditAccount) external view override returns (address[] memory tokens) {
+        address investor = _getInvestor(creditAccount);
+        uint256 numTokens = _tokensSet.length();
+        uint256 numRegistered;
+        tokens = new address[](numTokens);
+        for (uint256 i; i < numTokens; ++i) {
+            address token = _tokensSet.at(i);
+            if (_isRegistered(_tokenInfo[token].registrar, creditAccount, investor)) tokens[numRegistered++] = token;
+        }
+        assembly {
+            mstore(tokens, numRegistered)
+        }
     }
 
     function getCachedSignature(address creditAccount, address token)
@@ -113,7 +131,8 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         override
         returns (Signature memory)
     {
-        return _cachedSignatures[_getInvestor(creditAccount)][token];
+        if (!_tokensSet.contains(token)) revert RegistrarNotSetForTokenException(token);
+        return _tokenInfo[token].cachedSignatures[_getInvestor(creditAccount)];
     }
 
     // ------- //
@@ -140,11 +159,11 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         uint256 length = messages.length;
         for (uint256 i; i < length; ++i) {
             address token = messages[i].token;
-            if (!_registeredTokensSet[creditAccount].add(token)) continue;
             address registrar = getRegistrar(token);
-            _registerVault(registrar, investor, creditAccount, messages[i].signature);
-            _registerVault(registrar, investor, wallet, messages[i].signature);
-            _cachedSignatures[investor][token] = messages[i].signature;
+            if (_isRegistered(registrar, creditAccount, investor)) continue;
+            _registerVault(registrar, creditAccount, investor, messages[i].signature);
+            _registerVault(registrar, wallet, investor, messages[i].signature);
+            _tokenInfo[token].cachedSignatures[investor] = messages[i].signature;
         }
     }
 
@@ -154,32 +173,29 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         onlyOperator(message.token)
     {
         address investor = _getInvestor(creditAccount);
-        _registerVault(getRegistrar(message.token), investor, helperAccount, message.signature);
-        _cachedSignatures[investor][message.token] = message.signature;
-    }
-
-    function registerHelperAccount(address creditAccount, address helperAccount, address token)
-        external
-        override
-        onlyOperator(token)
-    {
-        address investor = _getInvestor(creditAccount);
-        Signature memory signature = _cachedSignatures[investor][token];
-        _registerVault(getRegistrar(token), investor, helperAccount, signature);
+        address registrar = getRegistrar(message.token);
+        if (!_isRegistered(registrar, creditAccount, investor)) {
+            revert CreditAccountNotRegisteredException(creditAccount, message.token);
+        }
+        _registerVault(registrar, helperAccount, investor, message.signature);
+        _tokenInfo[message.token].cachedSignatures[investor] = message.signature;
     }
 
     /// @dev This contract is expected to have the operator role in `registrar`
     function addRegistrar(address registrar) external override onlyInstanceOwner {
         address token = IVaultRegistrar(registrar).token();
         if (!_ADDRESS_PROVIDER.isKnownToken(token)) revert UnknownTokenException(token);
-        if (_registrars[token] == registrar) return;
-        _DSTokensSet.add(token);
-        _registrars[token] = registrar;
+        TokenInfo storage info = _tokenInfo[token];
+        if (info.registrar == registrar) return;
+        _tokensSet.add(token);
+        info.registrar = registrar;
         emit SetRegistrar(token, registrar);
     }
 
     function setOperatorStatus(address token, address operator, bool approved) external override onlyInstanceOwner {
-        if (approved && _operatorsSet[token].add(operator) || !approved && _operatorsSet[token].remove(operator)) {
+        if (!_tokensSet.contains(token)) revert RegistrarNotSetForTokenException(token);
+        TokenInfo storage info = _tokenInfo[token];
+        if (approved && info.operators.add(operator) || !approved && info.operators.remove(operator)) {
             emit SetOperatorStatus(token, operator, approved);
         }
     }
@@ -193,7 +209,7 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     }
 
     function _ensureCallerIsOperator(address token) internal view {
-        if (!_operatorsSet[token].contains(msg.sender)) revert CallerIsNotOperatorException(token, msg.sender);
+        if (!isOperator(token, msg.sender)) revert CallerIsNotOperatorException(token, msg.sender);
     }
 
     function _ensureCallerIsInstanceOwner() internal view {
@@ -206,8 +222,15 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         return _FACTORY.getInvestor(creditAccount);
     }
 
-    function _registerVault(address registrar, address investor, address vault, Signature memory signature) internal {
-        if (IVaultRegistrar(registrar).isRegistered(vault, investor)) return;
+    function _isRegistered(address registrar, address vault, address investor) internal view returns (bool) {
+        try IVaultRegistrar(registrar).isRegistered(vault, investor) returns (bool result) {
+            return result;
+        } catch {
+            return false;
+        }
+    }
+
+    function _registerVault(address registrar, address vault, address investor, Signature memory signature) internal {
         IVaultRegistrar(registrar).registerVault(vault, investor, signature.deadline, signature.signature);
     }
 }
