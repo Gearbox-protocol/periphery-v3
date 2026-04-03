@@ -29,7 +29,6 @@ import {SecuritizeKYCFactory} from "../contracts/kyc/SecuritizeKYCFactory.sol";
 import {DefaultKYCUnderlying} from "../contracts/kyc/DefaultKYCUnderlying.sol";
 import {SecuritizeDegenNFT} from "../contracts/kyc/SecuritizeDegenNFT.sol";
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
-import {PriceFeedMock} from "@gearbox-protocol/core-v3/contracts/test/mocks/oracles/PriceFeedMock.sol";
 import {BytecodeRepositoryMock} from "./BytecodeRepositoryMock.sol";
 import {MockDSToken} from "../contracts/test/attach/securitize/mocks/MockDSToken.sol";
 import {MockVaultRegistrar} from "../contracts/test/attach/securitize/mocks/MockVaultRegistrar.sol";
@@ -42,9 +41,12 @@ import {
     SecuritizeKYCFactorySubcompressor
 } from "../contracts/compressors/subcompressors/kyc/SecuritizeKYCFactorySubcompressor.sol";
 
-import {TYPE_KYC_COMPRESSOR} from "../contracts/libraries/AddressValidation.sol";
-
-import "forge-std/console.sol";
+import {
+    DOMAIN_KYC_FACTORY,
+    DOMAIN_KYC_UNDERLYING,
+    DOMAIN_ON_DEMAND_LP,
+    TYPE_KYC_COMPRESSOR
+} from "../contracts/libraries/AddressValidation.sol";
 
 address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 address constant USDC_DONOR = 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640;
@@ -79,15 +81,14 @@ struct CreditSuiteParams {
 contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
     VmSafe.Wallet public author;
 
+    address public kycCompressor;
     address public kycFactory;
     address public kycUnderlying;
     address public degenNFT;
 
     MockDSToken public dsToken;
     MockVaultRegistrar public registrar;
-    PriceFeedMock public onePriceFeed;
-
-    address public ioProxy;
+    address public onePriceFeed;
 
     address public marketConfigurator;
     address public pool;
@@ -104,15 +105,15 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
 
         author = vm.createWallet(uint256(authorPrivateKey));
 
-        ioProxy = addressProvider.getAddressOrRevert("INSTANCE_MANAGER_PROXY", 0);
-        _setBalance(ioProxy, 100 ether);
+        _setBalance(instanceOwner, 100 ether);
+        _setBalance(crossChainGovernance, 100 ether);
         _setBalance(USDC_DONOR, 100 ether);
     }
 
-    function _mockBytecodeRepositoryBytecode(address bytecodeRepository) internal {
-        address bcrOwner = BytecodeRepository(bytecodeRepository).owner();
+    function _mockBytecodeRepositoryBytecode() internal {
+        address bcrOwner = bytecodeRepository.owner();
         address bytecodeRepositoryMock = address(new BytecodeRepositoryMock(bcrOwner));
-        _replaceBytecode(bytecodeRepository, bytecodeRepositoryMock.code);
+        _replaceBytecode(address(bytecodeRepository), bytecodeRepositoryMock.code);
     }
 
     function _getContractsBytecodes() internal pure returns (Bytecode[] memory bytecodes) {
@@ -146,7 +147,6 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
             curatorName: "Compliant Curator",
             deployGovernor: false
         });
-        console.log("MarketConfigurator deployed to", address(marketConfigurator));
 
         IMarketConfigurator(marketConfigurator).addPeripheryContract(degenNFT);
     }
@@ -168,15 +168,15 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
             lossPolicyParams: DeployParams({
                 postfix: "ALIASED", salt: "GEARBOX", constructorParams: abi.encode(poolAddr, ADDRESS_PROVIDER)
             }),
-            underlyingPriceFeed: address(onePriceFeed)
+            underlyingPriceFeed: onePriceFeed
         });
     }
 
     function _addToken(address token) internal {
-        IMarketConfigurator(marketConfigurator).addToken({pool: pool, token: token, priceFeed: address(onePriceFeed)});
+        IMarketConfigurator(marketConfigurator).addToken({pool: pool, token: token, priceFeed: onePriceFeed});
         IMarketConfigurator(marketConfigurator)
             .configurePriceOracle(
-                pool, abi.encodeCall(IPriceOracleConfigureActions.setReservePriceFeed, (token, address(onePriceFeed)))
+                pool, abi.encodeCall(IPriceOracleConfigureActions.setReservePriceFeed, (token, onePriceFeed))
             );
         IMarketConfigurator(marketConfigurator)
             .configurePool(pool, abi.encodeCall(IPoolConfigureActions.setTokenLimit, (token, 10_000_000e6)));
@@ -201,7 +201,6 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
                 lossPolicyParams: params.lossPolicyParams,
                 underlyingPriceFeed: params.underlyingPriceFeed
             });
-        console.log("Market deployed to", address(pool));
 
         _addToken(USDC);
         _addToken(address(dsToken));
@@ -281,7 +280,21 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
 
     function run() external {
         _autoImpersonate(true);
-        _mockBytecodeRepositoryBytecode(address(bytecodeRepository));
+        _mockBytecodeRepositoryBytecode();
+
+        vm.startBroadcast(crossChainGovernance);
+        kycCompressor = address(new KYCCompressor(addressProvider));
+        instanceManager.setGlobalAddress(TYPE_KYC_COMPRESSOR, kycCompressor, true);
+        instanceManager.configureGlobal(
+            address(bytecodeRepository), abi.encodeCall(BytecodeRepository.addPublicDomain, (DOMAIN_KYC_FACTORY))
+        );
+        instanceManager.configureGlobal(
+            address(bytecodeRepository), abi.encodeCall(BytecodeRepository.addPublicDomain, (DOMAIN_KYC_UNDERLYING))
+        );
+        instanceManager.configureGlobal(
+            address(bytecodeRepository), abi.encodeCall(BytecodeRepository.addPublicDomain, (DOMAIN_ON_DEMAND_LP))
+        );
+        vm.stopBroadcast();
 
         vm.startBroadcast(author.addr);
 
@@ -289,24 +302,20 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         BytecodeRepositoryMock(address(bytecodeRepository)).exposed_addBytecode(bytecodes);
 
         dsToken = new MockDSToken(author.addr);
-        console.log("DS Token deployed to", address(dsToken));
         registrar = new MockVaultRegistrar(author.addr, address(dsToken));
-        console.log("Registrar deployed to", address(registrar));
-        onePriceFeed = new PriceFeedMock({_price: 1e8, _decimals: 8});
-        console.log("One Price Feed deployed to", address(onePriceFeed));
+        onePriceFeed =
+            bytecodeRepository.deploy("PRICE_FEED::CONSTANT", 3_10, abi.encode(1e8, "$1 price feed"), bytes32(0));
 
         bytes memory factoryConstructorParams = abi.encode(address(addressProvider), author.addr);
         kycFactory = bytecodeRepository.deploy(
             bytecodes[0].contractType, bytecodes[0].version, factoryConstructorParams, bytes32(0)
         );
-        console.log("KYC Factory deployed to", kycFactory);
 
         bytes memory underlyingConstructorParams = abi.encode(addressProvider, kycFactory, USDC, "compliant ", "c");
 
         kycUnderlying = bytecodeRepository.deploy(
             bytecodes[1].contractType, bytecodes[1].version, underlyingConstructorParams, bytes32(0)
         );
-        console.log("KYC Underlying deployed to", kycUnderlying);
 
         degenNFT = SecuritizeKYCFactory(kycFactory).getDegenNFT();
 
@@ -318,18 +327,30 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
 
         vm.stopBroadcast();
 
-        vm.startBroadcast(ioProxy);
-        priceFeedStore.addPriceFeed(address(onePriceFeed), 1 days, "$1 price feed");
-        priceFeedStore.allowPriceFeed(address(dsToken), address(onePriceFeed));
-        priceFeedStore.allowPriceFeed(USDC, address(onePriceFeed));
-        priceFeedStore.allowPriceFeed(address(kycUnderlying), address(onePriceFeed));
+        vm.startBroadcast(instanceOwner);
+        instanceManager.configureLocal(
+            address(priceFeedStore), abi.encodeCall(priceFeedStore.addPriceFeed, (onePriceFeed, 0, "$1 price feed"))
+        );
+        instanceManager.configureLocal(
+            address(priceFeedStore), abi.encodeCall(priceFeedStore.allowPriceFeed, (address(dsToken), onePriceFeed))
+        );
+        instanceManager.configureLocal(
+            address(priceFeedStore), abi.encodeCall(priceFeedStore.allowPriceFeed, (USDC, onePriceFeed))
+        );
+        instanceManager.configureLocal(
+            address(priceFeedStore), abi.encodeCall(priceFeedStore.allowPriceFeed, (kycUnderlying, onePriceFeed))
+        );
 
-        SecuritizeDegenNFT(degenNFT).addRegistrar(address(registrar));
+        instanceManager.configureLocal(degenNFT, abi.encodeCall(SecuritizeDegenNFT.addRegistrar, (address(registrar))));
 
-        KYCCompressor kycCompressor = new KYCCompressor(addressProvider);
-        console.log("KYC Compressor deployed to", address(kycCompressor));
-        kycCompressor.setSubcompressor(address(new OnDemandKYCUnderlyingSubcompressor()));
-        kycCompressor.setSubcompressor(address(new SecuritizeKYCFactorySubcompressor()));
+        instanceManager.configureLocal(
+            kycCompressor,
+            abi.encodeCall(KYCCompressor.setSubcompressor, (address(new OnDemandKYCUnderlyingSubcompressor())))
+        );
+        instanceManager.configureLocal(
+            kycCompressor,
+            abi.encodeCall(KYCCompressor.setSubcompressor, (address(new SecuritizeKYCFactorySubcompressor())))
+        );
         vm.stopBroadcast();
 
         vm.startBroadcast(USDC_DONOR);
@@ -341,5 +362,9 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         _createMockMarket();
         _createMockCreditSuite();
         vm.stopBroadcast();
+
+        vm.serializeAddress("Addresses", "kycFactory", kycFactory);
+        string memory finalJson = vm.serializeAddress("Addresses", "marketConfigurator", marketConfigurator);
+        vm.writeJson(finalJson, "kyc-addresses.json");
     }
 }

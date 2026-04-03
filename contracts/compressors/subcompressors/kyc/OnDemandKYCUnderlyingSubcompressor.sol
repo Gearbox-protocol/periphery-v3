@@ -10,6 +10,9 @@ import {BaseLib, BaseParams} from "../../../libraries/BaseLib.sol";
 contract OnDemandKYCUnderlyingSubcompressor is IKYCUnderlyingSubcompressor {
     using BaseLib for address;
 
+    bytes32 public constant override contractType = "GLOBAL::ON_DEMAND_KU_SC";
+    uint256 public constant override version = 3_10;
+
     function getCompressedType() external pure override returns (bytes32, bytes32) {
         return (DOMAIN_KYC_UNDERLYING, "ON_DEMAND");
     }

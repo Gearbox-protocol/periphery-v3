@@ -32,6 +32,9 @@ contract SecuritizeKYCFactorySubcompressor is IKYCFactorySubcompressor {
         uint256 deadline;
     }
 
+    bytes32 public constant override contractType = "GLOBAL::SECURITIZE_KF_SC";
+    uint256 public constant override version = 3_10;
+
     function getCompressedType() external pure override returns (bytes32, bytes32) {
         return (DOMAIN_KYC_FACTORY, "SECURITIZE");
     }
@@ -186,9 +189,9 @@ contract SecuritizeKYCFactorySubcompressor is IKYCFactorySubcompressor {
     }
 
     function _getDomain(address registrar) internal view returns (Domain memory) {
-        (, string memory name, string memory version, uint256 chainId, address verifyingContract,,) =
+        (, string memory name, string memory version_, uint256 chainId, address verifyingContract,,) =
             IERC5267(registrar).eip712Domain();
-        return Domain(name, version, chainId, verifyingContract);
+        return Domain(name, version_, chainId, verifyingContract);
     }
 
     function _getNonce(address registrar, address investor, address operator) internal view returns (uint256) {
