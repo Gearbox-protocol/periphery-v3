@@ -34,6 +34,16 @@ import {BytecodeRepositoryMock} from "./BytecodeRepositoryMock.sol";
 import {MockDSToken} from "../contracts/test/attach/securitize/mocks/MockDSToken.sol";
 import {MockVaultRegistrar} from "../contracts/test/attach/securitize/mocks/MockVaultRegistrar.sol";
 
+import {KYCCompressor} from "../contracts/compressors/KYCCompressor.sol";
+import {
+    OnDemandKYCUnderlyingSubcompressor
+} from "../contracts/compressors/subcompressors/kyc/OnDemandKYCUnderlyingSubcompressor.sol";
+import {
+    SecuritizeKYCFactorySubcompressor
+} from "../contracts/compressors/subcompressors/kyc/SecuritizeKYCFactorySubcompressor.sol";
+
+import {TYPE_KYC_COMPRESSOR} from "../contracts/libraries/AddressValidation.sol";
+
 import "forge-std/console.sol";
 
 address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -289,12 +299,14 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         kycFactory = bytecodeRepository.deploy(
             bytecodes[0].contractType, bytecodes[0].version, factoryConstructorParams, bytes32(0)
         );
+        console.log("KYC Factory deployed to", kycFactory);
 
         bytes memory underlyingConstructorParams = abi.encode(addressProvider, kycFactory, USDC, "compliant ", "c");
 
         kycUnderlying = bytecodeRepository.deploy(
             bytecodes[1].contractType, bytecodes[1].version, underlyingConstructorParams, bytes32(0)
         );
+        console.log("KYC Underlying deployed to", kycUnderlying);
 
         degenNFT = SecuritizeKYCFactory(kycFactory).getDegenNFT();
 
@@ -313,6 +325,11 @@ contract DeploySecuritizeContracts is AttachBase, AnvilHelper {
         priceFeedStore.allowPriceFeed(address(kycUnderlying), address(onePriceFeed));
 
         SecuritizeDegenNFT(degenNFT).addRegistrar(address(registrar));
+
+        KYCCompressor kycCompressor = new KYCCompressor(addressProvider);
+        console.log("KYC Compressor deployed to", address(kycCompressor));
+        kycCompressor.setSubcompressor(address(new OnDemandKYCUnderlyingSubcompressor()));
+        kycCompressor.setSubcompressor(address(new SecuritizeKYCFactorySubcompressor()));
         vm.stopBroadcast();
 
         vm.startBroadcast(USDC_DONOR);
