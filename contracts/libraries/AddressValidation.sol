@@ -37,6 +37,9 @@ bytes32 constant TYPE_DEFAULT_KYC_UNDERLYING = "KYC_UNDERLYING::DEFAULT";
 bytes32 constant TYPE_ON_DEMAND_KYC_UNDERLYING = "KYC_UNDERLYING::ON_DEMAND";
 bytes32 constant TYPE_MONOPOLIZED_ON_DEMAND_LP = "ON_DEMAND_LP::MONOPOLIZED";
 
+bytes32 constant TYPE_KYC_COMPRESSOR = "GLOBAL::KYC_COMPRESSOR";
+bytes32 constant TYPE_TOKEN_COMPRESSOR = "GLOBAL::TOKEN_COMPRESSOR";
+
 library AddressValidation {
     using Domain for bytes32;
 
@@ -122,6 +125,15 @@ library AddressValidation {
 
     function getGlobalAddress(IAddressProvider addressProvider, bytes32 key) internal view returns (address) {
         return addressProvider.getAddressOrRevert(key, NO_VERSION_CONTROL);
+    }
+
+    function getLatestPatchAddress(IAddressProvider addressProvider, bytes32 key, uint256 minorVersion)
+        internal
+        view
+        returns (address)
+    {
+        uint256 latestPatch = addressProvider.getLatestPatchVersion(key, minorVersion);
+        return addressProvider.getAddressOrRevert(key, latestPatch);
     }
 
     function _getContractType(address deployedContract) private view returns (bytes32) {

@@ -51,7 +51,7 @@ contract MockVaultRegistrar is IVaultRegistrar, EIP712 {
         override
         onlyOperator
     {
-        if (block.timestamp >= deadline) revert SignatureExpired();
+        if (block.timestamp > deadline) revert SignatureExpired();
 
         address operator = msg.sender;
         uint256 nonce = _operatorNonces[investor][operator];
@@ -81,7 +81,9 @@ contract MockVaultRegistrar is IVaultRegistrar, EIP712 {
             return false;
         }
 
-        _validateVaultBelongsToInvestor(vault, vaultInvestorId, investorId);
+        if (keccak256(bytes(vaultInvestorId)) != keccak256(bytes(investorId))) {
+            return false;
+        }
 
         return true;
     }
@@ -91,7 +93,6 @@ contract MockVaultRegistrar is IVaultRegistrar, EIP712 {
     }
 
     function invalidateOperatorPermission(address operator) external override {
-        if (!isOperator[operator]) revert NotAnOperator(operator);
         ++_operatorNonces[msg.sender][operator];
     }
 

@@ -63,7 +63,13 @@ contract MonopolizedOnDemandLP is IMonopolizedOnDemandLP {
         for (uint256 i; i < length; ++i) {
             address pool = _poolsSet.at(i);
             (address wrapped, address unwrapped) = _getUnderlyingTokens(pool);
-            pools[i] = Pool({pool: pool, wrappedUnderlying: wrapped, unwrappedUnderlying: unwrapped});
+            pools[i] = Pool({
+                pool: pool,
+                wrappedUnderlying: wrapped,
+                unwrappedUnderlying: unwrapped,
+                depositAllowance: depositAllowance(pool),
+                claimableAmount: claimableAmount(pool)
+            });
         }
     }
 
@@ -91,7 +97,7 @@ contract MonopolizedOnDemandLP is IMonopolizedOnDemandLP {
         ERC20(wrapped).forceApprove(pool, type(uint256).max);
     }
 
-    function depositAllowance(address pool) external view override returns (uint256) {
+    function depositAllowance(address pool) public view override returns (uint256) {
         if (!isPool(pool)) return 0;
         (, address unwrapped) = _getUnderlyingTokens(pool);
         return Math.min(_getBalance(unwrapped, _DEPOSITOR), ERC20(unwrapped).allowance(_DEPOSITOR, address(this)));
@@ -107,12 +113,17 @@ contract MonopolizedOnDemandLP is IMonopolizedOnDemandLP {
         _deposit(pool, underlyingAmount, address(this));
     }
 
-    function withdraw(address pool) external override {
+    function claimableAmount(address pool) public view override returns (uint256) {
+        if (!isPool(pool)) return 0;
+        return ERC4626(pool).maxWithdraw(address(this));
+    }
+
+    function claim(address pool) external override {
         _checkPool(pool);
         if (msg.sender != _DEPOSITOR) revert CallerIsNotDepositorException(msg.sender);
+        _withdraw(pool, ERC4626(pool).maxWithdraw(address(this)), address(this));
         address wrapped = _getAsset(pool);
-        _redeem(pool, ERC4626(pool).maxRedeem(address(this)), address(this));
-        _redeem(wrapped, _getBalance(wrapped, address(this)), _DEPOSITOR);
+        _withdraw(wrapped, _getBalance(wrapped, address(this)), _DEPOSITOR);
     }
 
     function _checkPool(address pool) internal view {
@@ -136,7 +147,7 @@ contract MonopolizedOnDemandLP is IMonopolizedOnDemandLP {
         ERC4626(vault).deposit(assets, receiver);
     }
 
-    function _redeem(address vault, uint256 shares, address receiver) internal {
-        ERC4626(vault).redeem(shares, receiver, address(this));
+    function _withdraw(address vault, uint256 assets, address receiver) internal {
+        ERC4626(vault).withdraw(assets, receiver, address(this));
     }
 }

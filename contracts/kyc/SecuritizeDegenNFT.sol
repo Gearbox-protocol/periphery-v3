@@ -111,28 +111,9 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         return _tokenInfo[token].operators.contains(operator);
     }
 
-    function getRegisteredTokens(address creditAccount) external view override returns (address[] memory tokens) {
-        address investor = _getInvestor(creditAccount);
-        uint256 numTokens = _tokensSet.length();
-        uint256 numRegistered;
-        tokens = new address[](numTokens);
-        for (uint256 i; i < numTokens; ++i) {
-            address token = _tokensSet.at(i);
-            if (_isRegistered(_tokenInfo[token].registrar, creditAccount, investor)) tokens[numRegistered++] = token;
-        }
-        assembly {
-            mstore(tokens, numRegistered)
-        }
-    }
-
-    function getCachedSignature(address creditAccount, address token)
-        external
-        view
-        override
-        returns (Signature memory)
-    {
+    function getCachedSignature(address investor, address token) external view override returns (Signature memory) {
         if (!_tokensSet.contains(token)) revert RegistrarNotSetForTokenException(token);
-        return _tokenInfo[token].cachedSignatures[_getInvestor(creditAccount)];
+        return _tokenInfo[token].cachedSignatures[investor];
     }
 
     // ------- //
@@ -223,11 +204,7 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     }
 
     function _isRegistered(address registrar, address vault, address investor) internal view returns (bool) {
-        try IVaultRegistrar(registrar).isRegistered(vault, investor) returns (bool result) {
-            return result;
-        } catch {
-            return false;
-        }
+        return IVaultRegistrar(registrar).isRegistered(vault, investor);
     }
 
     function _registerVault(address registrar, address vault, address investor, Signature memory signature) internal {

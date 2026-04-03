@@ -98,11 +98,15 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // ------- //
 
     function serialize() external view override returns (bytes memory) {
-        return abi.encode(owner(), _DEGEN_NFT);
+        return abi.encode(owner(), _DEGEN_NFT, _DEGEN_NFT.getDSTokensData());
     }
 
     function getDegenNFT() external view override returns (address) {
         return address(_DEGEN_NFT);
+    }
+
+    function getTokens() public view override returns (address[] memory) {
+        return _DEGEN_NFT.getDSTokens();
     }
 
     function isCreditAccount(address creditAccount) public view override returns (bool) {

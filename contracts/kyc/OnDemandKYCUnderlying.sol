@@ -77,7 +77,7 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
     }
 
     function serialize() external view override returns (bytes memory) {
-        return abi.encode(_FACTORY, asset(), _pool, _LIQUIDITY_PROVIDER, _MARKET_CONFIGURATOR);
+        return abi.encode(_FACTORY, asset(), _pool, _LIQUIDITY_PROVIDER, _MARKET_CONFIGURATOR, getAllowedDepositors());
     }
 
     function getFactory() external view override returns (address) {
@@ -107,7 +107,7 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
         emit SetPool(pool);
     }
 
-    function getAllowedDepositors() external view override returns (address[] memory) {
+    function getAllowedDepositors() public view override returns (address[] memory) {
         return _allowedDepositors.values();
     }
 

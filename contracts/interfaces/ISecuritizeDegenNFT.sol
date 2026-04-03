@@ -57,8 +57,7 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     function getRegistrar(address token) external view returns (address);
     function getOperators(address token) external view returns (address[] memory);
     function isOperator(address token, address operator) external view returns (bool);
-    function getRegisteredTokens(address creditAccount) external view returns (address[] memory);
-    function getCachedSignature(address creditAccount, address token) external view returns (Signature memory);
+    function getCachedSignature(address investor, address token) external view returns (Signature memory);
 
     // ------- //
     // ACTIONS //

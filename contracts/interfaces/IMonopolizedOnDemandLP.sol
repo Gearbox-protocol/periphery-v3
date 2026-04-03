@@ -12,6 +12,8 @@ interface IMonopolizedOnDemandLP is IOnDemandLiquidityProvider {
         address pool;
         address wrappedUnderlying;
         address unwrappedUnderlying;
+        uint256 depositAllowance;
+        uint256 claimableAmount;
     }
 
     // ------ //
@@ -38,5 +40,6 @@ interface IMonopolizedOnDemandLP is IOnDemandLiquidityProvider {
     function getPools() external view returns (Pool[] memory);
     function isPool(address pool) external view returns (bool);
     function addPool(address pool) external;
-    function withdraw(address pool) external;
+    function claimableAmount(address pool) external view returns (uint256);
+    function claim(address pool) external;
 }

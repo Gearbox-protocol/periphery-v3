@@ -21,6 +21,7 @@ interface IKYCFactory is IVersion, IStateSerializer {
     // FUNCTIONS //
     // --------- //
 
+    function getTokens() external view returns (address[] memory);
     function isCreditAccount(address creditAccount) external view returns (bool);
     function getCreditAccounts(address investor) external view returns (address[] memory);
     function getInvestor(address creditAccount) external view returns (address);

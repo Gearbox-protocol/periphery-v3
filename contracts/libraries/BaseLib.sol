@@ -9,6 +9,10 @@ import {IStateSerializerLegacy} from "../interfaces/IStateSerializerLegacy.sol";
 import {BaseParams, BaseState} from "../types/BaseState.sol";
 
 library BaseLib {
+    function getBaseParams(address addr) internal view returns (BaseParams memory baseParams) {
+        return getBaseParams(addr, "", address(0));
+    }
+
     function getBaseParams(address addr, bytes32 defaultContractType, address legacySerializer)
         internal
         view
