@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
+import {Test} from "forge-std/Test.sol";
 import {VmSafe} from "forge-std/Vm.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
@@ -19,101 +19,48 @@ import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
 import {ISecuritizeKYCFactory} from "../../../interfaces/ISecuritizeKYCFactory.sol";
 import {IDSToken} from "../../../interfaces/external/securitize/IDSToken.sol";
 
-import {SecuritizeAttachTestHelper} from "./SecuritizeAttachTestHelper.sol";
+import {SecuritizeAttachHelper} from "./SecuritizeAttachHelper.sol";
 
-contract SecuritizeDefaultLiquidityAttachTest is SecuritizeAttachTestHelper {
-    address public factory;
-    address public degenNFT;
+contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
     address public cUSDC;
-
-    VmSafe.Wallet public investorWallet;
-    address public investor;
-    address public depositor;
-
-    address public dsToken;
-    address public registrar;
-
     address public pool;
     address public creditManager;
     address public zapper;
 
+    VmSafe.Wallet public investor;
+    address public depositor;
+
     function setUp() public {
-        _setUp();
+        vm.skip(ADDRESS_PROVIDER.code.length == 0, "Not in an attach mode");
+        vm.skip(block.chainid != 1, "Not Ethereum mainnet");
+        // NOTE: even though we compile our contracts under Shanghai EVM version,
+        // more recent one is usually needed to interact with third-party contracts
+        vm.setEvmVersion("osaka");
 
-        // Roles and contracts deployment ---------------------------------------------------------------------------- //
+        deployer = vm.createWallet("Fake Deployer");
+        author = vm.createWallet("Fake Author");
+        auditor = vm.createWallet("Fake Auditor");
+        riskCurator = vm.createWallet("Fake Risk Curator");
 
-        investorWallet = vm.createWallet("investor");
-        investor = investorWallet.addr;
+        deal({token: USDC, to: riskCurator.addr, give: 100_000e6});
+
+        securitize = makeAddr("securitize");
+        investor = vm.createWallet("investor");
         depositor = makeAddr("depositor");
 
-        factory = _deploy("KYC_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
-        cUSDC = _deploy("KYC_UNDERLYING::DEFAULT", 3_10, abi.encode(addressProvider, factory, USDC, "Compliant ", "c"));
-        degenNFT = ISecuritizeKYCFactory(factory).getDegenNFT();
-
-        DSTokenInfo memory info = _attachSecuritize(degenNFT, investor);
-        dsToken = info.token;
-        registrar = info.registrar;
-
-        // Instance owner actions ------------------------------------------------------------------------------------ //
-
-        _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
-        _allowPriceFeed(USDC, USDC_PRICE_FEED);
-        _allowPriceFeed(cUSDC, USDC_PRICE_FEED);
-        _allowPriceFeed(dsToken, onePriceFeed);
-
-        _configureLocal(degenNFT, abi.encodeCall(ISecuritizeDegenNFT.addRegistrar, (registrar)));
-
-        // Risk curator actions -------------------------------------------------------------------------------------- //
+        _setUp();
+        _setUpBytecode();
+        _attachSecuritize(investor.addr);
 
         // NOTE: adding degen NFT as periphery contract is required to use it in the credit suite
         _addPeripheryContract(degenNFT);
 
-        // NOTE: mint small amount of underlying to risk curator to mint dead pool shares
-        deal({token: USDC, to: riskCurator.addr, give: 1e5});
-        _startOmniPrank(riskCurator);
-        ERC20(USDC).approve(cUSDC, 1e5);
-        ERC4626(cUSDC).deposit(1e5, address(marketConfigurator));
-        _stopOmniPrank();
+        _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
+        _allowPriceFeed(USDC, USDC_PRICE_FEED);
+        _allowPriceFeed(dsToken, onePriceFeed);
+        _configureLocal(degenNFT, abi.encodeCall(ISecuritizeDegenNFT.addRegistrar, (registrar)));
 
-        MarketParams memory marketParams = _getDefaultMarketParams(cUSDC);
-        marketParams.underlyingPriceFeed = USDC_PRICE_FEED;
-        pool = _createMockMarket(cUSDC, marketParams);
-        _addToken(
-            pool,
-            TokenParams({
-                token: USDC,
-                priceFeed: USDC_PRICE_FEED,
-                reservePriceFeed: USDC_PRICE_FEED,
-                quotaLimit: 10_000_000e6,
-                quotaRate: 1
-            })
-        );
-        _addToken(
-            pool,
-            TokenParams({
-                token: dsToken,
-                priceFeed: onePriceFeed,
-                reservePriceFeed: onePriceFeed,
-                quotaLimit: 10_000_000e6,
-                quotaRate: 1
-            })
-        );
-        // NOTE: updating rates also adds new tokens to the quota keeper
-        _updateQuotaRates(pool);
-
-        zapper = _deploy("ZAPPER::ERC4626_UNDERLYING", 3_10, abi.encode(pool));
-        _addPeripheryContract(zapper);
-
-        CreditSuiteParams memory creditSuiteParams = _getDefaultCreditSuiteParams();
-        creditSuiteParams.debtLimit = 1_000_000e6;
-        creditSuiteParams.minDebt = 50_000e6;
-        creditSuiteParams.maxDebt = 1_000_000e6;
-        creditSuiteParams.degenNFT = degenNFT;
-        creditManager = _createMockCreditSuite(pool, creditSuiteParams);
-
-        _addCollateralToken(creditManager, USDC, 98_00);
-        _addCollateralToken(creditManager, dsToken, 90_00);
-        _allowAdapter(creditManager, "ERC4626_VAULT", abi.encode(creditManager, cUSDC, address(0)));
+        (cUSDC, pool, creditManager, zapper) = _createMarketWithDefaultKYCUnderlying();
 
         // NOTE: can't borrow in the same block as facade deployment
         vm.roll(block.number + 1);
@@ -122,15 +69,15 @@ contract SecuritizeDefaultLiquidityAttachTest is SecuritizeAttachTestHelper {
     function test_open_credit_account_via_securitize_factory() public {
         deal({token: USDC, to: depositor, give: 1_000_000e6});
         vm.prank(securitize);
-        IDSToken(dsToken).issueTokens(investor, 60_000e18);
+        IDSToken(dsToken).issueTokens(investor.addr, 60_000e18);
 
         vm.startPrank(depositor);
         ERC20(USDC).approve(zapper, 1_000_000e6);
         IERC20ZapperDeposits(zapper).deposit(1_000_000e6, depositor);
         vm.stopPrank();
 
-        address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManager, investor);
-        vm.prank(investor);
+        address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManager, investor.addr);
+        _omniPrank(investor);
         ERC20(dsToken).approve(wallet, 60_000e18);
 
         address creditFacade = ICreditManagerV3(creditManager).creditFacade();
@@ -143,7 +90,9 @@ contract SecuritizeDefaultLiquidityAttachTest is SecuritizeAttachTestHelper {
         calls[1] = MultiCall({target: adapter, callData: abi.encodeCall(IERC4626Adapter.redeemDiff, (1))});
         calls[2] = MultiCall({
             target: creditFacade,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.withdrawCollateral, (USDC, type(uint256).max, investor))
+            callData: abi.encodeCall(
+                ICreditFacadeV3Multicall.withdrawCollateral, (USDC, type(uint256).max, investor.addr)
+            )
         });
         calls[3] = MultiCall({
             target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (dsToken, 60_000e18))
@@ -153,9 +102,9 @@ contract SecuritizeDefaultLiquidityAttachTest is SecuritizeAttachTestHelper {
         });
 
         ISecuritizeDegenNFT.RegisterMessage[] memory messages = new ISecuritizeDegenNFT.RegisterMessage[](1);
-        messages[0] = _signRegisterVaultMessage(investorWallet, registrar, degenNFT);
+        messages[0] = _signRegisterVaultMessage(investor);
 
-        vm.prank(investor);
+        _omniPrank(investor);
         ISecuritizeKYCFactory(factory).openCreditAccount(creditManager, calls, messages);
     }
 }
