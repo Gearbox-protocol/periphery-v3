@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
+import {Script} from "forge-std/Script.sol";
+
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {KYCCompressor} from "../contracts/compressors/KYCCompressor.sol";
@@ -18,24 +20,23 @@ import {TYPE_KYC_COMPRESSOR} from "../contracts/libraries/AddressValidation.sol"
 
 import {SecuritizeAttachHelper} from "../contracts/test/attach/securitize/SecuritizeAttachHelper.sol";
 
-contract DeploySecuritizeContracts is SecuritizeAttachHelper {
+contract DeploySecuritizeContracts is Script, SecuritizeAttachHelper {
     address public investor;
     address public depositor;
 
-    function setUp() public {
+    function run() external {
         vm.skip(ADDRESS_PROVIDER.code.length == 0, "Not in an attach mode");
         vm.skip(block.chainid != 1, "Not Ethereum mainnet");
 
         uint256 authorPrivateKey = vm.envOr("AUTHOR_PRIVATE_KEY", uint256(0));
         require(authorPrivateKey != 0, "AUTHOR_PRIVATE_KEY is not set");
         deployer = author = auditor = riskCurator = vm.createWallet(authorPrivateKey);
-        investor = depositor = securitize = deployer.addr;
 
         _omniPrank(USDC_DONOR);
         ERC20(USDC).transfer(riskCurator.addr, 100_000e6);
-    }
 
-    function run() external {
+        investor = depositor = securitize = deployer.addr;
+
         _setUp();
         _setUpBytecode();
         _attachSecuritize(investor);
