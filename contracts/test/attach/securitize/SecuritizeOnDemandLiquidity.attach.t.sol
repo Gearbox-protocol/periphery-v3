@@ -38,7 +38,6 @@ contract SecuritizeOnDemandLiquidityAttachTest is SecuritizeAttachTestHelper {
 
     function setUp() public {
         _setUp();
-        _attachMarketConfigurator();
 
         // Roles and contracts deployment ---------------------------------------------------------------------------- //
 
@@ -75,11 +74,11 @@ contract SecuritizeOnDemandLiquidityAttachTest is SecuritizeAttachTestHelper {
         _addPeripheryContract(degenNFT);
 
         // NOTE: mint small amount of underlying to risk curator to mint dead pool shares
-        deal({token: USDC, to: riskCurator, give: 1e5});
-        vm.startPrank(riskCurator);
+        deal({token: USDC, to: riskCurator.addr, give: 1e5});
+        _startOmniPrank(riskCurator);
         ERC20(USDC).approve(cUSDC, 1e5);
         ERC4626(cUSDC).deposit(1e5, address(marketConfigurator));
-        vm.stopPrank();
+        _stopOmniPrank();
 
         MarketParams memory marketParams = _getDefaultMarketParams(address(cUSDC));
         marketParams.underlyingPriceFeed = USDC_PRICE_FEED;
@@ -107,10 +106,10 @@ contract SecuritizeOnDemandLiquidityAttachTest is SecuritizeAttachTestHelper {
         // NOTE: updating rates also adds new tokens to the quota keeper
         _updateQuotaRates(pool);
 
-        vm.startPrank(riskCurator);
+        _startOmniPrank(riskCurator);
         IOnDemandKYCUnderlying(cUSDC).setPool(pool);
         IMonopolizedOnDemandLP(liquidityProvider).addPool(pool);
-        vm.stopPrank();
+        _stopOmniPrank();
 
         CreditSuiteParams memory creditSuiteParams = _getDefaultCreditSuiteParams();
         creditSuiteParams.debtLimit = 1_000_000e6;

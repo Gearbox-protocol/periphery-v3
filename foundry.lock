@@ -32,7 +32,7 @@
   "lib/@gearbox-protocol/permissionless": {
     "branch": {
       "name": "attach-test-base",
-      "rev": "02aef09fcdcd2b41eec8497ba5a3376b6b6c20f0"
+      "rev": "6381ac0376fdfadf7f6662ac182c0ed03c5182d8"
     }
   },
   "lib/@gearbox-protocol/sdk-gov": {

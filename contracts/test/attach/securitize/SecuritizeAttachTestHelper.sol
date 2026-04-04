@@ -30,16 +30,14 @@ contract SecuritizeAttachTestHelper is AttachTestBase {
 
     address public securitize;
 
-    function _setUp() internal {
+    function _setUp() internal override {
         vm.skip(ADDRESS_PROVIDER.code.length == 0, "Not in an attach mode");
-
+        vm.skip(block.chainid != 1, "Not Ethereum mainnet");
         // NOTE: even though we compile our contracts under Shanghai EVM version,
         // more recent one is usually needed to interact with third-party contracts
         vm.setEvmVersion("osaka");
 
-        _attachCore();
-
-        vm.skip(block.chainid != 1, "Not Ethereum mainnet");
+        super._setUp();
 
         _addPublicDomain("KYC_FACTORY");
         _addPublicDomain("KYC_UNDERLYING");

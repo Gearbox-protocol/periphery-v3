@@ -39,7 +39,6 @@ contract SecuritizeDefaultLiquidityAttachTest is SecuritizeAttachTestHelper {
 
     function setUp() public {
         _setUp();
-        _attachMarketConfigurator();
 
         // Roles and contracts deployment ---------------------------------------------------------------------------- //
 
@@ -70,11 +69,11 @@ contract SecuritizeDefaultLiquidityAttachTest is SecuritizeAttachTestHelper {
         _addPeripheryContract(degenNFT);
 
         // NOTE: mint small amount of underlying to risk curator to mint dead pool shares
-        deal({token: USDC, to: riskCurator, give: 1e5});
-        vm.startPrank(riskCurator);
+        deal({token: USDC, to: riskCurator.addr, give: 1e5});
+        _startOmniPrank(riskCurator);
         ERC20(USDC).approve(cUSDC, 1e5);
         ERC4626(cUSDC).deposit(1e5, address(marketConfigurator));
-        vm.stopPrank();
+        _stopOmniPrank();
 
         MarketParams memory marketParams = _getDefaultMarketParams(cUSDC);
         marketParams.underlyingPriceFeed = USDC_PRICE_FEED;

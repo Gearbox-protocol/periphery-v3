@@ -23,13 +23,11 @@ echo "cross chain governance address is ${CROSS_CHAIN_GOVERNANCE}"
 USDC_DONOR="0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"
 echo "usdc donor address is ${USDC_DONOR}"
 
-cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $AUTHOR_ADDRESS
 cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $INSTANCE_OWNER
 cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $CROSS_CHAIN_GOVERNANCE
 cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $USDC_DONOR
 
-# Set balance for author, im proxy and usdc donor to 100 ETH
-cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $AUTHOR_ADDRESS 0x56BC75E2D63100000
+# Set balance for instance owner, cross-chain governance and usdc donor to 100 ETH
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $INSTANCE_OWNER 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $CROSS_CHAIN_GOVERNANCE 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $USDC_DONOR 0x56BC75E2D63100000
