@@ -101,10 +101,13 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
             target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (dsToken, 54_000e6, 0))
         });
 
-        ISecuritizeDegenNFT.RegisterMessage[] memory messages = new ISecuritizeDegenNFT.RegisterMessage[](1);
-        messages[0] = _signRegisterVaultMessage(investor);
+        address[] memory tokensToRegister = new address[](1);
+        tokensToRegister[0] = dsToken;
+
+        ISecuritizeDegenNFT.RegisterMessage[] memory signaturesToCache = new ISecuritizeDegenNFT.RegisterMessage[](1);
+        signaturesToCache[0] = _signRegisterVaultMessage(investor);
 
         _omniPrank(investor);
-        ISecuritizeKYCFactory(factory).openCreditAccount(creditManager, calls, messages);
+        ISecuritizeKYCFactory(factory).openCreditAccount(creditManager, calls, tokensToRegister, signaturesToCache);
     }
 }

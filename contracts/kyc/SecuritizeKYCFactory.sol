@@ -158,7 +158,8 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     function openCreditAccount(
         address creditManager,
         MultiCall[] calldata calls,
-        ISecuritizeDegenNFT.RegisterMessage[] calldata messages
+        address[] calldata tokensToRegister,
+        ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
     ) external override returns (address creditAccount, address wallet) {
         if (!_ADDRESS_PROVIDER.isCreditManager(creditManager)) {
             revert InvalidCreditManagerException(creditManager);
@@ -178,8 +179,11 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         _creditAccountInfo[creditAccount].investor = msg.sender;
         emit CreateWallet(creditAccount, wallet, msg.sender);
 
-        if (messages.length != 0) {
-            _registerCreditAccount(creditManager, creditAccount, messages);
+        if (signaturesToCache.length != 0) {
+            _cacheRegisterSignatures(msg.sender, signaturesToCache);
+        }
+        if (tokensToRegister.length != 0) {
+            _registerCreditAccount(creditManager, creditAccount, tokensToRegister);
         }
         _multicall(wallet, calls);
     }
@@ -187,13 +191,18 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     function multicall(
         address creditAccount,
         MultiCall[] calldata calls,
-        ISecuritizeDegenNFT.RegisterMessage[] calldata messages
+        address[] calldata tokensToRegister,
+        ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
     ) external override {
         CreditAccountInfo memory creditAccountInfo = _creditAccountInfo[creditAccount];
         if (msg.sender != creditAccountInfo.investor) revert CallerIsNotInvestorException(msg.sender, creditAccount);
         if (creditAccountInfo.frozen) revert FrozenCreditAccountException(creditAccount);
-        if (messages.length != 0) {
-            _registerCreditAccount(ICreditAccountV3(creditAccount).creditManager(), creditAccount, messages);
+
+        if (signaturesToCache.length != 0) {
+            _cacheRegisterSignatures(creditAccountInfo.investor, signaturesToCache);
+        }
+        if (tokensToRegister.length != 0) {
+            _registerCreditAccount(ICreditAccountV3(creditAccount).creditManager(), creditAccount, tokensToRegister);
         }
         _multicall(creditAccountInfo.wallet, calls);
     }
@@ -252,16 +261,18 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         return abi.encodePacked(type(SecuritizeWallet).creationCode, abi.encode(address(this), creditManager));
     }
 
-    function _registerCreditAccount(
-        address creditManager,
-        address creditAccount,
-        ISecuritizeDegenNFT.RegisterMessage[] calldata messages
-    ) internal {
-        uint256 length = messages.length;
+    function _cacheRegisterSignatures(address investor, ISecuritizeDegenNFT.RegisterMessage[] calldata signatures)
+        internal
+    {
+        ISecuritizeDegenNFT(_DEGEN_NFT).cacheRegisterSignatures(investor, signatures);
+    }
+
+    function _registerCreditAccount(address creditManager, address creditAccount, address[] calldata tokens) internal {
+        uint256 length = tokens.length;
         for (uint256 i; i < length; ++i) {
-            ICreditManagerV3(creditManager).getTokenMaskOrRevert(messages[i].token);
+            ICreditManagerV3(creditManager).getTokenMaskOrRevert(tokens[i]);
         }
-        _DEGEN_NFT.registerCreditAccount(creditAccount, messages);
+        _DEGEN_NFT.registerCreditAccount(creditAccount, tokens);
     }
 
     function _multicall(address wallet, MultiCall[] calldata calls) internal {

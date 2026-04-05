@@ -36,12 +36,14 @@ interface ISecuritizeKYCFactory is IKYCFactory {
     function openCreditAccount(
         address creditManager,
         MultiCall[] calldata calls,
-        ISecuritizeDegenNFT.RegisterMessage[] calldata messages
+        address[] calldata tokensToRegister,
+        ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
     ) external returns (address creditAccount, address wallet);
     function multicall(
         address creditAccount,
         MultiCall[] calldata calls,
-        ISecuritizeDegenNFT.RegisterMessage[] calldata messages
+        address[] calldata tokensToRegister,
+        ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
     ) external;
 
     // ------------- //

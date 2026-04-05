@@ -67,7 +67,7 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     function burn(address wallet, uint256) external override;
     function addRegistrar(address registrar) external;
     function setOperatorStatus(address token, address operator, bool approved) external;
-    function registerCreditAccount(address creditAccount, RegisterMessage[] calldata messages) external;
-    function registerHelperAccount(address creditAccount, address helperAccount, RegisterMessage calldata message)
-        external;
+    function cacheRegisterSignatures(address investor, RegisterMessage[] calldata signatures) external;
+    function registerCreditAccount(address creditAccount, address[] calldata tokens) external;
+    function registerHelperAccount(address creditAccount, address helperAccount, address token) external;
 }

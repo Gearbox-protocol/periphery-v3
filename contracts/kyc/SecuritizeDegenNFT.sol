@@ -130,36 +130,45 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         emit Burn(wallet);
     }
 
-    function registerCreditAccount(address creditAccount, RegisterMessage[] calldata messages)
+    function cacheRegisterSignatures(address investor, RegisterMessage[] calldata signatures)
         external
         override
         onlyFactory
     {
-        address investor = _getInvestor(creditAccount);
-        address wallet = _FACTORY.getWallet(creditAccount);
-        uint256 length = messages.length;
+        uint256 length = signatures.length;
         for (uint256 i; i < length; ++i) {
-            address token = messages[i].token;
-            address registrar = getRegistrar(token);
-            if (_isRegistered(registrar, creditAccount, investor)) continue;
-            _registerVault(registrar, creditAccount, investor, messages[i].signature);
-            _registerVault(registrar, wallet, investor, messages[i].signature);
-            _tokenInfo[token].cachedSignatures[investor] = messages[i].signature;
+            address token = signatures[i].token;
+            if (!_tokensSet.contains(token)) revert UnknownTokenException(token);
+            _tokenInfo[token].cachedSignatures[investor] = signatures[i].signature;
         }
     }
 
-    function registerHelperAccount(address creditAccount, address helperAccount, RegisterMessage calldata message)
+    function registerCreditAccount(address creditAccount, address[] calldata tokens) external override onlyFactory {
+        address investor = _getInvestor(creditAccount);
+        address wallet = _FACTORY.getWallet(creditAccount);
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
+            address token = tokens[i];
+            address registrar = getRegistrar(token);
+            if (_isRegistered(registrar, creditAccount, investor)) continue;
+            Signature memory signature = _tokenInfo[token].cachedSignatures[investor];
+            _registerVault(registrar, creditAccount, investor, signature);
+            _registerVault(registrar, wallet, investor, signature);
+        }
+    }
+
+    function registerHelperAccount(address creditAccount, address helperAccount, address token)
         external
         override
-        onlyOperator(message.token)
+        onlyOperator(token)
     {
         address investor = _getInvestor(creditAccount);
-        address registrar = getRegistrar(message.token);
+        address registrar = getRegistrar(token);
         if (!_isRegistered(registrar, creditAccount, investor)) {
-            revert CreditAccountNotRegisteredException(creditAccount, message.token);
+            revert CreditAccountNotRegisteredException(creditAccount, token);
         }
-        _registerVault(registrar, helperAccount, investor, message.signature);
-        _tokenInfo[message.token].cachedSignatures[investor] = message.signature;
+        Signature memory signature = _tokenInfo[token].cachedSignatures[investor];
+        _registerVault(registrar, helperAccount, investor, signature);
     }
 
     /// @dev This contract is expected to have the operator role in `registrar`
