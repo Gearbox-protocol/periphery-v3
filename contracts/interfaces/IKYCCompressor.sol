@@ -54,7 +54,10 @@ interface IKYCCompressor is IVersion {
         external
         view
         returns (KYCUnderlyingData[] memory, KYCFactoryData[] memory);
-    function getKYCInvestorData(address investor, address factory) external view returns (KYCInvestorData memory);
+    function getKYCInvestorData(address investor, address[] calldata factories)
+        external
+        view
+        returns (KYCInvestorData[] memory);
 
     // ---------------------- //
     // INSTANCE OWNER ACTIONS //

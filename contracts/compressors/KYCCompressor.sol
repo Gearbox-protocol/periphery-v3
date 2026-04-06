@@ -100,13 +100,20 @@ contract KYCCompressor is IKYCCompressor {
         }
     }
 
-    function getKYCInvestorData(address investor, address factory)
+    function getKYCInvestorData(address investor, address[] calldata factories)
         external
         view
         override
-        returns (KYCInvestorData memory)
+        returns (KYCInvestorData[] memory investorData)
     {
-        return _getKYCInvestorData(investor, factory.getBaseParams());
+        uint256 numFactories = factories.length;
+        investorData = new KYCInvestorData[](numFactories);
+        for (uint256 i; i < numFactories; ++i) {
+            if (!_ADDRESS_PROVIDER.hasDomain(factories[i], DOMAIN_KYC_FACTORY)) {
+                revert InvalidKYCFactoryException(factories[i]);
+            }
+            investorData[i] = _getKYCInvestorData(investor, factories[i].getBaseParams());
+        }
     }
 
     // ---------------------- //
