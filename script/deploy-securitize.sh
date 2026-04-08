@@ -65,6 +65,46 @@ fi
 
 echo "bash script executed successfully"
 
+# Adds deployed MC and KYC factory to properties of testnet
+notify_anvil_manager() {
+    if [ -z "$ANVIL_MANAGER_API" ]; then
+        echo "ANVIL_MANAGER_API is not set, skipping anvil manager registration"
+        return 0
+    fi
+
+    local addresses_file="${OUTPUT_DIR:-.}/kyc-addresses.json"
+    if [ ! -f "$addresses_file" ]; then
+        echo "ERROR: addresses file not found: ${addresses_file}"
+        return 1
+    fi
+
+    local market_configurator factory
+    market_configurator=$(jq -r '.marketConfigurator' "$addresses_file")
+    factory=$(jq -r '.factory' "$addresses_file")
+
+    echo "Registering market configurator: ${market_configurator}"
+    if curl -sf -X POST \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n --arg addr "$market_configurator" '[$addr]')" \
+        "${ANVIL_MANAGER_API}/market-configurators"; then
+        echo "Market configurator registered successfully"
+    else
+        echo "WARNING: Failed to register market configurator (exit code: $?)"
+    fi
+
+    echo "Registering KYC factory: ${factory}"
+    if curl -sf -X POST \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n --arg addr "$factory" '[$addr]')" \
+        "${ANVIL_MANAGER_API}/kyc-factories"; then
+        echo "KYC factory registered successfully"
+    else
+        echo "WARNING: Failed to register KYC factory (exit code: $?)"
+    fi
+}
+
+notify_anvil_manager || echo "WARNING: Failed to notify anvil manager"
+
 # Give Docker/Loki log driver time to flush before container exits (avoids losing last lines)
 sleep 2
 

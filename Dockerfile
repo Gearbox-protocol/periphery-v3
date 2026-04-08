@@ -4,7 +4,7 @@ ENV CI=true
 
 # install node
 USER root
-RUN apt-get update && apt-get install -y curl
+RUN apt-get update && apt-get install -y curl jq
 RUN chsh -s /bin/bash foundry
 
 USER foundry
