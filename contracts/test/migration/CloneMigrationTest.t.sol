@@ -25,6 +25,8 @@ address constant USDS = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
 
 contract CloneMigrationTest is MigrationTestHelper, MarketCloner {
     function setUp() public {
+        vm.skip(ADDRESS_PROVIDER.code.length == 0, "Not in an attach mode");
+
         address mcFactory = vm.envOr("MARKET_CONFIGURATOR_FACTORY", address(0));
         address contractsRegisterOld = vm.envOr("CONTRACTS_REGISTER_OLD", address(0));
         address addressProvider = vm.envOr("ADDRESS_PROVIDER", address(0));
