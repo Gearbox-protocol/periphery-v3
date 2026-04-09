@@ -52,11 +52,7 @@ contract SecuritizeRdemptionSubcompressor is IWithdrawalSubcompressor {
     uint256 public constant version = 3_10;
     bytes32 public constant contractType = "GLOBAL::SECURITIZE_WD_SC";
 
-    function getWithdrawableAssets(address, address token)
-        external
-        view
-        returns (WithdrawableAsset[] memory)
-    {
+    function getWithdrawableAssets(address, address token) external view returns (WithdrawableAsset[] memory) {
         address securitizeRedemptionGateway = SecuritizeRedemptionPhantomToken(token).redemptionGateway();
 
         address asset = ISecuritizeRedemptionGateway(securitizeRedemptionGateway).stableCoinToken();
@@ -184,7 +180,8 @@ contract SecuritizeRdemptionSubcompressor is IWithdrawalSubcompressor {
         for (uint256 i = 0; i < redeemers.length; i++) {
             if (
                 _isRedeemerClaimable(redeemers[i], stableCoinToken)
-                    || SecuritizeRedeemer(redeemers[i]).pendingDsTokenAmount() == 0
+                    || (SecuritizeRedeemer(redeemers[i]).pendingDsTokenAmount() == 0
+                        && IERC20(stableCoinToken).balanceOf(redeemers[i]) > 1)
             ) redeemerCount++;
         }
 
@@ -195,7 +192,8 @@ contract SecuritizeRdemptionSubcompressor is IWithdrawalSubcompressor {
         for (uint256 i = 0; i < redeemers.length; i++) {
             if (
                 _isRedeemerClaimable(redeemers[i], stableCoinToken)
-                    || SecuritizeRedeemer(redeemers[i]).pendingDsTokenAmount() == 0
+                    || (SecuritizeRedeemer(redeemers[i]).pendingDsTokenAmount() == 0
+                        && IERC20(stableCoinToken).balanceOf(redeemers[i]) > 1)
             ) {
                 withdrawal.outputs[0].amount += IERC20(stableCoinToken).balanceOf(redeemers[i]);
                 withdrawal.withdrawalTokenSpent += SecuritizeRedeemer(redeemers[i]).getRedemptionAmount();
