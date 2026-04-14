@@ -34,25 +34,10 @@ import {IKelpLRTWithdrawalManagerGateway} from
     "@gearbox-protocol/integrations-v3/contracts/interfaces/kelp/IKelpLRTWithdrawalManagerGateway.sol";
 import {KelpLRTWithdrawalPhantomToken} from
     "@gearbox-protocol/integrations-v3/contracts/helpers/kelp/KelpLRTWithdrawalPhantomToken.sol";
-
-// import {MellowFlexibleDepositSubcompressor} from
-//     "../../compressors/subcompressors/withdrawal/MellowFlexibleDepositSubcompressor.sol";
-// import {MellowFlexibleRedeemSubcompressor} from
-//     "../../compressors/subcompressors/withdrawal/MellowFlexibleRedeemSubcompressor.sol";
-// import {MellowFlexibleDepositPhantomToken} from
-//     "@gearbox-protocol/integrations-v3/contracts/helpers/mellow/MellowFlexibleDepositPhantomToken.sol";
-// import {IMellowFlexibleDepositGateway} from
-//     "@gearbox-protocol/integrations-v3/contracts/interfaces/mellow/IMellowFlexibleDepositGateway.sol";
-// import {IMellowDepositQueue} from
-//     "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/IMellowDepositQueue.sol";
-// import {IMellowRateOracle} from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/IMellowRateOracle.sol";
-// import {MellowFlexibleRedeemPhantomToken} from
-//     "@gearbox-protocol/integrations-v3/contracts/helpers/mellow/MellowFlexibleRedeemPhantomToken.sol";
-// import {IMellowFlexibleRedeemGateway} from
-//     "@gearbox-protocol/integrations-v3/contracts/interfaces/mellow/IMellowFlexibleRedeemGateway.sol";
-// import {IMellowRedeemQueue} from
-//     "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/IMellowRedeemQueue.sol";
-// import {IMellowRateOracle} from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/IMellowRateOracle.sol";
+import {SecuritizeRedemptionSubcompressor} from "../../compressors/subcompressors/withdrawal/SecuritizeRedemptionSubcompressor.sol";
+import {SecuritizeRedemptionGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+import {SecuritizeRedemptionPhantomToken} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {SecuritizeRedemptionGatewayAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
 
 import {
     WithdrawalLib,
@@ -138,8 +123,6 @@ contract WithdrawalCompressorTest is Test {
     MidasWithdrawalSubcompressor public midwsc;
     UpshiftWithdrawalSubcompressor public uwsc;
     KelpLRTWithdrawalSubcompressor public klrtwsc;
-    // MellowFlexibleDepositSubcompressor public mfdsc;
-    // MellowFlexibleRedeemSubcompressor public mfrsc;
 
     address user;
 
@@ -153,23 +136,17 @@ contract WithdrawalCompressorTest is Test {
         midwsc = new MidasWithdrawalSubcompressor();
         uwsc = new UpshiftWithdrawalSubcompressor();
         klrtwsc = new KelpLRTWithdrawalSubcompressor();
-        // mfdsc = new MellowFlexibleDepositSubcompressor();
-        // mfrsc = new MellowFlexibleRedeemSubcompressor();
 
         wc.setSubcompressor(address(mwsc));
         wc.setSubcompressor(address(iusc));
         wc.setSubcompressor(address(midwsc));
         wc.setSubcompressor(address(uwsc));
         wc.setSubcompressor(address(klrtwsc));
-        // wc.setSubcompressor(address(mfdsc));
-        // wc.setSubcompressor(address(mfrsc));
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MELLOW_WITHDRAWAL", "GLOBAL::MELLOW_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::INFINIFI_UNWIND", "GLOBAL::INFINIFI_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MIDAS_REDEMPTION", "GLOBAL::MIDAS_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::UPSHIFT_WITHDRAW", "GLOBAL::UPSHIFT_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::KELP_WITHDRAWAL", "GLOBAL::KELP_LRT_WD_SC");
-        // wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MELLOW_DEPOSIT", "GLOBAL::MELF_DEPOSIT_WD_SC");
-        // wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MELLOW_REDEEM", "GLOBAL::MELF_REDEEM_WD_SC");
     }
 
     function test_WC_01_testWithdrawals() public {
@@ -267,37 +244,6 @@ contract WithdrawalCompressorTest is Test {
             vm.prank(0x2ACB4BdCbEf02f81BF713b696Ac26390d7f79A12);
             IMidasRedemptionVaultExt(midasRedemptionVault).safeApproveRequest(requestId, mTokenRate);
         }
-        // } else if (cType == "PHANTOM_TOKEN::MELLOW_DEPOSIT") {
-        //     vm.warp(claimableAt + 1);
-
-        //     address depositQueueGateway =
-        //         MellowFlexibleDepositPhantomToken(withdrawalPhantomToken).depositQueueGateway();
-        //     address depositQueue = IMellowFlexibleDepositGateway(depositQueueGateway).mellowDepositQueue();
-        //     address vault = IMellowDepositQueue(depositQueue).vault();
-        //     address mellowRateOracle = MellowFlexibleDepositPhantomToken(withdrawalPhantomToken).mellowRateOracle();
-        //     address asset = IMellowFlexibleDepositGateway(depositQueueGateway).asset();
-
-        //     uint256 reportNum = IMellowRateOracleExt(mellowRateOracle).reports(asset);
-        //     OracleReport memory report = IMellowRateOracleExt(mellowRateOracle).reportAt(asset, reportNum - 1);
-
-        //     vm.prank(vault);
-        //     IMellowQueueAdmin(depositQueue).handleReport(report.priceD18, uint32(block.timestamp - 1));
-        // } else if (cType == "PHANTOM_TOKEN::MELLOW_REDEEM") {
-        //     vm.warp(claimableAt + 1);
-
-        //     address redeemQueueGateway = MellowFlexibleRedeemPhantomToken(withdrawalPhantomToken).redeemQueueGateway();
-        //     address redeemQueue = IMellowFlexibleRedeemGateway(redeemQueueGateway).mellowRedeemQueue();
-        //     address vault = IMellowRedeemQueue(redeemQueue).vault();
-        //     address mellowRateOracle = MellowFlexibleRedeemPhantomToken(withdrawalPhantomToken).mellowRateOracle();
-        //     address asset = IMellowFlexibleRedeemGateway(redeemQueueGateway).asset();
-
-        //     uint256 reportNum = IMellowRateOracleExt(mellowRateOracle).reports(asset);
-        //     OracleReport memory report = IMellowRateOracleExt(mellowRateOracle).reportAt(asset, reportNum - 1);
-
-        //     vm.prank(vault);
-        //     IMellowQueueAdmin(redeemQueue).handleReport(report.priceD18, uint32(block.timestamp - 1));
-        //     IMellowQueueAdmin(redeemQueue).handleBatches(1000);
-        // }
     }
 
     function _assetOrETH(address asset, address weth) internal pure returns (address) {

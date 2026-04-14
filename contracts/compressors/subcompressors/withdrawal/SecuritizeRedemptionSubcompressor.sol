@@ -46,7 +46,7 @@ import {
 
 import {WAD} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 
-contract SecuritizeRdemptionSubcompressor is IWithdrawalSubcompressor {
+contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
     using WithdrawalLib for PendingWithdrawal[];
 
     uint256 public constant version = 3_10;
@@ -183,6 +183,10 @@ contract SecuritizeRdemptionSubcompressor is IWithdrawalSubcompressor {
                     || (SecuritizeRedeemer(redeemers[i]).pendingDsTokenAmount() == 0
                         && IERC20(stableCoinToken).balanceOf(redeemers[i]) > 1)
             ) redeemerCount++;
+        }
+
+        if (redeemerCount == 0) {
+            return withdrawal;
         }
 
         address[] memory claimableRedeemers = new address[](redeemerCount);
