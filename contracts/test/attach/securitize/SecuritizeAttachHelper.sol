@@ -44,6 +44,15 @@ contract SecuritizeAttachHelper is AttachBase {
         _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
     }
 
+    uint256 public idx;
+    modifier repeatTestForEachDSToken() {
+        for (idx; idx < dsTokens.length; ++idx) {
+            uint256 snapshot = vm.snapshotState();
+            _;
+            vm.revertToStateAndDelete(snapshot);
+        }
+    }
+
     // ---------- //
     // SECURITIZE //
     // ---------- //
