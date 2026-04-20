@@ -261,6 +261,7 @@ contract SecuritizeAttachHelper is AttachBase {
         _startOmniPrank(riskCurator);
         OnDemandKYCUnderlying(underlying).setPool(pool);
         MonopolizedOnDemandLP(liquidityProvider).addPool(pool);
+        OnDemandKYCUnderlying(underlying).setDepositorStatus(treasury, true);
         _stopOmniPrank();
 
         CreditSuiteParams memory creditSuiteParams = _getDefaultCreditSuiteParams();

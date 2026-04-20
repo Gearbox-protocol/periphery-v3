@@ -8,7 +8,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
 import {IBytecodeRepository} from "@gearbox-protocol/permissionless/contracts/interfaces/IBytecodeRepository.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
-import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
+import {ICreditFacadeV3, MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {SecuritizeWallet} from "./SecuritizeWallet.sol";
@@ -161,7 +161,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         address[] calldata tokensToRegister,
         ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
     ) external override returns (address creditAccount, address wallet) {
-        if (!_ADDRESS_PROVIDER.isCreditManager(creditManager)) {
+        if (!_ADDRESS_PROVIDER.isCreditManager(creditManager) || _getDegenNFT(creditManager) != address(_DEGEN_NFT)) {
             revert InvalidCreditManagerException(creditManager);
         }
         address underlying = ICreditManagerV3(creditManager).underlying();
@@ -259,6 +259,10 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
 
     function _getWalletBytecode(address creditManager) internal view returns (bytes memory) {
         return abi.encodePacked(type(SecuritizeWallet).creationCode, abi.encode(address(this), creditManager));
+    }
+
+    function _getDegenNFT(address creditManager) internal view returns (address) {
+        return ICreditFacadeV3(ICreditManagerV3(creditManager).creditFacade()).degenNFT();
     }
 
     function _cacheRegisterSignatures(address investor, ISecuritizeDegenNFT.RegisterMessage[] calldata signatures)

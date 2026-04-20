@@ -136,15 +136,12 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
     /// @dev Even though pools are assumed to use IRMs independent of utilization, this adjustment
     ///      is necessary in order to prevent available liquidity from underflowing on borrowing.
     function balanceOf(address account) public view override(ERC20, IERC20) returns (uint256) {
-        address pool = _pool;
-        return super.balanceOf(account)
-            + (pool != address(0) && account == pool ? _LIQUIDITY_PROVIDER.depositAllowance(pool) : 0);
+        return super.balanceOf(account) + (account == _pool ? _depositAllowance() : 0);
     }
 
     /// @dev Just to be a little more consistent with the `balanceOf` adjustment
     function totalSupply() public view override(ERC20, IERC20) returns (uint256) {
-        address pool = _pool;
-        return super.totalSupply() + (pool != address(0) ? _LIQUIDITY_PROVIDER.depositAllowance(pool) : 0);
+        return super.totalSupply() + _depositAllowance();
     }
 
     function _convertToAssets(uint256 shares, Math.Rounding) internal pure override returns (uint256) {
@@ -160,9 +157,9 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
         _revertIfFrozenCreditAccount(to);
 
         address pool = _pool;
-        if (pool != address(0) && to == pool && !isAllowedDepositor(from)) {
-            revert AccountNotAllowedToDepositException(from);
-        }
+        if (pool == address(0)) return;
+        if (to == pool && !isAllowedDepositor(from)) revert AccountIsNotAllowedDepositorException(from);
+        if (from == pool && !isAllowedDepositor(to)) revert AccountIsNotAllowedDepositorException(to);
     }
 
     function _revertIfFrozenCreditAccount(address account) internal view {
@@ -173,5 +170,10 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
 
     function _ensureCallerIsMarketConfiguratorAdmin() internal view {
         if (msg.sender != _MARKET_CONFIGURATOR.admin()) revert CallerIsNotMarketConfiguratorAdminException(msg.sender);
+    }
+
+    function _depositAllowance() internal view returns (uint256) {
+        address pool = _pool;
+        return pool != address(0) ? _LIQUIDITY_PROVIDER.depositAllowance(pool) : 0;
     }
 }

@@ -6,7 +6,6 @@ on:
       - "main"
       - "next"
       - "securitize-integration"
-      - "anvil-manager-callback"
 
 env:
   HUSKY: 0

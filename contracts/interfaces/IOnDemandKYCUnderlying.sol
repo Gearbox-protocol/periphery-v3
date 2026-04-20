@@ -15,7 +15,7 @@ interface IOnDemandKYCUnderlying is IKYCUnderlying {
     // ERRORS //
     // ------ //
 
-    error AccountNotAllowedToDepositException(address account);
+    error AccountIsNotAllowedDepositorException(address account);
     error CallerIsNotMarketConfiguratorAdminException(address caller);
     error InvalidCreditAccountException(address creditAccount);
     error InvalidLiquidityProviderException(address liquidityProvider);
