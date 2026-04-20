@@ -58,6 +58,9 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     mapping(address creditAccount => CreditAccountInfo) internal _creditAccountInfo;
     mapping(address investor => InvestorInfo) internal _investorInfo;
 
+    /// @dev Prevents investor from spamming with too many credit accounts
+    uint256 internal constant _MAX_SANE_NONCE = 255;
+
     // --------- //
     // MODIFIERS //
     // --------- //
@@ -177,7 +180,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         _investorInfo[msg.sender].creditAccounts.add(creditAccount);
         _creditAccountInfo[creditAccount].wallet = wallet;
         _creditAccountInfo[creditAccount].investor = msg.sender;
-        emit CreateWallet(creditAccount, wallet, msg.sender);
+        emit OpenKYCCreditAccount(creditAccount, wallet, msg.sender);
 
         if (signaturesToCache.length != 0) {
             _cacheRegisterSignatures(msg.sender, signaturesToCache);
@@ -202,7 +205,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
             _cacheRegisterSignatures(creditAccountInfo.investor, signaturesToCache);
         }
         if (tokensToRegister.length != 0) {
-            _registerCreditAccount(ICreditAccountV3(creditAccount).creditManager(), creditAccount, tokensToRegister);
+            _registerCreditAccount(_getCreditManager(creditAccount), creditAccount, tokensToRegister);
         }
         _multicall(creditAccountInfo.wallet, calls);
     }
@@ -211,34 +214,83 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // ADMIN ACTIONS //
     // ------------- //
 
-    function setFrozenStatus(address creditAccount, bool frozen)
+    function setCreditAccountFrozenStatus(address creditAccount, bool frozen)
         external
         override
         onlyOwner
         onlyKnownCreditAccounts(creditAccount)
     {
-        if (_creditAccountInfo[creditAccount].frozen == frozen) return;
-        _creditAccountInfo[creditAccount].frozen = frozen;
-        emit SetFrozenStatus(creditAccount, frozen);
+        _setCreditAccountFrozenStatus(creditAccount, frozen);
     }
 
-    /// @dev `investor` is expected to be a recognized wallet in all required registries
-    ///       under the same investor ID as original investor of `creditAccount`
-    function setInvestor(address creditAccount, address investor)
+    function setAllCreditAccountsFrozenStatus(address investor, bool frozen) external override onlyOwner {
+        InvestorInfo storage investorInfo = _investorInfo[investor];
+        uint256 length = investorInfo.creditAccounts.length();
+        for (uint256 i = length; i != 0; --i) {
+            address creditAccount = investorInfo.creditAccounts.at(i - 1);
+            _setCreditAccountFrozenStatus(creditAccount, frozen);
+        }
+    }
+
+    function setAllCreditAccountsFrozenStatus(address creditManager, address investor, bool frozen)
         external
         override
         onlyOwner
-        nonZeroAddress(investor)
+    {
+        InvestorInfo storage investorInfo = _investorInfo[investor];
+        uint256 length = investorInfo.creditAccounts.length();
+        for (uint256 i = length; i != 0; --i) {
+            address creditAccount = investorInfo.creditAccounts.at(i - 1);
+            if (_getCreditManager(creditAccount) != creditManager) continue;
+            _setCreditAccountFrozenStatus(creditAccount, frozen);
+        }
+    }
+
+    /// @dev `newInvestor` is expected to be a recognized wallet in all needed registries under the same ID as
+    ///      the original investor of `creditAccount`
+    function transferCreditAccount(address creditAccount, address newInvestor)
+        external
+        override
+        onlyOwner
+        nonZeroAddress(newInvestor)
         onlyKnownCreditAccounts(creditAccount)
     {
-        CreditAccountInfo storage creditAccountInfo = _creditAccountInfo[creditAccount];
-        address oldInvestor = creditAccountInfo.investor;
-        if (investor == oldInvestor) return;
-        creditAccountInfo.investor = investor;
-        emit SetInvestor(creditAccount, oldInvestor, investor);
+        address oldInvestor = _creditAccountInfo[creditAccount].investor;
+        if (newInvestor == oldInvestor) return;
+        _transferCreditAccount(creditAccount, oldInvestor, newInvestor);
+    }
 
-        _investorInfo[oldInvestor].creditAccounts.remove(creditAccount);
-        _investorInfo[investor].creditAccounts.add(creditAccount);
+    /// @dev `newInvestor` is expected to be a recognized wallet in all needed registries under the same ID as `investor`
+    function transferAllCreditAccounts(address investor, address newInvestor)
+        external
+        override
+        onlyOwner
+        nonZeroAddress(newInvestor)
+    {
+        if (newInvestor == investor) return;
+        InvestorInfo storage investorInfo = _investorInfo[investor];
+        uint256 length = investorInfo.creditAccounts.length();
+        for (uint256 i = length; i != 0; --i) {
+            address creditAccount = investorInfo.creditAccounts.at(i - 1);
+            _transferCreditAccount(creditAccount, investor, newInvestor);
+        }
+    }
+
+    /// @dev `newInvestor` is expected to be a recognized wallet in all needed registries under the same ID as `investor`
+    function transferAllCreditAccounts(address creditManager, address investor, address newInvestor)
+        external
+        override
+        onlyOwner
+        nonZeroAddress(newInvestor)
+    {
+        if (newInvestor == investor) return;
+        InvestorInfo storage investorInfo = _investorInfo[investor];
+        uint256 length = investorInfo.creditAccounts.length();
+        for (uint256 i = length; i != 0; --i) {
+            address creditAccount = investorInfo.creditAccounts.at(i - 1);
+            if (_getCreditManager(creditAccount) != creditManager) continue;
+            _transferCreditAccount(creditAccount, investor, newInvestor);
+        }
     }
 
     // --------- //
@@ -254,7 +306,9 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     }
 
     function _getSalt(address investor) internal view returns (bytes32) {
-        return keccak256(abi.encode(investor, _investorInfo[investor].nonce));
+        uint256 nonce = _investorInfo[investor].nonce;
+        if (nonce > _MAX_SANE_NONCE) revert TooManyCreditAccountsException(investor);
+        return keccak256(abi.encode(investor, nonce));
     }
 
     function _getWalletBytecode(address creditManager) internal view returns (bytes memory) {
@@ -263,6 +317,10 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
 
     function _getDegenNFT(address creditManager) internal view returns (address) {
         return ICreditFacadeV3(ICreditManagerV3(creditManager).creditFacade()).degenNFT();
+    }
+
+    function _getCreditManager(address creditAccount) internal view returns (address) {
+        return ICreditAccountV3(creditAccount).creditManager();
     }
 
     function _cacheRegisterSignatures(address investor, ISecuritizeDegenNFT.RegisterMessage[] calldata signatures)
@@ -281,5 +339,19 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
 
     function _multicall(address wallet, MultiCall[] calldata calls) internal {
         SecuritizeWallet(wallet).multicall(calls);
+    }
+
+    function _setCreditAccountFrozenStatus(address creditAccount, bool frozen) internal {
+        if (_creditAccountInfo[creditAccount].frozen == frozen) return;
+        _creditAccountInfo[creditAccount].frozen = frozen;
+        emit SetCreditAccountFrozenStatus(creditAccount, frozen);
+    }
+
+    function _transferCreditAccount(address creditAccount, address oldInvestor, address newInvestor) internal {
+        _creditAccountInfo[creditAccount].investor = newInvestor;
+        emit TransferCreditAccount(creditAccount, oldInvestor, newInvestor);
+
+        _investorInfo[oldInvestor].creditAccounts.remove(creditAccount);
+        _investorInfo[newInvestor].creditAccounts.add(creditAccount);
     }
 }

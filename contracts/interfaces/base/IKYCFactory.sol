@@ -10,6 +10,16 @@ import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVer
 /// @dev    Implementations must have type `KYC_FACTORY::{POSTFIX}`
 interface IKYCFactory is IVersion, IStateSerializer {
     // ------ //
+    // EVENTS //
+    // ------ //
+
+    event OpenKYCCreditAccount(address indexed creditAccount, address indexed wallet, address indexed investor);
+    event SetCreditAccountFrozenStatus(address indexed creditAccount, bool frozen);
+    event TransferCreditAccount(
+        address indexed creditAccount, address indexed oldInvestor, address indexed newInvestor
+    );
+
+    // ------ //
     // ERRORS //
     // ------ //
 
@@ -17,9 +27,9 @@ interface IKYCFactory is IVersion, IStateSerializer {
     error FrozenCreditAccountException(address creditAccount);
     error UnknownCreditAccountException(address creditAccount);
 
-    // --------- //
-    // FUNCTIONS //
-    // --------- //
+    // ------- //
+    // GETTERS //
+    // ------- //
 
     function getTokens() external view returns (address[] memory);
     function isCreditAccount(address creditAccount) external view returns (bool);
@@ -27,4 +37,16 @@ interface IKYCFactory is IVersion, IStateSerializer {
     function getInvestor(address creditAccount) external view returns (address);
     function getWallet(address creditAccount) external view returns (address);
     function isFrozen(address creditAccount) external view returns (bool);
+
+    // ------------- //
+    // ADMIN ACTIONS //
+    // ------------- //
+
+    function setCreditAccountFrozenStatus(address creditAccount, bool frozen) external;
+    function setAllCreditAccountsFrozenStatus(address investor, bool frozen) external;
+    function setAllCreditAccountsFrozenStatus(address creditManager, address investor, bool frozen) external;
+
+    function transferCreditAccount(address creditAccount, address newInvestor) external;
+    function transferAllCreditAccounts(address investor, address newInvestor) external;
+    function transferAllCreditAccounts(address creditManager, address investor, address newInvestor) external;
 }

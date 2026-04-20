@@ -7,19 +7,12 @@ import {ISecuritizeDegenNFT} from "./ISecuritizeDegenNFT.sol";
 
 interface ISecuritizeKYCFactory is IKYCFactory {
     // ------ //
-    // EVENTS //
-    // ------ //
-
-    event CreateWallet(address indexed creditAccount, address indexed wallet, address indexed investor);
-    event SetFrozenStatus(address indexed creditAccount, bool frozen);
-    event SetInvestor(address indexed creditAccount, address indexed oldInvestor, address indexed newInvestor);
-
-    // ------ //
     // ERRORS //
     // ------ //
 
     error InvalidCreditManagerException(address creditManager);
     error InvalidUnderlyingTokenException(address underlying);
+    error TooManyCreditAccountsException(address investor);
     error ZeroAddressException();
 
     // ------- //
@@ -45,11 +38,4 @@ interface ISecuritizeKYCFactory is IKYCFactory {
         address[] calldata tokensToRegister,
         ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
     ) external;
-
-    // ------------- //
-    // ADMIN ACTIONS //
-    // ------------- //
-
-    function setFrozenStatus(address creditAccount, bool frozen) external;
-    function setInvestor(address creditAccount, address investor) external;
 }
