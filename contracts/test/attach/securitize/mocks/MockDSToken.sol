@@ -10,6 +10,16 @@ import {IDSToken} from "../../../../interfaces/external/securitize/IDSToken.sol"
 contract MockDSToken is ERC20, IDSToken, IDSRegistryService {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    uint8 public constant override NONE = 0;
+    uint8 public constant override KYC_APPROVED = 1;
+    uint8 public constant override ACCREDITED = 2;
+    uint8 public constant override QUALIFIED = 4;
+    uint8 public constant override PROFESSIONAL = 8;
+
+    uint8 public constant override PENDING = 0;
+    uint8 public constant override APPROVED = 1;
+    uint8 public constant override REJECTED = 2;
+
     uint256 public constant override REGISTRY_SERVICE = 4;
     uint256 public constant override TRUST_SERVICE = 8;
 
@@ -72,6 +82,16 @@ contract MockDSToken is ERC20, IDSToken, IDSRegistryService {
         if (!isWallet(to)) revert InvestorNotFound(to);
         _mint(to, amount);
     }
+
+    function setCountry(string calldata investorId, string calldata country) external view override onlyAdmin {}
+
+    function setAttribute(
+        string calldata investorId,
+        uint8 attributeId,
+        uint256 value,
+        uint256 expiry,
+        string calldata proof
+    ) external view override onlyAdmin {}
 
     function burn(address from, uint256 amount, string calldata) external override onlyAdmin {
         if (!isWallet(from)) revert InvestorNotFound(from);

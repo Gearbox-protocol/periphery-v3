@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {VmSafe} from "forge-std/Vm.sol";
+import {console} from "forge-std/console.sol";
 import {AttachBase} from "@gearbox-protocol/permissionless/contracts/test/suite/AttachBase.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -44,15 +45,6 @@ contract SecuritizeAttachHelper is AttachBase {
         _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
     }
 
-    uint256 public idx;
-    modifier repeatTestForEachDSToken() {
-        for (idx; idx < dsTokens.length; ++idx) {
-            uint256 snapshot = vm.snapshotState();
-            _;
-            vm.revertToStateAndDelete(snapshot);
-        }
-    }
-
     // ---------- //
     // SECURITIZE //
     // ---------- //
@@ -67,6 +59,18 @@ contract SecuritizeAttachHelper is AttachBase {
     }
 
     DSToken[] public dsTokens;
+    uint256 public idx;
+
+    modifier repeatTestForEachDSToken() {
+        for (idx; idx < dsTokens.length; ++idx) {
+            uint256 snapshot = vm.snapshotState();
+            string memory symbol = ERC20(dsTokens[idx].token).symbol();
+            console.log("Running test for", symbol);
+            _;
+            console.log("Test for", symbol, "completed");
+            vm.revertToStateAndDelete(snapshot);
+        }
+    }
 
     function _attachSecuritize(address investor) internal {
         factory = _deploy("KYC_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
@@ -121,6 +125,15 @@ contract SecuritizeAttachHelper is AttachBase {
         IDSTrustService(trustService).setRole(registrar, IDSTrustService(trustService).TRANSFER_AGENT());
         IDSRegistryService(registryService).registerInvestor("Fake investor", "Fake collision hash");
         IDSRegistryService(registryService).addWallet(investor, "Fake investor");
+        IDSRegistryService(registryService).setCountry("Fake investor", "US");
+        IDSRegistryService(registryService)
+            .setAttribute(
+                "Fake investor",
+                IDSRegistryService(registryService).ACCREDITED(),
+                IDSRegistryService(registryService).APPROVED(),
+                type(uint256).max,
+                "Fake proof"
+            );
         IVaultRegistrar(registrar).addOperator(degenNFT);
         _stopOmniPrank();
     }
@@ -139,6 +152,15 @@ contract SecuritizeAttachHelper is AttachBase {
         IDSTrustService(trustService).setRole(registrar, IDSTrustService(trustService).TRANSFER_AGENT());
         IDSRegistryService(registryService).registerInvestor("Fake investor", "Fake collision hash");
         IDSRegistryService(registryService).addWallet(investor, "Fake investor");
+        IDSRegistryService(registryService).setCountry("Fake investor", "US");
+        IDSRegistryService(registryService)
+            .setAttribute(
+                "Fake investor",
+                IDSRegistryService(registryService).ACCREDITED(),
+                IDSRegistryService(registryService).APPROVED(),
+                type(uint256).max,
+                "Fake proof"
+            );
         IVaultRegistrar(registrar).addOperator(degenNFT);
         _stopOmniPrank();
     }
