@@ -24,7 +24,7 @@ import {SecuritizeAttachHelper} from "./SecuritizeAttachHelper.sol";
 contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
     address public cUSDC;
     address public pool;
-    address public creditManager;
+    address[] public creditManagers;
     address public zapper;
 
     VmSafe.Wallet public investor;
@@ -57,10 +57,12 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
 
         _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
         _allowPriceFeed(USDC, USDC_PRICE_FEED);
-        _allowPriceFeed(dsToken, onePriceFeed);
-        _configureLocal(degenNFT, abi.encodeCall(ISecuritizeDegenNFT.addRegistrar, (registrar)));
+        for (uint256 i; i < dsTokens.length; ++i) {
+            _allowPriceFeed(dsTokens[i].token, onePriceFeed);
+            _configureLocal(degenNFT, abi.encodeCall(ISecuritizeDegenNFT.addRegistrar, (dsTokens[i].registrar)));
+        }
 
-        (cUSDC, pool, creditManager, zapper) = _createMarketWithDefaultKYCUnderlying();
+        (cUSDC, pool, creditManagers, zapper) = _createMarketWithDefaultKYCUnderlying();
 
         // NOTE: can't borrow in the same block as facade deployment
         vm.roll(block.number + 1);
@@ -69,19 +71,19 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
     function test_open_credit_account_via_securitize_factory() public {
         deal({token: USDC, to: depositor, give: 1_000_000e6});
         vm.prank(securitize);
-        IDSToken(dsToken).issueTokens(investor.addr, 60_000e18);
+        IDSToken(dsTokens[0].token).issueTokens(investor.addr, 60_000e18);
 
         vm.startPrank(depositor);
         ERC20(USDC).approve(zapper, 1_000_000e6);
         IERC20ZapperDeposits(zapper).deposit(1_000_000e6, depositor);
         vm.stopPrank();
 
-        address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManager, investor.addr);
+        address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManagers[0], investor.addr);
         _omniPrank(investor);
-        ERC20(dsToken).approve(wallet, 60_000e18);
+        ERC20(dsTokens[0].token).approve(wallet, 60_000e18);
 
-        address creditFacade = ICreditManagerV3(creditManager).creditFacade();
-        address adapter = ICreditManagerV3(creditManager).contractToAdapter(cUSDC);
+        address creditFacade = ICreditManagerV3(creditManagers[0]).creditFacade();
+        address adapter = ICreditManagerV3(creditManagers[0]).contractToAdapter(cUSDC);
 
         MultiCall[] memory calls = new MultiCall[](5);
         calls[0] = MultiCall({
@@ -95,19 +97,21 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
             )
         });
         calls[3] = MultiCall({
-            target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (dsToken, 60_000e18))
+            target: creditFacade,
+            callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (dsTokens[0].token, 60_000e18))
         });
         calls[4] = MultiCall({
-            target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (dsToken, 54_000e6, 0))
+            target: creditFacade,
+            callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (dsTokens[0].token, 54_000e6, 0))
         });
 
         address[] memory tokensToRegister = new address[](1);
-        tokensToRegister[0] = dsToken;
+        tokensToRegister[0] = dsTokens[0].token;
 
         ISecuritizeDegenNFT.RegisterMessage[] memory signaturesToCache = new ISecuritizeDegenNFT.RegisterMessage[](1);
-        signaturesToCache[0] = _signRegisterVaultMessage(investor);
+        signaturesToCache[0] = _signRegisterVaultMessage(investor, dsTokens[0]);
 
         _omniPrank(investor);
-        ISecuritizeKYCFactory(factory).openCreditAccount(creditManager, calls, tokensToRegister, signaturesToCache);
+        ISecuritizeKYCFactory(factory).openCreditAccount(creditManagers[0], calls, tokensToRegister, signaturesToCache);
     }
 }

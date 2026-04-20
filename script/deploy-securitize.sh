@@ -11,20 +11,27 @@ if [ -z "$AUTHOR_PRIVATE_KEY" ]; then
     echo "AUTHOR_PRIVATE_KEY is not set, using default anvil key"
 fi
 
-if [ -z "$VAULT_REGISTRAR" ]; then
-    export VAULT_REGISTRAR="0x0000000000000000000000000000000000000000"
-    echo "VAULT_REGISTRAR is not set, using Mock Vault Registrar"
-else
-    DS_TOKEN=$(cast call $VAULT_REGISTRAR "token() returns (address)" --rpc-url ${ANVIL_URL})
+DS_TOKENS_TO_PREPARE=""
+if [ -n "$VAULT_REGISTRAR" ]; then
+    IFS=',' read -r -a REGISTRARS <<< "$VAULT_REGISTRAR"
+    RESOLVED_DS_TOKENS=()
+    for REGISTRAR in ${REGISTRARS[@]}; do
+        [ -z "$REGISTRAR" ] && continue
+        RESOLVED_DS_TOKENS+=($(cast call $REGISTRAR "token() returns (address)" --rpc-url ${ANVIL_URL}))
+    done
+    DS_TOKENS_TO_PREPARE=$(IFS=','; echo "${RESOLVED_DS_TOKENS[*]}")
+elif [ -n "$DS_TOKEN" ]; then
+    DS_TOKENS_TO_PREPARE=$DS_TOKEN
 fi
 
-if [ -z "$DS_TOKEN" ]; then
-    export DS_TOKEN="0x0000000000000000000000000000000000000000"
-    echo "DS_TOKEN is not set, using Mock DS token"
-else
-    SECURITIZE=$(cast call $DS_TOKEN "owner() returns (address)" --rpc-url ${ANVIL_URL})
-    cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $SECURITIZE
-    cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $SECURITIZE 0x56BC75E2D63100000
+if [ -n "$DS_TOKENS_TO_PREPARE" ]; then
+    IFS=',' read -r -a TOKENS <<< "$DS_TOKENS_TO_PREPARE"
+    for TOKEN in ${TOKENS[@]}; do
+        [ -z "$TOKEN" ] && continue
+        OWNER=$(cast call $TOKEN "owner() returns (address)" --rpc-url ${ANVIL_URL})
+        cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $OWNER
+        cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $OWNER 0x56BC75E2D63100000
+    done
 fi
 
 AUTHOR_ADDRESS=$(cast wallet address $AUTHOR_PRIVATE_KEY)
