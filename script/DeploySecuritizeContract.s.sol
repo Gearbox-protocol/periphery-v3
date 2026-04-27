@@ -39,22 +39,17 @@ contract DeploySecuritizeContracts is Script, SecuritizeAttachHelper {
 
         _setUp();
         _setUpBytecode();
-        _attachSecuritize(investor);
+        _attachSecuritize();
 
         for (uint256 i; i < dsTokens.length; ++i) {
+            _registerInvestor(investor, dsTokens[i]);
+            uint256 amount = _convertFromUSDC(100_000e6, dsTokens[i]);
             _omniPrank(securitize);
-            IDSToken(dsTokens[i].token).issueTokens(investor, 1000000 ether);
+            IDSToken(dsTokens[i].token).issueTokens(investor, amount);
         }
 
         // NOTE: adding degen NFT as periphery contract is required to use it in the credit suite
         _addPeripheryContract(degenNFT);
-
-        _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
-        _allowPriceFeed(USDC, USDC_PRICE_FEED);
-        for (uint256 i; i < dsTokens.length; ++i) {
-            _allowPriceFeed(dsTokens[i].token, onePriceFeed);
-            _configureLocal(degenNFT, abi.encodeCall(ISecuritizeDegenNFT.addRegistrar, (dsTokens[i].registrar)));
-        }
 
         _createMarketWithDefaultKYCUnderlying();
         _createMarketWithOnDemandKYCUnderlying(depositor);

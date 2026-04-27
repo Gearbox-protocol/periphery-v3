@@ -11,6 +11,9 @@ import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditF
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
+import {
+    ISecuritizeOnRampAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/interfaces/securitize/ISecuritizeOnRampAdapter.sol";
 import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/erc4626/IERC4626Adapter.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
@@ -48,44 +51,40 @@ contract SecuritizeOnDemandLiquidityAttachTest is Test, SecuritizeAttachHelper {
 
         _setUp();
         _setUpBytecode();
-        _attachSecuritize(investor.addr);
+        _attachSecuritize();
 
         // NOTE: adding degen NFT as periphery contract is required to use it in the credit suite
         _addPeripheryContract(degenNFT);
-
-        _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
-        _allowPriceFeed(USDC, USDC_PRICE_FEED);
-        for (uint256 i; i < dsTokens.length; ++i) {
-            _allowPriceFeed(dsTokens[i].token, onePriceFeed);
-            _configureLocal(degenNFT, abi.encodeCall(ISecuritizeDegenNFT.addRegistrar, (dsTokens[i].registrar)));
-        }
 
         (cUSDC, pool, creditManagers, liquidityProvider) = _createMarketWithOnDemandKYCUnderlying(depositor);
 
         // NOTE: can't borrow in the same block as facade deployment
         vm.roll(block.number + 1);
+
+        deal({token: USDC, to: depositor, give: 1_000_000e6});
+        _omniPrank(depositor);
+        ERC20(USDC).approve(liquidityProvider, 1_000_000e6);
     }
 
-    function test_open_credit_account_via_securitize_factory() public repeatTestForEachDSToken {
-        deal({token: USDC, to: depositor, give: 1_000_000e6});
-        vm.prank(securitize);
-        IDSToken(dsTokens[idx].token).issueTokens(investor.addr, 60_000e18);
+    function test_borrowing_via_securitize_factory() public repeatTestForEachDSToken {
+        uint256 amount = _convertFromUSDC(60_000e6, dsTokens[idx]);
 
-        vm.prank(depositor);
-        ERC20(USDC).approve(liquidityProvider, 1_000_000e6);
+        _registerInvestor(investor.addr, dsTokens[idx]);
+        _omniPrank(securitize);
+        IDSToken(dsTokens[idx].token).issueTokens(investor.addr, amount);
 
         address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManagers[idx], investor.addr);
         _omniPrank(investor);
-        ERC20(dsTokens[idx].token).approve(wallet, 60_000e18);
+        ERC20(dsTokens[idx].token).approve(wallet, amount);
 
         address creditFacade = ICreditManagerV3(creditManagers[idx]).creditFacade();
-        address adapter = ICreditManagerV3(creditManagers[idx]).contractToAdapter(cUSDC);
+        address underlyingAdapter = ICreditManagerV3(creditManagers[idx]).contractToAdapter(cUSDC);
 
         MultiCall[] memory calls = new MultiCall[](5);
         calls[0] = MultiCall({
             target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.increaseDebt, (50_000e6))
         });
-        calls[1] = MultiCall({target: adapter, callData: abi.encodeCall(IERC4626Adapter.redeemDiff, (1))});
+        calls[1] = MultiCall({target: underlyingAdapter, callData: abi.encodeCall(IERC4626Adapter.redeemDiff, (1))});
         calls[2] = MultiCall({
             target: creditFacade,
             callData: abi.encodeCall(
@@ -94,11 +93,51 @@ contract SecuritizeOnDemandLiquidityAttachTest is Test, SecuritizeAttachHelper {
         });
         calls[3] = MultiCall({
             target: creditFacade,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (dsTokens[idx].token, 60_000e18))
+            callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (dsTokens[idx].token, amount))
         });
         calls[4] = MultiCall({
             target: creditFacade,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (dsTokens[idx].token, 54_000e6, 0))
+            callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (dsTokens[idx].token, 55_000e6, 0))
+        });
+
+        address[] memory tokensToRegister = new address[](1);
+        tokensToRegister[0] = dsTokens[idx].token;
+
+        ISecuritizeDegenNFT.RegisterMessage[] memory signaturesToCache = new ISecuritizeDegenNFT.RegisterMessage[](1);
+        signaturesToCache[0] = _signRegisterVaultMessage(investor, dsTokens[idx]);
+
+        _omniPrank(investor);
+        ISecuritizeKYCFactory(factory)
+            .openCreditAccount(creditManagers[idx], calls, tokensToRegister, signaturesToCache);
+    }
+
+    function test_leverage_via_securitize_factory() public repeatTestForEachDSToken {
+        vm.skip(dsTokens[idx].onRamp == address(0), "Skipping test for mock token with no on-ramp");
+
+        _registerInvestor(investor.addr, dsTokens[idx]);
+        deal({token: USDC, to: investor.addr, give: 10_000e6});
+
+        address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManagers[idx], investor.addr);
+        _omniPrank(investor);
+        ERC20(USDC).approve(wallet, 10_000e6);
+
+        address creditFacade = ICreditManagerV3(creditManagers[idx]).creditFacade();
+        address underlyingAdapter = ICreditManagerV3(creditManagers[idx]).contractToAdapter(cUSDC);
+        address onRampAdapter = ICreditManagerV3(creditManagers[idx]).contractToAdapter(dsTokens[idx].onRamp);
+
+        MultiCall[] memory calls = new MultiCall[](5);
+        calls[0] = MultiCall({
+            target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.increaseDebt, (50_000e6))
+        });
+        calls[1] = MultiCall({target: underlyingAdapter, callData: abi.encodeCall(IERC4626Adapter.redeemDiff, (1))});
+        calls[2] = MultiCall({
+            target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (USDC, 10_000e6))
+        });
+        calls[3] =
+            MultiCall({target: onRampAdapter, callData: abi.encodeCall(ISecuritizeOnRampAdapter.swapDiff, (1, 0))});
+        calls[4] = MultiCall({
+            target: creditFacade,
+            callData: abi.encodeCall(ICreditFacadeV3Multicall.updateQuota, (dsTokens[idx].token, 55_000e6, 0))
         });
 
         address[] memory tokensToRegister = new address[](1);
