@@ -64,8 +64,10 @@ contract DeploySecuritizeContracts is Script, SecuritizeAttachHelper {
         _configureLocal(compressor, abi.encodeCall(KYCCompressor.setSubcompressor, (onDemandUnderlyingSubcompressor)));
         _configureLocal(compressor, abi.encodeCall(KYCCompressor.setSubcompressor, (securitizeFactorySubcompressor)));
 
-        vm.serializeAddress("Addresses", "marketConfigurator", address(marketConfigurator));
-        string memory json = vm.serializeAddress("Addresses", "factory", factory);
+        string memory json;
+        json = vm.serializeAddress("Addresses", "marketConfigurator", address(marketConfigurator));
+        json = vm.serializeAddress("Addresses", "factory", factory);
+        json = vm.serializeAddress("Addresses", "liquidator", liquidator);
         vm.writeJson(json, string.concat(vm.envOr("OUTPUT_DIR", string(".")), "/kyc-addresses.json"));
     }
 }
