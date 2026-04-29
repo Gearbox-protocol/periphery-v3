@@ -159,6 +159,8 @@ contract SecuritizeAttachHelper is AttachBase {
         dsToken.token = IVaultRegistrar(registrar).token();
         dsToken.registrar = registrar;
 
+        address registryService =
+            IDSServiceConsumer(dsToken.token).getDSService(IDSServiceConsumer(dsToken.token).REGISTRY_SERVICE());
         address trustService =
             IDSServiceConsumer(dsToken.token).getDSService(IDSServiceConsumer(dsToken.token).TRUST_SERVICE());
         address master = address(uint160(uint256(vm.load(trustService, bytes32(0)))));
@@ -176,7 +178,15 @@ contract SecuritizeAttachHelper is AttachBase {
         dsToken.redemptionGateway = _deploy(
             "GATEWAY::SECURITIZE_REDEMPTION",
             3_10,
-            abi.encode(dsToken.token, USDC, dsToken.redemptionWallet, degenNFT, liquidator, dsToken.navProvider)
+            abi.encode(
+                dsToken.token,
+                USDC,
+                dsToken.redemptionWallet,
+                degenNFT,
+                liquidator,
+                dsToken.navProvider,
+                registryService
+            )
         );
         dsToken.redemptionPhantomToken =
             _deploy("PHANTOM_TOKEN::SECURITIZE_RD", 3_10, abi.encode(dsToken.redemptionGateway));
