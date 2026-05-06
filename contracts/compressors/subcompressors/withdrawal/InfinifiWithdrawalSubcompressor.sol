@@ -17,10 +17,12 @@ import {
 } from "../../../types/WithdrawalInfo.sol";
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 
-import {InfinifiUnwindingGateway} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingGateway.sol";
-import {InfinifiUnwindingPhantomToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingPhantomToken.sol";
+import {
+    InfinifiUnwindingGateway
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingGateway.sol";
+import {
+    InfinifiUnwindingPhantomToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/infinifi/InfinifiUnwindingPhantomToken.sol";
 
 import {
     IInfinifiLockingController,
@@ -31,10 +33,12 @@ import {
     IInfinifiUnwindingGateway,
     UserUnwindingData
 } from "@gearbox-protocol/integrations-v3/contracts/interfaces/infinifi/IInfinifiUnwindingGateway.sol";
-import {IInfinifiGatewayAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/infinifi/IInfinifiGatewayAdapter.sol";
-import {IInfinifiUnwindingGatewayAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/infinifi/IInfinifiUnwindingGatewayAdapter.sol";
+import {
+    IInfinifiGatewayAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/interfaces/infinifi/IInfinifiGatewayAdapter.sol";
+import {
+    IInfinifiUnwindingGatewayAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/interfaces/infinifi/IInfinifiUnwindingGatewayAdapter.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import {WAD} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
@@ -68,7 +72,7 @@ contract InfinifiWithdrawalSubcompressor is IWithdrawalSubcompressor {
             uint32 unwindingEpochs =
                 IInfinifiGatewayAdapter(unwindingGatewayAdapter).lockedTokenToUnwindingEpoch(lockedTokens[i]);
             withdrawableAssets[i] = WithdrawableAsset(
-                lockedTokens[i], token, asset, _getClaimableAtFromCurrent(unwindingEpochs) - block.timestamp
+                lockedTokens[i], token, asset, _getClaimableAtFromCurrent(unwindingEpochs) - block.timestamp, 1
             );
         }
 
@@ -156,8 +160,8 @@ contract InfinifiWithdrawalSubcompressor is IWithdrawalSubcompressor {
         ) {
             pendingWithdrawals = new PendingWithdrawal[](1);
             pendingWithdrawals[0].token = IInfinifiLockingController(
-                IInfinifiUnwindingGateway(unwindingGateway).lockingController()
-            ).shareToken(userUnwindingData.unwindingEpochs);
+                    IInfinifiUnwindingGateway(unwindingGateway).lockingController()
+                ).shareToken(userUnwindingData.unwindingEpochs);
             pendingWithdrawals[0].expectedOutputs = new WithdrawalOutput[](1);
             pendingWithdrawals[0].expectedOutputs[0] = WithdrawalOutput(
                 asset, false, InfinifiUnwindingGateway(unwindingGateway).getPendingAssets(creditAccount)
@@ -195,7 +199,7 @@ contract InfinifiWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
             if (
                 block.timestamp
-                    < _getClaimableAtFromUnwindingPosition(unwindingGateway, userUnwindingData.unwindingTimestamp)
+                        < _getClaimableAtFromUnwindingPosition(unwindingGateway, userUnwindingData.unwindingTimestamp)
                     || pendingAssets == 0
             ) {
                 return withdrawal;

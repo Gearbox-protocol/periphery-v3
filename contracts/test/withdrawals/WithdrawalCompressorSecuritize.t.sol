@@ -94,6 +94,7 @@ interface ISecuritizeKYCFactory {
         ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
     ) external;
     function getDegenNFT() external view returns (address);
+    function isCreditAccount(address creditAccount) external view returns (bool);
 }
 
 contract WithdrawalCompressorTest is Test {
@@ -135,11 +136,16 @@ contract WithdrawalCompressorTest is Test {
         investor = vm.createWallet(investorPrivateKey);
         user = investor.addr;
         wallet = ISecuritizeKYCFactory(kycFactory).precomputeWalletAddress(address(creditManager), investor.addr);
+
+        securitizeLiquidator = vm.envOr("SECURITIZE_LIQUIDATOR", address(0));
+        redemptionGateway = vm.envOr("SECURITIZE_REDEMPTION_GATEWAY", address(0));
+
+        address newSecuritizeLiquidator = address(new SecuritizeLiquidator(kycFactory));
+
+        vm.etch(securitizeLiquidator, address(newSecuritizeLiquidator).code);
     }
 
     function test_WCS_01_testWithdrawalsSecuritize() public {
-        _prepareTest();
-
         address creditAccount = _openCreditAccount();
 
         WithdrawableAsset[] memory withdrawableAssets = wc.getWithdrawableAssets(creditManager);
@@ -188,8 +194,6 @@ contract WithdrawalCompressorTest is Test {
     }
 
     function test_WCS_02_testLiquidationSecuritize() public {
-        _prepareTest();
-
         address creditAccount = _openCreditAccount();
         address creditFacade = ICreditManagerV3(creditManager).creditFacade();
         address underlying = ICreditManagerV3(creditManager).underlying();
@@ -218,7 +222,18 @@ contract WithdrawalCompressorTest is Test {
             IERC20(withdrawableAssets[i].withdrawalPhantomToken).balanceOf(creditAccount);
             IERC20(withdrawableAssets[i].underlying).balanceOf(creditAccount);
 
-            uint256 debtAmount = requestableWithdrawal.outputs[0].amount * 9100 / 10000;
+            uint256 debtAmount = requestableWithdrawal.outputs[0].amount * 9200 / 10000;
+
+            // {
+            //     uint256 stableCoinAmount = requestableWithdrawal.outputs[0].amount / 10;
+            //     deal(withdrawableAssets[i].underlying, creditAccount, stableCoinAmount);
+            //     debtAmount += stableCoinAmount * 9850 / 10000;
+            // }
+
+            {
+                deal(token, creditAccount, amount / 100);
+                debtAmount += requestableWithdrawal.outputs[0].amount * 9200 / 1000000;
+            }
 
             vm.prank(0x37305B1cD40574E4C5Ce33f8e8306Be057fD7341);
             IERC20(withdrawableAssets[i].underlying).transfer(user, debtAmount * 5);
@@ -230,7 +245,7 @@ contract WithdrawalCompressorTest is Test {
             IERC20(underlying).approve(securitizeLiquidator, type(uint256).max);
             vm.stopPrank();
 
-            MultiCall[] memory calls = new MultiCall[](2);
+            MultiCall[] memory calls = new MultiCall[](3);
             calls[0] = MultiCall({
                 target: creditFacade, callData: abi.encodeCall(ICreditFacadeV3Multicall.increaseDebt, (debtAmount))
             });
@@ -239,6 +254,19 @@ contract WithdrawalCompressorTest is Test {
                 callData: abi.encodeCall(
                     ICreditFacadeV3Multicall.updateQuota,
                     (withdrawableAssets[i].withdrawalPhantomToken, int96(uint96(debtAmount * 2)), 0)
+                )
+            });
+            // calls[2] = MultiCall({
+            //     target: creditFacade,
+            //     callData: abi.encodeCall(
+            //         ICreditFacadeV3Multicall.updateQuota,
+            //         (withdrawableAssets[i].underlying, int96(uint96(debtAmount * 2)), 0)
+            //     )
+            // });
+            calls[2] = MultiCall({
+                target: creditFacade,
+                callData: abi.encodeCall(
+                    ICreditFacadeV3Multicall.updateQuota, (token, int96(uint96(debtAmount * 2)), 0)
                 )
             });
 
@@ -250,7 +278,13 @@ contract WithdrawalCompressorTest is Test {
 
             vm.prank(creditAccount);
             IERC20(underlying).transfer(user, debtAmount);
-            
+
+            vm.mockCall( 
+                0x8fAc01686D4C7444C31152AaC025B45Cb0a95ccD,
+                abi.encodeWithSelector(ISecuritizeNAVProvider.rate.selector),
+                abi.encode(1150000000)
+            );
+
             vm.prank(user);
             SecuritizeLiquidator(securitizeLiquidator)
                 .liquidatePendingRedemption(creditAccount, redemptionGateway, new PriceUpdate[](0));
@@ -267,10 +301,9 @@ contract WithdrawalCompressorTest is Test {
             vm.mockCall(
                 0x8fAc01686D4C7444C31152AaC025B45Cb0a95ccD,
                 abi.encodeWithSelector(ISecuritizeNAVProvider.rate.selector),
-                abi.encode(1100000000)
+                abi.encode(1150000000)
             );
             vm.warp(claimableAt + 1);
-            address redemptionGateway = SecuritizeRedemptionPhantomToken(withdrawalPhantomToken).redemptionGateway();
             address redeemer = SecuritizeRedemptionGateway(redemptionGateway).getRedeemers(creditAccount)[0];
             uint256 redemptionValue = SecuritizeRedeemer(redeemer).getCurrentRedemptionValue();
             address token = SecuritizeRedemptionPhantomToken(withdrawalPhantomToken).stableCoinToken();
@@ -280,70 +313,74 @@ contract WithdrawalCompressorTest is Test {
     }
 
     function _openCreditAccount() internal returns (address creditAccount) {
-        ISecuritizeDegenNFT.RegisterMessage[] memory signaturesToCache =
-            new ISecuritizeDegenNFT.RegisterMessage[](dsTokens.length);
+        ISecuritizeDegenNFT.RegisterMessage[] memory signaturesToCache = new ISecuritizeDegenNFT.RegisterMessage[](1);
+        address[] memory dsToken = new address[](1);
         for (uint256 i = 0; i < dsTokens.length; i++) {
-            signaturesToCache[i] = _signRegisterVaultMessage(investor, dsTokens[i]);
+            try ICreditManagerV3(creditManager).getTokenMaskOrRevert(dsTokens[i]) returns (uint256) {
+                signaturesToCache[0] = _signRegisterVaultMessage(investor, dsTokens[i]);
+                dsToken[0] = dsTokens[i];
+                break;
+            } catch {}
         }
 
         vm.prank(user);
         (creditAccount,) = ISecuritizeKYCFactory(kycFactory)
-            .openCreditAccount(address(creditManager), new MultiCall[](0), dsTokens, signaturesToCache);
+            .openCreditAccount(address(creditManager), new MultiCall[](0), dsToken, signaturesToCache);
     }
 
-    function _prepareTest() internal {
-        address creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
-        address priceOracle = ICreditManagerV3(creditManager).priceOracle();
-        address acl = ICreditConfiguratorV3(creditConfigurator).acl();
-        address configurator = Ownable(acl).owner();
+    // function _prepareTest() internal {
+    //     address creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
+    //     address priceOracle = ICreditManagerV3(creditManager).priceOracle();
+    //     address acl = ICreditConfiguratorV3(creditConfigurator).acl();
+    //     address configurator = Ownable(acl).owner();
 
-        securitizeLiquidator = address(new SecuritizeLiquidator());
+    //     securitizeLiquidator = address(new SecuritizeLiquidator(kycFactory));
 
-        redemptionGateway = address(
-            new SecuritizeRedemptionGateway(
-                0x17418038ecF73BA4026c4f428547BF099706F27B, // ACRED
-                0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, // USDC
-                0xa0759A0DFdE5395a1892aEd90eB5665698CFaa05, // LARGE ACRED HOLDER
-                securitizeDegenNFT,
-                securitizeLiquidator,
-                0x8fAc01686D4C7444C31152AaC025B45Cb0a95ccD // ACRED NAV PROVIDER
-            )
-        );
+    //     redemptionGateway = address(
+    //         new SecuritizeRedemptionGateway(
+    //             0x17418038ecF73BA4026c4f428547BF099706F27B, // ACRED
+    //             0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, // USDC
+    //             0xa0759A0DFdE5395a1892aEd90eB5665698CFaa05, // LARGE ACRED HOLDER
+    //             securitizeDegenNFT,
+    //             securitizeLiquidator,
+    //             0x8fAc01686D4C7444C31152AaC025B45Cb0a95ccD // ACRED NAV PROVIDER
+    //         )
+    //     );
 
-        address redemptionPhantomToken = address(new SecuritizeRedemptionPhantomToken(redemptionGateway));
+    //     address redemptionPhantomToken = address(new SecuritizeRedemptionPhantomToken(redemptionGateway));
 
-        address usdcPF = IPriceOracleV3(priceOracle).priceFeeds(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    //     address usdcPF = IPriceOracleV3(priceOracle).priceFeeds(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
-        vm.mockCall(
-            usdcPF,
-            abi.encodeWithSelector(IPriceFeed.latestRoundData.selector),
-            abi.encode(1800, 10 ** 8, block.timestamp, block.timestamp, 1800)
-        );
+    //     vm.mockCall(
+    //         usdcPF,
+    //         abi.encodeWithSelector(IPriceFeed.latestRoundData.selector),
+    //         abi.encode(1800, 10 ** 8, block.timestamp, block.timestamp, 1800)
+    //     );
 
-        vm.startPrank(configurator);
-        IPriceOracleV3(priceOracle).setPriceFeed(redemptionPhantomToken, usdcPF, 1800);
-        IPriceOracleV3(priceOracle).setReservePriceFeed(redemptionPhantomToken, usdcPF, 1800);
-        {
-            address pool = ICreditManagerV3(creditManager).pool();
-            address poolQuotaKeeper = IPoolV3(pool).poolQuotaKeeper();
-            address tumbler = IPoolQuotaKeeperV3(poolQuotaKeeper).gauge();
-            ITumblerV3(tumbler).addToken(redemptionPhantomToken);
-            ITumblerV3(tumbler).updateRates();
-            IPoolQuotaKeeperV3(poolQuotaKeeper).setTokenLimit(redemptionPhantomToken, 1000000000 * 1e6);
-        }
-        ICreditConfiguratorV3(creditConfigurator).addCollateralToken(redemptionPhantomToken, 9000);
-        vm.stopPrank();
+    //     vm.startPrank(configurator);
+    //     IPriceOracleV3(priceOracle).setPriceFeed(redemptionPhantomToken, usdcPF, 1800);
+    //     IPriceOracleV3(priceOracle).setReservePriceFeed(redemptionPhantomToken, usdcPF, 1800);
+    //     {
+    //         address pool = ICreditManagerV3(creditManager).pool();
+    //         address poolQuotaKeeper = IPoolV3(pool).poolQuotaKeeper();
+    //         address tumbler = IPoolQuotaKeeperV3(poolQuotaKeeper).gauge();
+    //         ITumblerV3(tumbler).addToken(redemptionPhantomToken);
+    //         ITumblerV3(tumbler).updateRates();
+    //         IPoolQuotaKeeperV3(poolQuotaKeeper).setTokenLimit(redemptionPhantomToken, 1000000000 * 1e6);
+    //     }
+    //     ICreditConfiguratorV3(creditConfigurator).addCollateralToken(redemptionPhantomToken, 9000);
+    //     vm.stopPrank();
 
-        address redemptionGatewayAdapter =
-            address(new SecuritizeRedemptionGatewayAdapter(creditManager, redemptionGateway, redemptionPhantomToken));
+    //     address redemptionGatewayAdapter =
+    //         address(new SecuritizeRedemptionGatewayAdapter(creditManager, redemptionGateway, redemptionPhantomToken));
 
-        vm.prank(configurator);
-        ICreditConfiguratorV3(creditConfigurator).allowAdapter(redemptionGatewayAdapter);
+    //     vm.prank(configurator);
+    //     ICreditConfiguratorV3(creditConfigurator).allowAdapter(redemptionGatewayAdapter);
 
-        vm.prank(0xBcD875f0D62B9AA22481c81975F9AE1753Fc559A);
-        ISecuritizeDegenNFT(securitizeDegenNFT)
-            .setOperatorStatus(0x17418038ecF73BA4026c4f428547BF099706F27B, redemptionGateway, true);
-    }
+    //     vm.prank(0xBcD875f0D62B9AA22481c81975F9AE1753Fc559A);
+    //     ISecuritizeDegenNFT(securitizeDegenNFT)
+    //         .setOperatorStatus(0x17418038ecF73BA4026c4f428547BF099706F27B, redemptionGateway, true);
+    // }
 
     function _sign(VmSafe.Wallet memory signer, bytes32 domainSeparator, bytes32 structHash)
         internal

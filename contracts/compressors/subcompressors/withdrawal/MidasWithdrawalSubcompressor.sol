@@ -62,7 +62,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
         WithdrawableAsset[] memory withdrawableAssets = new WithdrawableAsset[](1);
 
-        withdrawableAssets[0] = WithdrawableAsset(mToken, token, asset, 2 days);
+        withdrawableAssets[0] = WithdrawableAsset(mToken, token, asset, 2 days, 1);
 
         return withdrawableAssets;
     }

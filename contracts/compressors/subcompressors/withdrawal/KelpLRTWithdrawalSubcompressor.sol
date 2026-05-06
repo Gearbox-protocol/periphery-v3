@@ -47,7 +47,7 @@ contract KelpLRTWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address asset = KelpLRTWithdrawalPhantomToken(token).tokenOut();
         address rsETH = IKelpLRTWithdrawalManagerGateway(withdrawalManagerGateway).rsETH();
         WithdrawableAsset[] memory withdrawableAssets = new WithdrawableAsset[](1);
-        withdrawableAssets[0] = WithdrawableAsset(rsETH, token, asset, 21 days);
+        withdrawableAssets[0] = WithdrawableAsset(rsETH, token, asset, 21 days, 5);
         return withdrawableAssets;
     }
 

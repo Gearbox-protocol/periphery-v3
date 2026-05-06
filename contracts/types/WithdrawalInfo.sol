@@ -16,6 +16,7 @@ struct WithdrawableAsset {
     address withdrawalPhantomToken;
     address underlying;
     uint256 withdrawalLength;
+    uint256 maxWithdrawals;
 }
 
 struct RequestableWithdrawal {

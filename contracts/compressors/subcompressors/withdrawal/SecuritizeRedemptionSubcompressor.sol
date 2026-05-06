@@ -61,7 +61,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
 
         WithdrawableAsset[] memory withdrawableAssets = new WithdrawableAsset[](1);
 
-        withdrawableAssets[0] = WithdrawableAsset(dsToken, token, asset, 90 days);
+        withdrawableAssets[0] = WithdrawableAsset(dsToken, token, asset, 90 days, 10);
 
         return withdrawableAssets;
     }

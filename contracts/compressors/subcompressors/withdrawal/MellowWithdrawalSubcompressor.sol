@@ -127,7 +127,7 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address asset = IERC4626(multiVault).asset();
 
         WithdrawableAsset[] memory withdrawableAssets = new WithdrawableAsset[](1);
-        withdrawableAssets[0] = WithdrawableAsset(multiVault, token, asset, _getWithdrawalLength(multiVault));
+        withdrawableAssets[0] = WithdrawableAsset(multiVault, token, asset, _getWithdrawalLength(multiVault), type(uint256).max);
 
         return withdrawableAssets;
     }

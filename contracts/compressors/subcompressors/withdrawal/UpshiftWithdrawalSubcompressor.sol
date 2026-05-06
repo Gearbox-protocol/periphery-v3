@@ -17,16 +17,19 @@ import {
 } from "../../../types/WithdrawalInfo.sol";
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 
-import {UpshiftVaultWithdrawalPhantomToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/upshift/UpshiftVaultWithdrawalPhantomToken.sol";
+import {
+    UpshiftVaultWithdrawalPhantomToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/upshift/UpshiftVaultWithdrawalPhantomToken.sol";
 
 import {UpshiftVaultGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/upshift/UpshiftVaultGateway.sol";
-import {IUpshiftVaultGateway} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/upshift/IUpshiftVaultGateway.sol";
+import {
+    IUpshiftVaultGateway
+} from "@gearbox-protocol/integrations-v3/contracts/interfaces/upshift/IUpshiftVaultGateway.sol";
 
 import {IUpshiftVault} from "@gearbox-protocol/integrations-v3/contracts/integrations/upshift/IUpshiftVault.sol";
-import {IUpshiftVaultAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/upshift/IUpshiftVaultAdapter.sol";
+import {
+    IUpshiftVaultAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/interfaces/upshift/IUpshiftVaultAdapter.sol";
 import {PendingRedeem} from "@gearbox-protocol/integrations-v3/contracts/helpers/upshift/UpshiftVaultGateway.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
@@ -53,7 +56,7 @@ contract UpshiftWithdrawalSubcompressor is IWithdrawalSubcompressor {
         WithdrawableAsset[] memory withdrawableAssets = new WithdrawableAsset[](1);
 
         withdrawableAssets[0] = WithdrawableAsset(
-            vault, token, asset, claimableTimestamp > block.timestamp ? claimableTimestamp - block.timestamp : 0
+            vault, token, asset, claimableTimestamp > block.timestamp ? claimableTimestamp - block.timestamp : 0, 1
         );
 
         return withdrawableAssets;
