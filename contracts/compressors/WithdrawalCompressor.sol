@@ -30,7 +30,7 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
     using WithdrawalLib for ClaimableWithdrawal[];
     using WithdrawalLib for PendingWithdrawal[];
 
-    uint256 public constant version = 3_11;
+    uint256 public constant version = 3_12;
     bytes32 public constant contractType = AP_WITHDRAWAL_COMPRESSOR;
 
     mapping(bytes32 => bytes32) public withdrawableTypeToCompressorType;

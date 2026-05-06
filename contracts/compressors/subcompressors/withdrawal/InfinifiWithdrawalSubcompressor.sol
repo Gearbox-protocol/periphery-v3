@@ -46,7 +46,7 @@ import {WAD} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 contract InfinifiWithdrawalSubcompressor is IWithdrawalSubcompressor {
     using WithdrawalLib for PendingWithdrawal[];
 
-    uint256 public constant version = 3_10;
+    uint256 public constant version = 3_12;
     bytes32 public constant contractType = "GLOBAL::INFINIFI_WD_SC";
 
     uint256 internal constant EPOCH = 1 weeks;

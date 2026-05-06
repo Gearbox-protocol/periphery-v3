@@ -49,7 +49,7 @@ import {WAD} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
     using WithdrawalLib for PendingWithdrawal[];
 
-    uint256 public constant version = 3_10;
+    uint256 public constant version = 3_12;
     bytes32 public constant contractType = "GLOBAL::SECURITIZE_WD_SC";
 
     function getWithdrawableAssets(address, address token) external view returns (WithdrawableAsset[] memory) {
