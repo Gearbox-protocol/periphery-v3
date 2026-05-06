@@ -12,33 +12,33 @@ import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/in
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {IOnDemandKYCUnderlying} from "../interfaces/IOnDemandKYCUnderlying.sol";
-import {IKYCFactory} from "../interfaces/base/IKYCFactory.sol";
+import {IOnDemandRWAUnderlying} from "../interfaces/IOnDemandRWAUnderlying.sol";
 import {IOnDemandLiquidityProvider} from "../interfaces/base/IOnDemandLiquidityProvider.sol";
+import {IRWAFactory} from "../interfaces/base/IRWAFactory.sol";
 import {
     AddressValidation,
-    DOMAIN_KYC_FACTORY,
     DOMAIN_ON_DEMAND_LP,
     DOMAIN_POOL,
-    TYPE_ON_DEMAND_KYC_UNDERLYING
+    DOMAIN_RWA_FACTORY,
+    TYPE_ON_DEMAND_RWA_UNDERLYING
 } from "../libraries/AddressValidation.sol";
 
-/// @title  On-demand KYC Underlying
+/// @title  On-demand RWA Underlying
 /// @author Gearbox Foundation
-/// @notice An ERC4626-like token wrapper to use as underlying in markets with KYC compliance and on-demand liquidity
+/// @notice An ERC4626-like token wrapper to use as underlying in markets with RWA compliance and on-demand liquidity
 ///         provision. On top of blocking liquidations of frozen credit accounts, it also lets compliant users pull
 ///         liquidity from an on-demand LP contract right before borrowing, increasing capital efficiency for lenders.
 ///         Besides the liquidity provider and credit accounts, only users whitelisted by the market configurator admin
 ///         can send underlying to the pool in order to prevent dissolution of lenders' profits.
-contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
+contract OnDemandRWAUnderlying is IOnDemandRWAUnderlying, ERC4626 {
     using AddressValidation for IAddressProvider;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    bytes32 public constant override contractType = TYPE_ON_DEMAND_KYC_UNDERLYING;
+    bytes32 public constant override contractType = TYPE_ON_DEMAND_RWA_UNDERLYING;
     uint256 public constant override version = 3_10;
 
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
-    IKYCFactory internal immutable _FACTORY;
+    IRWAFactory internal immutable _FACTORY;
     IOnDemandLiquidityProvider internal immutable _LIQUIDITY_PROVIDER;
     IMarketConfigurator internal immutable _MARKET_CONFIGURATOR;
     address internal _pool;
@@ -51,7 +51,7 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
 
     constructor(
         IAddressProvider addressProvider,
-        IKYCFactory factory,
+        IRWAFactory factory,
         IOnDemandLiquidityProvider liquidityProvider,
         IMarketConfigurator marketConfigurator,
         ERC20 underlying,
@@ -61,8 +61,8 @@ contract OnDemandKYCUnderlying is IOnDemandKYCUnderlying, ERC4626 {
         ERC20(string.concat(namePrefix, underlying.name()), string.concat(symbolPrefix, underlying.symbol()))
         ERC4626(underlying)
     {
-        if (!addressProvider.hasDomain(address(factory), DOMAIN_KYC_FACTORY)) {
-            revert InvalidKYCFactoryException(address(factory));
+        if (!addressProvider.hasDomain(address(factory), DOMAIN_RWA_FACTORY)) {
+            revert InvalidRWAFactoryException(address(factory));
         }
         if (!addressProvider.hasDomain(address(liquidityProvider), DOMAIN_ON_DEMAND_LP)) {
             revert InvalidLiquidityProviderException(address(liquidityProvider));

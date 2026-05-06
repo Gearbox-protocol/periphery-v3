@@ -11,11 +11,11 @@ import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/inter
 import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 
 import {IMonopolizedOnDemandLP} from "../interfaces/IMonopolizedOnDemandLP.sol";
-import {IOnDemandKYCUnderlying} from "../interfaces/IOnDemandKYCUnderlying.sol";
+import {IOnDemandRWAUnderlying} from "../interfaces/IOnDemandRWAUnderlying.sol";
 import {
     AddressValidation,
     TYPE_MONOPOLIZED_ON_DEMAND_LP,
-    TYPE_ON_DEMAND_KYC_UNDERLYING
+    TYPE_ON_DEMAND_RWA_UNDERLYING
 } from "../libraries/AddressValidation.sol";
 
 /// @title  Monopolized On-demand LP
@@ -84,8 +84,8 @@ contract MonopolizedOnDemandLP is IMonopolizedOnDemandLP {
         }
         address wrapped = _getAsset(pool);
         if (
-            !_ADDRESS_PROVIDER.hasType(wrapped, TYPE_ON_DEMAND_KYC_UNDERLYING)
-                || IOnDemandKYCUnderlying(wrapped).getLiquidityProvider() != address(this)
+            !_ADDRESS_PROVIDER.hasType(wrapped, TYPE_ON_DEMAND_RWA_UNDERLYING)
+                || IOnDemandRWAUnderlying(wrapped).getLiquidityProvider() != address(this)
         ) revert InvalidUnderlyingTokenException(wrapped);
         address unwrapped = _getAsset(wrapped);
 

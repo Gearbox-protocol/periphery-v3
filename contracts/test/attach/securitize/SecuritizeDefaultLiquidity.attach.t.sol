@@ -19,7 +19,7 @@ import {
 } from "@gearbox-protocol/integrations-v3/contracts/interfaces/zappers/IERC20ZapperDeposits.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
-import {ISecuritizeKYCFactory} from "../../../interfaces/ISecuritizeKYCFactory.sol";
+import {ISecuritizeRWAFactory} from "../../../interfaces/ISecuritizeRWAFactory.sol";
 import {IDSToken} from "../../../interfaces/external/securitize/IDSToken.sol";
 
 import {SecuritizeAttachHelper} from "./SecuritizeAttachHelper.sol";
@@ -58,7 +58,7 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
         // NOTE: adding degen NFT as periphery contract is required to use it in the credit suite
         _addPeripheryContract(degenNFT);
 
-        (cUSDC, pool, creditManagers, zapper) = _createMarketWithDefaultKYCUnderlying();
+        (cUSDC, pool, creditManagers, zapper) = _createMarketWithDefaultRWAUnderlying();
 
         // NOTE: can't borrow in the same block as facade deployment
         vm.roll(block.number + 1);
@@ -77,7 +77,7 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
         _omniPrank(securitize);
         IDSToken(dsTokens[idx].token).issueTokens(investor.addr, amount);
 
-        address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManagers[idx], investor.addr);
+        address wallet = ISecuritizeRWAFactory(factory).precomputeWalletAddress(creditManagers[idx], investor.addr);
         _omniPrank(investor);
         ERC20(dsTokens[idx].token).approve(wallet, amount);
 
@@ -111,7 +111,7 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
         signaturesToCache[0] = _signRegisterVaultMessage(investor, dsTokens[idx]);
 
         _omniPrank(investor);
-        ISecuritizeKYCFactory(factory)
+        ISecuritizeRWAFactory(factory)
             .openCreditAccount(creditManagers[idx], calls, tokensToRegister, signaturesToCache);
     }
 
@@ -121,7 +121,7 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
         _registerInvestor(investor.addr, dsTokens[idx]);
         deal({token: USDC, to: investor.addr, give: 10_000e6});
 
-        address wallet = ISecuritizeKYCFactory(factory).precomputeWalletAddress(creditManagers[idx], investor.addr);
+        address wallet = ISecuritizeRWAFactory(factory).precomputeWalletAddress(creditManagers[idx], investor.addr);
         _omniPrank(investor);
         ERC20(USDC).approve(wallet, 10_000e6);
 
@@ -151,7 +151,7 @@ contract SecuritizeDefaultLiquidityAttachTest is Test, SecuritizeAttachHelper {
         signaturesToCache[0] = _signRegisterVaultMessage(investor, dsTokens[idx]);
 
         _omniPrank(investor);
-        ISecuritizeKYCFactory(factory)
+        ISecuritizeRWAFactory(factory)
             .openCreditAccount(creditManagers[idx], calls, tokensToRegister, signaturesToCache);
     }
 }

@@ -6,33 +6,33 @@ import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVer
 import {BaseParams} from "../types/BaseState.sol";
 import {TokenData} from "./ITokenCompressor.sol";
 
-interface IKYCCompressor is IVersion {
+interface IRWACompressor is IVersion {
     // ----- //
     // TYPES //
     // ----- //
 
-    struct KYCUnderlyingData {
+    struct RWAUnderlyingData {
         BaseParams baseParams;
         address asset;
         address factory;
         bytes extraDetails;
     }
 
-    struct KYCFactoryData {
+    struct RWAFactoryData {
         BaseParams baseParams;
         TokenData[] tokens;
         bytes extraDetails;
     }
 
-    struct KYCCreditAccountData {
+    struct RWACreditAccountData {
         address creditAccount;
         address wallet;
         bool frozen;
         bytes extraDetails;
     }
 
-    struct KYCInvestorData {
-        KYCCreditAccountData[] creditAccounts;
+    struct RWAInvestorData {
+        RWACreditAccountData[] creditAccounts;
         bytes extraDetails;
     }
 
@@ -42,7 +42,7 @@ interface IKYCCompressor is IVersion {
 
     error CallerIsNotInstanceOwnerException(address caller);
     error InvalidDomainException(bytes32 domain);
-    error InvalidKYCFactoryException(address factory);
+    error InvalidRWAFactoryException(address factory);
     error InvalidMarketConfiguratorException(address marketConfigurator);
 
     // ------- //
@@ -50,14 +50,14 @@ interface IKYCCompressor is IVersion {
     // ------- //
 
     function subcompressors(bytes32 domain, bytes32 postfix) external view returns (address);
-    function getKYCMarketsData(address[] calldata configurators, address[] calldata factories)
+    function getRWAMarketsData(address[] calldata configurators, address[] calldata factories)
         external
         view
-        returns (KYCUnderlyingData[] memory, KYCFactoryData[] memory);
-    function getKYCInvestorData(address investor, address[] calldata factories)
+        returns (RWAUnderlyingData[] memory, RWAFactoryData[] memory);
+    function getRWAInvestorData(address investor, address[] calldata factories)
         external
         view
-        returns (KYCInvestorData[] memory);
+        returns (RWAInvestorData[] memory);
 
     // ---------------------- //
     // INSTANCE OWNER ACTIONS //

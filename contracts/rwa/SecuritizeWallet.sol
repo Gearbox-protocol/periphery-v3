@@ -9,9 +9,9 @@ import {ICreditFacadeV3, MultiCall} from "@gearbox-protocol/core-v3/contracts/in
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {ISecuritizeKYCFactory} from "../interfaces/ISecuritizeKYCFactory.sol";
+import {ISecuritizeRWAFactory} from "../interfaces/ISecuritizeRWAFactory.sol";
 import {ISecuritizeWallet} from "../interfaces/ISecuritizeWallet.sol";
-import {IKYCUnderlying} from "../interfaces/base/IKYCUnderlying.sol";
+import {IRWAUnderlying} from "../interfaces/base/IRWAUnderlying.sol";
 
 /// @title  Securitize Wallet
 /// @author Gearbox Foundation
@@ -20,8 +20,8 @@ import {IKYCUnderlying} from "../interfaces/base/IKYCUnderlying.sol";
 contract SecuritizeWallet is ISecuritizeWallet {
     using SafeERC20 for ERC20;
 
-    ISecuritizeKYCFactory internal immutable _FACTORY;
-    IKYCUnderlying internal immutable _UNDERLYING;
+    ISecuritizeRWAFactory internal immutable _FACTORY;
+    IRWAUnderlying internal immutable _UNDERLYING;
     ICreditManagerV3 internal immutable _CREDIT_MANAGER;
     address internal immutable _CREDIT_ACCOUNT;
 
@@ -35,9 +35,9 @@ contract SecuritizeWallet is ISecuritizeWallet {
         _;
     }
 
-    constructor(ISecuritizeKYCFactory factory, ICreditManagerV3 creditManager) {
+    constructor(ISecuritizeRWAFactory factory, ICreditManagerV3 creditManager) {
         _FACTORY = factory;
-        _UNDERLYING = IKYCUnderlying(creditManager.underlying());
+        _UNDERLYING = IRWAUnderlying(creditManager.underlying());
         _CREDIT_MANAGER = creditManager;
         _CREDIT_ACCOUNT = _creditFacade().openCreditAccount(address(this), new MultiCall[](0), 0);
     }

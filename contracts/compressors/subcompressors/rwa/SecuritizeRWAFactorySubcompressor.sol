@@ -7,15 +7,15 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
-import {ISecuritizeKYCFactory} from "../../../interfaces/ISecuritizeKYCFactory.sol";
-import {IKYCFactorySubcompressor} from "../../../interfaces/base/IKYCFactorySubcompressor.sol";
+import {ISecuritizeRWAFactory} from "../../../interfaces/ISecuritizeRWAFactory.sol";
+import {IRWAFactorySubcompressor} from "../../../interfaces/base/IRWAFactorySubcompressor.sol";
 import {IDSRegistryService} from "../../../interfaces/external/securitize/IDSRegistryService.sol";
 import {IDSToken} from "../../../interfaces/external/securitize/IDSToken.sol";
 import {IVaultRegistrar} from "../../../interfaces/external/securitize/IVaultRegistrar.sol";
 
-import {DOMAIN_KYC_FACTORY, TYPE_TOKEN_COMPRESSOR} from "../../../libraries/AddressValidation.sol";
+import {DOMAIN_RWA_FACTORY, TYPE_TOKEN_COMPRESSOR} from "../../../libraries/AddressValidation.sol";
 
-contract SecuritizeKYCFactorySubcompressor is IKYCFactorySubcompressor {
+contract SecuritizeRWAFactorySubcompressor is IRWAFactorySubcompressor {
     struct Domain {
         string name;
         string version;
@@ -36,7 +36,7 @@ contract SecuritizeKYCFactorySubcompressor is IKYCFactorySubcompressor {
     uint256 public constant override version = 3_10;
 
     function getCompressedType() external pure override returns (bytes32, bytes32) {
-        return (DOMAIN_KYC_FACTORY, "SECURITIZE");
+        return (DOMAIN_RWA_FACTORY, "SECURITIZE");
     }
 
     /// @dev Empty as `serialize` returns all factory-level data
@@ -93,7 +93,7 @@ contract SecuritizeKYCFactorySubcompressor is IKYCFactorySubcompressor {
         override
         returns (bytes memory)
     {
-        address investor = ISecuritizeKYCFactory(factory).getInvestor(creditAccount);
+        address investor = ISecuritizeRWAFactory(factory).getInvestor(creditAccount);
         address degenNFT = _getDegenNFT(factory);
         ISecuritizeDegenNFT.DSTokenData[] memory tokens = ISecuritizeDegenNFT(degenNFT).getDSTokensData();
         uint256 numTokens = tokens.length;
@@ -118,7 +118,7 @@ contract SecuritizeKYCFactorySubcompressor is IKYCFactorySubcompressor {
     // --------- //
 
     function _getDegenNFT(address factory) internal view returns (address) {
-        return ISecuritizeKYCFactory(factory).getDegenNFT();
+        return ISecuritizeRWAFactory(factory).getDegenNFT();
     }
 
     function _isInvestor(address token, address investor) internal view returns (bool) {

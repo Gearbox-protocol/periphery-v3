@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {IKYCUnderlying} from "./base/IKYCUnderlying.sol";
+import {IRWAUnderlying} from "./base/IRWAUnderlying.sol";
 
-interface IOnDemandKYCUnderlying is IKYCUnderlying {
+interface IOnDemandRWAUnderlying is IRWAUnderlying {
     // ------ //
     // EVENTS //
     // ------ //

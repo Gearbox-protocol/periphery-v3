@@ -77,14 +77,14 @@ fi
 
 echo "bash script executed successfully"
 
-# Adds deployed MC and KYC factory to properties of testnet
+# Adds deployed MC and RWA factory to properties of testnet
 notify_anvil_manager() {
     if [ -z "$ANVIL_MANAGER_API" ]; then
         echo "ANVIL_MANAGER_API is not set, skipping anvil manager registration"
         return 0
     fi
 
-    local addresses_file="${OUTPUT_DIR:-.}/kyc-addresses.json"
+    local addresses_file="${OUTPUT_DIR:-.}/rwa-addresses.json"
     if [ ! -f "$addresses_file" ]; then
         echo "ERROR: addresses file not found: ${addresses_file}"
         return 1
@@ -104,14 +104,14 @@ notify_anvil_manager() {
         echo "WARNING: Failed to register market configurator (exit code: $?)"
     fi
 
-    echo "Registering KYC factory: ${factory}"
+    echo "Registering RWA factory: ${factory}"
     if curl -sf -X POST \
         -H "Content-Type: application/json" \
         -d "$(jq -n --arg addr "$factory" '[$addr]')" \
-        "${ANVIL_MANAGER_API}/kyc-factories"; then
-        echo "KYC factory registered successfully"
+        "${ANVIL_MANAGER_API}/rwa-factories"; then
+        echo "RWA factory registered successfully"
     else
-        echo "WARNING: Failed to register KYC factory (exit code: $?)"
+        echo "WARNING: Failed to register RWA factory (exit code: $?)"
     fi
 }
 

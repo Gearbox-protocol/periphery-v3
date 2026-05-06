@@ -13,20 +13,20 @@ import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 
 import {SecuritizeWallet} from "./SecuritizeWallet.sol";
 import {ISecuritizeDegenNFT} from "../interfaces/ISecuritizeDegenNFT.sol";
-import {ISecuritizeKYCFactory} from "../interfaces/ISecuritizeKYCFactory.sol";
+import {ISecuritizeRWAFactory} from "../interfaces/ISecuritizeRWAFactory.sol";
 import {
     AddressValidation,
-    DOMAIN_KYC_UNDERLYING,
+    DOMAIN_RWA_UNDERLYING,
     TYPE_BYTECODE_REPOSITORY,
     TYPE_SECURITIZE_DEGEN_NFT,
-    TYPE_SECURITIZE_KYC_FACTORY
+    TYPE_SECURITIZE_RWA_FACTORY
 } from "../libraries/AddressValidation.sol";
 
-/// @title  Securitize KYC Factory
+/// @title  Securitize RWA Factory
 /// @author Gearbox Foundation
 /// @notice A factory contract that allows investors to open credit accounts whitelisted to interact
-///         with DSTokens by Securitize while also allowing the latter to enforce KYC compliance
-contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
+///         with DSTokens by Securitize while also allowing the latter to enforce RWA compliance
+contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
     using AddressValidation for IAddressProvider;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -49,7 +49,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
     // STATE VARIABLES //
     // --------------- //
 
-    bytes32 public constant override contractType = TYPE_SECURITIZE_KYC_FACTORY;
+    bytes32 public constant override contractType = TYPE_SECURITIZE_RWA_FACTORY;
     uint256 public constant override version = 3_10;
 
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
@@ -168,7 +168,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
             revert InvalidCreditManagerException(creditManager);
         }
         address underlying = ICreditManagerV3(creditManager).underlying();
-        if (!_ADDRESS_PROVIDER.hasDomain(underlying, DOMAIN_KYC_UNDERLYING)) {
+        if (!_ADDRESS_PROVIDER.hasDomain(underlying, DOMAIN_RWA_UNDERLYING)) {
             revert InvalidUnderlyingTokenException(underlying);
         }
 
@@ -180,7 +180,7 @@ contract SecuritizeKYCFactory is ISecuritizeKYCFactory, Ownable2Step {
         _investorInfo[msg.sender].creditAccounts.add(creditAccount);
         _creditAccountInfo[creditAccount].wallet = wallet;
         _creditAccountInfo[creditAccount].investor = msg.sender;
-        emit OpenKYCCreditAccount(creditAccount, wallet, msg.sender);
+        emit OpenRWACreditAccount(creditAccount, wallet, msg.sender);
 
         if (signaturesToCache.length != 0) {
             _cacheRegisterSignatures(msg.sender, signaturesToCache);

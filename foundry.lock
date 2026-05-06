@@ -19,8 +19,8 @@
   },
   "lib/@gearbox-protocol/integrations-v3": {
     "branch": {
-      "name": "securitize",
-      "rev": "78d6264b230c1756b56e2f66bdaab8da6773a492"
+      "name": "securitize-rwa",
+      "rev": "e70b5204c3d6b8aca5c32a5be3ef72796d7c4f2c"
     }
   },
   "lib/@gearbox-protocol/oracles-v3": {
