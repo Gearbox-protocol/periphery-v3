@@ -294,7 +294,7 @@ contract SecuritizeAttachHelper is AttachBase {
         MarketParams memory marketParams = _getDefaultMarketParams(underlying);
         marketParams.underlyingPriceFeed = USDC_PRICE_FEED;
         marketParams.interestRateModelParams.constructorParams = abi.encode(5000, 9000, 4_00, 0, 0, 0, false);
-        marketParams.interestRateModelParams.salt = "GEARBOX_DEFAULT";
+        marketParams.interestRateModelParams.salt = keccak256(abi.encode(underlying));
         pool = _createMockMarket(underlying, marketParams);
         _addToken(
             pool,
