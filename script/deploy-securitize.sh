@@ -60,7 +60,7 @@ cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $CROSS_CHAIN_GOVERNANCE 0x56BC7
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $USDC_DONOR 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $RLUSD_DONOR 0x56BC75E2D63100000
 
-FORGE_CMD="forge script script/DeploySecuritizeContract.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation 2>&1"
+FORGE_CMD="forge script script/DeploySecuritizeContracts.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation 2>&1"
 
 # When stdout is not a TTY (e.g. Docker without -t), forge skips per-transaction output.
 # Run forge under `script` to attach a pseudo-TTY so we get full logs (tx hashes, etc.).
