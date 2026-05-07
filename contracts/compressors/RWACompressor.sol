@@ -11,30 +11,30 @@ import {
 } from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
 import {Domain} from "@gearbox-protocol/permissionless/contracts/libraries/Domain.sol";
 
-import {IKYCCompressor} from "../interfaces/IKYCCompressor.sol";
+import {IRWACompressor} from "../interfaces/IRWACompressor.sol";
 import {ITokenCompressor} from "../interfaces/ITokenCompressor.sol";
-import {IKYCFactory} from "../interfaces/base/IKYCFactory.sol";
-import {IKYCFactorySubcompressor} from "../interfaces/base/IKYCFactorySubcompressor.sol";
-import {IKYCUnderlying} from "../interfaces/base/IKYCUnderlying.sol";
-import {IKYCUnderlyingSubcompressor} from "../interfaces/base/IKYCUnderlyingSubcompressor.sol";
+import {IRWAFactory} from "../interfaces/base/IRWAFactory.sol";
+import {IRWAFactorySubcompressor} from "../interfaces/base/IRWAFactorySubcompressor.sol";
+import {IRWAUnderlying} from "../interfaces/base/IRWAUnderlying.sol";
+import {IRWAUnderlyingSubcompressor} from "../interfaces/base/IRWAUnderlyingSubcompressor.sol";
 import {ISubcompressor} from "../interfaces/base/ISubcompressor.sol";
 import {
     AddressValidation,
-    DOMAIN_KYC_FACTORY,
-    DOMAIN_KYC_UNDERLYING,
+    DOMAIN_RWA_FACTORY,
+    DOMAIN_RWA_UNDERLYING,
     TYPE_INSTANCE_MANAGER_PROXY,
-    TYPE_KYC_COMPRESSOR,
     TYPE_MARKET_CONFIGURATOR_FACTORY,
+    TYPE_RWA_COMPRESSOR,
     TYPE_TOKEN_COMPRESSOR
 } from "../libraries/AddressValidation.sol";
 import {BaseLib, BaseParams} from "../libraries/BaseLib.sol";
 
-contract KYCCompressor is IKYCCompressor {
+contract RWACompressor is IRWACompressor {
     using AddressValidation for IAddressProvider;
     using BaseLib for address;
     using Domain for bytes32;
 
-    bytes32 public constant override contractType = TYPE_KYC_COMPRESSOR;
+    bytes32 public constant override contractType = TYPE_RWA_COMPRESSOR;
     uint256 public constant override version = 3_10;
 
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
@@ -53,11 +53,11 @@ contract KYCCompressor is IKYCCompressor {
     // GETTERS //
     // ------- //
 
-    function getKYCMarketsData(address[] calldata configurators, address[] calldata factories)
+    function getRWAMarketsData(address[] calldata configurators, address[] calldata factories)
         external
         view
         override
-        returns (KYCUnderlyingData[] memory underlyingsData, KYCFactoryData[] memory factoriesData)
+        returns (RWAUnderlyingData[] memory underlyingsData, RWAFactoryData[] memory factoriesData)
     {
         // underlyings data
         address marketConfiguratorFactory = _ADDRESS_PROVIDER.getGlobalAddress(TYPE_MARKET_CONFIGURATOR_FACTORY);
@@ -71,7 +71,7 @@ contract KYCCompressor is IKYCCompressor {
             maxUnderlyings += IContractsRegister(contractsRegister).getPools().length;
         }
 
-        underlyingsData = new KYCUnderlyingData[](maxUnderlyings);
+        underlyingsData = new RWAUnderlyingData[](maxUnderlyings);
         uint256 numUnderlyings;
         for (uint256 i; i < numConfigurators; ++i) {
             address contractsRegister = IMarketConfigurator(configurators[i]).contractsRegister();
@@ -79,8 +79,8 @@ contract KYCCompressor is IKYCCompressor {
             uint256 numPools = pools.length;
             for (uint256 j; j < numPools; ++j) {
                 address underlying = _getAsset(pools[j]);
-                if (!_ADDRESS_PROVIDER.hasDomain(underlying, DOMAIN_KYC_UNDERLYING)) continue;
-                KYCUnderlyingData memory data = _getKYCUnderlyingData(underlying);
+                if (!_ADDRESS_PROVIDER.hasDomain(underlying, DOMAIN_RWA_UNDERLYING)) continue;
+                RWAUnderlyingData memory data = _getRWAUnderlyingData(underlying);
                 if (_contains(factories, data.factory)) underlyingsData[numUnderlyings++] = data;
             }
         }
@@ -91,28 +91,28 @@ contract KYCCompressor is IKYCCompressor {
 
         // factories data
         uint256 numFactories = factories.length;
-        factoriesData = new KYCFactoryData[](numFactories);
+        factoriesData = new RWAFactoryData[](numFactories);
         for (uint256 i; i < numFactories; ++i) {
-            if (!_ADDRESS_PROVIDER.hasDomain(factories[i], DOMAIN_KYC_FACTORY)) {
-                revert InvalidKYCFactoryException(factories[i]);
+            if (!_ADDRESS_PROVIDER.hasDomain(factories[i], DOMAIN_RWA_FACTORY)) {
+                revert InvalidRWAFactoryException(factories[i]);
             }
-            factoriesData[i] = _getKYCFactoryData(factories[i]);
+            factoriesData[i] = _getRWAFactoryData(factories[i]);
         }
     }
 
-    function getKYCInvestorData(address investor, address[] calldata factories)
+    function getRWAInvestorData(address investor, address[] calldata factories)
         external
         view
         override
-        returns (KYCInvestorData[] memory investorData)
+        returns (RWAInvestorData[] memory investorData)
     {
         uint256 numFactories = factories.length;
-        investorData = new KYCInvestorData[](numFactories);
+        investorData = new RWAInvestorData[](numFactories);
         for (uint256 i; i < numFactories; ++i) {
-            if (!_ADDRESS_PROVIDER.hasDomain(factories[i], DOMAIN_KYC_FACTORY)) {
-                revert InvalidKYCFactoryException(factories[i]);
+            if (!_ADDRESS_PROVIDER.hasDomain(factories[i], DOMAIN_RWA_FACTORY)) {
+                revert InvalidRWAFactoryException(factories[i]);
             }
-            investorData[i] = _getKYCInvestorData(investor, factories[i].getBaseParams());
+            investorData[i] = _getRWAInvestorData(investor, factories[i].getBaseParams());
         }
     }
 
@@ -122,7 +122,7 @@ contract KYCCompressor is IKYCCompressor {
 
     function setSubcompressor(address subcompressor) external onlyInstanceOwner {
         (bytes32 domain, bytes32 postfix) = ISubcompressor(subcompressor).getCompressedType();
-        if (domain != DOMAIN_KYC_UNDERLYING && domain != DOMAIN_KYC_FACTORY) {
+        if (domain != DOMAIN_RWA_UNDERLYING && domain != DOMAIN_RWA_FACTORY) {
             revert InvalidDomainException(domain);
         }
         subcompressors[domain][postfix] = subcompressor;
@@ -150,61 +150,61 @@ contract KYCCompressor is IKYCCompressor {
         return false;
     }
 
-    function _getKYCUnderlyingData(address underlying) internal view returns (KYCUnderlyingData memory data) {
+    function _getRWAUnderlyingData(address underlying) internal view returns (RWAUnderlyingData memory data) {
         data.baseParams = underlying.getBaseParams();
 
         data.asset = _getAsset(underlying);
-        data.factory = IKYCUnderlying(underlying).getFactory();
+        data.factory = IRWAUnderlying(underlying).getFactory();
 
-        address subcompressor = subcompressors[DOMAIN_KYC_UNDERLYING][data.baseParams.contractType.extractPostfix()];
+        address subcompressor = subcompressors[DOMAIN_RWA_UNDERLYING][data.baseParams.contractType.extractPostfix()];
         if (subcompressor != address(0)) {
-            data.extraDetails = IKYCUnderlyingSubcompressor(subcompressor).getUnderlyingData(underlying);
+            data.extraDetails = IRWAUnderlyingSubcompressor(subcompressor).getUnderlyingData(underlying);
         }
     }
 
-    function _getKYCFactoryData(address factory) internal view returns (KYCFactoryData memory data) {
+    function _getRWAFactoryData(address factory) internal view returns (RWAFactoryData memory data) {
         data.baseParams = factory.getBaseParams();
 
         address tokenCompressor = _ADDRESS_PROVIDER.getLatestPatchAddress(TYPE_TOKEN_COMPRESSOR, 3_10);
-        data.tokens = ITokenCompressor(tokenCompressor).getTokens(IKYCFactory(factory).getTokens());
+        data.tokens = ITokenCompressor(tokenCompressor).getTokens(IRWAFactory(factory).getTokens());
 
-        address subcompressor = subcompressors[DOMAIN_KYC_FACTORY][data.baseParams.contractType.extractPostfix()];
+        address subcompressor = subcompressors[DOMAIN_RWA_FACTORY][data.baseParams.contractType.extractPostfix()];
         if (subcompressor != address(0)) {
-            data.extraDetails = IKYCFactorySubcompressor(subcompressor).getFactoryData(factory);
+            data.extraDetails = IRWAFactorySubcompressor(subcompressor).getFactoryData(factory);
         }
     }
 
-    function _getKYCInvestorData(address investor, BaseParams memory factory)
+    function _getRWAInvestorData(address investor, BaseParams memory factory)
         internal
         view
-        returns (KYCInvestorData memory data)
+        returns (RWAInvestorData memory data)
     {
-        address[] memory creditAccounts = IKYCFactory(factory.addr).getCreditAccounts(investor);
+        address[] memory creditAccounts = IRWAFactory(factory.addr).getCreditAccounts(investor);
         uint256 numCreditAccounts = creditAccounts.length;
-        data.creditAccounts = new KYCCreditAccountData[](numCreditAccounts);
+        data.creditAccounts = new RWACreditAccountData[](numCreditAccounts);
         for (uint256 i; i < numCreditAccounts; ++i) {
-            data.creditAccounts[i] = _getKYCCreditAccountData(creditAccounts[i], factory);
+            data.creditAccounts[i] = _getRWACreditAccountData(creditAccounts[i], factory);
         }
 
-        address subcompressor = subcompressors[DOMAIN_KYC_FACTORY][factory.contractType.extractPostfix()];
+        address subcompressor = subcompressors[DOMAIN_RWA_FACTORY][factory.contractType.extractPostfix()];
         if (subcompressor != address(0)) {
-            data.extraDetails = IKYCFactorySubcompressor(subcompressor).getInvestorData(investor, factory.addr);
+            data.extraDetails = IRWAFactorySubcompressor(subcompressor).getInvestorData(investor, factory.addr);
         }
     }
 
-    function _getKYCCreditAccountData(address creditAccount, BaseParams memory factory)
+    function _getRWACreditAccountData(address creditAccount, BaseParams memory factory)
         internal
         view
-        returns (KYCCreditAccountData memory data)
+        returns (RWACreditAccountData memory data)
     {
         data.creditAccount = creditAccount;
-        data.wallet = IKYCFactory(factory.addr).getWallet(creditAccount);
-        data.frozen = IKYCFactory(factory.addr).isFrozen(creditAccount);
+        data.wallet = IRWAFactory(factory.addr).getWallet(creditAccount);
+        data.frozen = IRWAFactory(factory.addr).isFrozen(creditAccount);
 
-        address subcompressor = subcompressors[DOMAIN_KYC_FACTORY][factory.contractType.extractPostfix()];
+        address subcompressor = subcompressors[DOMAIN_RWA_FACTORY][factory.contractType.extractPostfix()];
         if (subcompressor != address(0)) {
             data.extraDetails =
-                IKYCFactorySubcompressor(subcompressor).getCreditAccountData(creditAccount, factory.addr);
+                IRWAFactorySubcompressor(subcompressor).getCreditAccountData(creditAccount, factory.addr);
         }
     }
 }

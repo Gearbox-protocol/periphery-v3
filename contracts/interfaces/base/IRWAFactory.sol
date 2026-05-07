@@ -4,16 +4,16 @@ pragma solidity ^0.8.23;
 import {IStateSerializer} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IStateSerializer.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
-/// @title  KYC factory interface
+/// @title  RWA factory interface
 /// @author Gearbox Foundation
-/// @notice Generic interface for a contract that can be used to open and manage KYC-compliant credit accounts
-/// @dev    Implementations must have type `KYC_FACTORY::{POSTFIX}`
-interface IKYCFactory is IVersion, IStateSerializer {
+/// @notice Generic interface for a contract that can be used to open and manage RWA-compliant credit accounts
+/// @dev    Implementations must have type `RWA_FACTORY::{POSTFIX}`
+interface IRWAFactory is IVersion, IStateSerializer {
     // ------ //
     // EVENTS //
     // ------ //
 
-    event OpenKYCCreditAccount(address indexed creditAccount, address indexed wallet, address indexed investor);
+    event OpenRWACreditAccount(address indexed creditAccount, address indexed wallet, address indexed investor);
     event SetCreditAccountFrozenStatus(address indexed creditAccount, bool frozen);
     event TransferCreditAccount(
         address indexed creditAccount, address indexed oldInvestor, address indexed newInvestor

@@ -11,18 +11,18 @@ import {
     UniswapV3PoolStatus
 } from "@gearbox-protocol/integrations-v3/contracts/interfaces/uniswap/IUniswapV3Adapter.sol";
 
-import {KYCCompressor} from "../contracts/compressors/KYCCompressor.sol";
+import {RWACompressor} from "../contracts/compressors/RWACompressor.sol";
 import {
-    OnDemandKYCUnderlyingSubcompressor
-} from "../contracts/compressors/subcompressors/kyc/OnDemandKYCUnderlyingSubcompressor.sol";
+    OnDemandRWAUnderlyingSubcompressor
+} from "../contracts/compressors/subcompressors/rwa/OnDemandRWAUnderlyingSubcompressor.sol";
 import {
-    SecuritizeKYCFactorySubcompressor
-} from "../contracts/compressors/subcompressors/kyc/SecuritizeKYCFactorySubcompressor.sol";
+    SecuritizeRWAFactorySubcompressor
+} from "../contracts/compressors/subcompressors/rwa/SecuritizeRWAFactorySubcompressor.sol";
 
 import {ISecuritizeDegenNFT} from "../contracts/interfaces/ISecuritizeDegenNFT.sol";
 import {IDSToken} from "../contracts/interfaces/external/securitize/IDSToken.sol";
 
-import {TYPE_KYC_COMPRESSOR} from "../contracts/libraries/AddressValidation.sol";
+import {TYPE_RWA_COMPRESSOR} from "../contracts/libraries/AddressValidation.sol";
 
 import {SecuritizeAttachHelper} from "../contracts/test/attach/securitize/SecuritizeAttachHelper.sol";
 
@@ -62,25 +62,25 @@ contract DeploySecuritizeContracts is Script, SecuritizeAttachHelper {
         // NOTE: adding degen NFT as periphery contract is required to use it in the credit suite
         _addPeripheryContract(degenNFT);
 
-        _createMarketWithDefaultKYCUnderlying();
-        _createMarketWithOnDemandKYCUnderlying(depositor);
-        _createMarketWithDefaultKYCUnderlyingRLUSD();
+        _createMarketWithDefaultRWAUnderlying();
+        _createMarketWithOnDemandRWAUnderlying(depositor);
+        _createMarketWithDefaultRWAUnderlyingRLUSD();
 
         _startOmniPrank(deployer);
-        address compressor = address(new KYCCompressor(addressProvider));
-        address onDemandUnderlyingSubcompressor = address(new OnDemandKYCUnderlyingSubcompressor());
-        address securitizeFactorySubcompressor = address(new SecuritizeKYCFactorySubcompressor());
+        address compressor = address(new RWACompressor(addressProvider));
+        address onDemandUnderlyingSubcompressor = address(new OnDemandRWAUnderlyingSubcompressor());
+        address securitizeFactorySubcompressor = address(new SecuritizeRWAFactorySubcompressor());
         _stopOmniPrank();
 
-        _setGlobalAddress(TYPE_KYC_COMPRESSOR, compressor, true);
-        _configureLocal(compressor, abi.encodeCall(KYCCompressor.setSubcompressor, (onDemandUnderlyingSubcompressor)));
-        _configureLocal(compressor, abi.encodeCall(KYCCompressor.setSubcompressor, (securitizeFactorySubcompressor)));
+        _setGlobalAddress(TYPE_RWA_COMPRESSOR, compressor, true);
+        _configureLocal(compressor, abi.encodeCall(RWACompressor.setSubcompressor, (onDemandUnderlyingSubcompressor)));
+        _configureLocal(compressor, abi.encodeCall(RWACompressor.setSubcompressor, (securitizeFactorySubcompressor)));
 
         string memory json;
         json = vm.serializeAddress("Addresses", "marketConfigurator", address(marketConfigurator));
         json = vm.serializeAddress("Addresses", "factory", factory);
         json = vm.serializeAddress("Addresses", "liquidator", liquidator);
-        vm.writeJson(json, string.concat(vm.envOr("OUTPUT_DIR", string(".")), "/kyc-addresses.json"));
+        vm.writeJson(json, string.concat(vm.envOr("OUTPUT_DIR", string(".")), "/rwa-addresses.json"));
     }
 
     address public constant RLUSD = 0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD;
@@ -88,12 +88,12 @@ contract DeploySecuritizeContracts is Script, SecuritizeAttachHelper {
     address public constant RLUSD_DONOR = 0x7D98e5FD009Eb13fdD6baE736484CcD1a5A0ab9F;
     address public constant UNISWAP_V3_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
 
-    function _createMarketWithDefaultKYCUnderlyingRLUSD() internal {
+    function _createMarketWithDefaultRWAUnderlyingRLUSD() internal {
         _addPriceFeed(RLUSD_PRICE_FEED, 1 days, "Chainlink RLUSD price feed");
         _allowPriceFeed(RLUSD, RLUSD_PRICE_FEED);
 
         address underlying = _deploy(
-            "KYC_UNDERLYING::DEFAULT", 3_10, abi.encode(addressProvider, factory, RLUSD, "Default compliant ", "dc")
+            "RWA_UNDERLYING::DEFAULT", 3_10, abi.encode(addressProvider, factory, RLUSD, "Default compliant ", "dc")
         );
         _allowPriceFeed(underlying, RLUSD_PRICE_FEED);
 

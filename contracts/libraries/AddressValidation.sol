@@ -27,17 +27,17 @@ import {
 } from "@gearbox-protocol/permissionless/contracts/libraries/ContractLiterals.sol";
 import {Domain} from "@gearbox-protocol/permissionless/contracts/libraries/Domain.sol";
 
-bytes32 constant DOMAIN_KYC_FACTORY = "KYC_FACTORY";
-bytes32 constant DOMAIN_KYC_UNDERLYING = "KYC_UNDERLYING";
 bytes32 constant DOMAIN_ON_DEMAND_LP = "ON_DEMAND_LP";
+bytes32 constant DOMAIN_RWA_FACTORY = "RWA_FACTORY";
+bytes32 constant DOMAIN_RWA_UNDERLYING = "RWA_UNDERLYING";
 
 bytes32 constant TYPE_SECURITIZE_DEGEN_NFT = "DEGEN_NFT::SECURITIZE";
-bytes32 constant TYPE_SECURITIZE_KYC_FACTORY = "KYC_FACTORY::SECURITIZE";
-bytes32 constant TYPE_DEFAULT_KYC_UNDERLYING = "KYC_UNDERLYING::DEFAULT";
-bytes32 constant TYPE_ON_DEMAND_KYC_UNDERLYING = "KYC_UNDERLYING::ON_DEMAND";
+bytes32 constant TYPE_SECURITIZE_RWA_FACTORY = "RWA_FACTORY::SECURITIZE";
+bytes32 constant TYPE_DEFAULT_RWA_UNDERLYING = "RWA_UNDERLYING::DEFAULT";
+bytes32 constant TYPE_ON_DEMAND_RWA_UNDERLYING = "RWA_UNDERLYING::ON_DEMAND";
 bytes32 constant TYPE_MONOPOLIZED_ON_DEMAND_LP = "ON_DEMAND_LP::MONOPOLIZED";
 
-bytes32 constant TYPE_KYC_COMPRESSOR = "GLOBAL::KYC_COMPRESSOR";
+bytes32 constant TYPE_RWA_COMPRESSOR = "GLOBAL::RWA_COMPRESSOR";
 bytes32 constant TYPE_TOKEN_COMPRESSOR = "GLOBAL::TOKEN_COMPRESSOR";
 
 library AddressValidation {

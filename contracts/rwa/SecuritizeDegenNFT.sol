@@ -6,7 +6,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
 
 import {ISecuritizeDegenNFT} from "../interfaces/ISecuritizeDegenNFT.sol";
-import {ISecuritizeKYCFactory} from "../interfaces/ISecuritizeKYCFactory.sol";
+import {ISecuritizeRWAFactory} from "../interfaces/ISecuritizeRWAFactory.sol";
 import {IVaultRegistrar} from "../interfaces/external/securitize/IVaultRegistrar.sol";
 import {
     AddressValidation,
@@ -32,7 +32,7 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     uint256 public constant override version = 3_10;
 
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
-    ISecuritizeKYCFactory internal immutable _FACTORY;
+    ISecuritizeRWAFactory internal immutable _FACTORY;
 
     EnumerableSet.AddressSet internal _walletsSet;
     EnumerableSet.AddressSet internal _tokensSet;
@@ -61,7 +61,7 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     // CONSTRUCTOR //
     // ----------- //
 
-    constructor(IAddressProvider addressProvider, ISecuritizeKYCFactory factory) {
+    constructor(IAddressProvider addressProvider, ISecuritizeRWAFactory factory) {
         _ADDRESS_PROVIDER = addressProvider;
         _FACTORY = factory;
     }

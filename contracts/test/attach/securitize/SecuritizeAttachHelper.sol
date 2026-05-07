@@ -35,17 +35,17 @@ import {
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
-import {ISecuritizeKYCFactory} from "../../../interfaces/ISecuritizeKYCFactory.sol";
+import {ISecuritizeRWAFactory} from "../../../interfaces/ISecuritizeRWAFactory.sol";
 import {IDSRegistryService} from "../../../interfaces/external/securitize/IDSRegistryService.sol";
 import {IDSServiceConsumer} from "../../../interfaces/external/securitize/IDSServiceConsumer.sol";
 import {IDSTrustService} from "../../../interfaces/external/securitize/IDSTrustService.sol";
 import {IVaultRegistrar} from "../../../interfaces/external/securitize/IVaultRegistrar.sol";
 
-import {DefaultKYCUnderlying} from "../../../kyc/DefaultKYCUnderlying.sol";
-import {MonopolizedOnDemandLP} from "../../../kyc/MonopolizedOnDemandLP.sol";
-import {OnDemandKYCUnderlying} from "../../../kyc/OnDemandKYCUnderlying.sol";
-import {SecuritizeDegenNFT} from "../../../kyc/SecuritizeDegenNFT.sol";
-import {SecuritizeKYCFactory} from "../../../kyc/SecuritizeKYCFactory.sol";
+import {DefaultRWAUnderlying} from "../../../rwa/DefaultRWAUnderlying.sol";
+import {MonopolizedOnDemandLP} from "../../../rwa/MonopolizedOnDemandLP.sol";
+import {OnDemandRWAUnderlying} from "../../../rwa/OnDemandRWAUnderlying.sol";
+import {SecuritizeDegenNFT} from "../../../rwa/SecuritizeDegenNFT.sol";
+import {SecuritizeRWAFactory} from "../../../rwa/SecuritizeRWAFactory.sol";
 
 import {MockDSToken} from "./mocks/MockDSToken.sol";
 import {MockVaultRegistrar} from "./mocks/MockVaultRegistrar.sol";
@@ -56,19 +56,19 @@ contract SecuritizeAttachHelper is AttachBase {
     address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
 
     function _setUpBytecode() internal {
-        _addPublicDomain("KYC_FACTORY");
-        _addPublicDomain("KYC_LIQUIDATOR");
-        _addPublicDomain("KYC_UNDERLYING");
+        _addPublicDomain("RWA_FACTORY");
+        _addPublicDomain("RWA_LIQUIDATOR");
+        _addPublicDomain("RWA_UNDERLYING");
         _addPublicDomain("ON_DEMAND_LP");
 
         _uploadContract("DEGEN_NFT::SECURITIZE", 3_10, type(SecuritizeDegenNFT).creationCode);
-        _uploadContract("KYC_FACTORY::SECURITIZE", 3_10, type(SecuritizeKYCFactory).creationCode);
-        _uploadContract("KYC_UNDERLYING::DEFAULT", 3_10, type(DefaultKYCUnderlying).creationCode);
-        _uploadContract("KYC_UNDERLYING::ON_DEMAND", 3_10, type(OnDemandKYCUnderlying).creationCode);
+        _uploadContract("RWA_FACTORY::SECURITIZE", 3_10, type(SecuritizeRWAFactory).creationCode);
+        _uploadContract("RWA_UNDERLYING::DEFAULT", 3_10, type(DefaultRWAUnderlying).creationCode);
+        _uploadContract("RWA_UNDERLYING::ON_DEMAND", 3_10, type(OnDemandRWAUnderlying).creationCode);
         _uploadContract("ON_DEMAND_LP::MONOPOLIZED", 3_10, type(MonopolizedOnDemandLP).creationCode);
         _uploadContract("ADAPTER::SECURITIZE_ONRAMP", 3_10, type(SecuritizeOnRampAdapter).creationCode);
         _uploadContract("ADAPTER::SECURITIZE_REDEMPTION", 3_10, type(SecuritizeRedemptionGatewayAdapter).creationCode);
-        _uploadContract("KYC_LIQUIDATOR::SECURITIZE", 3_10, type(SecuritizeLiquidator).creationCode);
+        _uploadContract("RWA_LIQUIDATOR::SECURITIZE", 3_10, type(SecuritizeLiquidator).creationCode);
         _uploadContract("GATEWAY::SECURITIZE_REDEMPTION", 3_10, type(SecuritizeRedemptionGateway).creationCode);
         _uploadContract("PHANTOM_TOKEN::SECURITIZE_RD", 3_10, type(SecuritizeRedemptionPhantomToken).creationCode);
         _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
@@ -109,9 +109,9 @@ contract SecuritizeAttachHelper is AttachBase {
     }
 
     function _attachSecuritize() internal {
-        factory = _deploy("KYC_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
-        degenNFT = ISecuritizeKYCFactory(factory).getDegenNFT();
-        liquidator = _deploy("KYC_LIQUIDATOR::SECURITIZE", 3_10, abi.encode(factory));
+        factory = _deploy("RWA_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
+        degenNFT = ISecuritizeRWAFactory(factory).getDegenNFT();
+        liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_10, abi.encode(factory));
 
         _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
         _allowPriceFeed(USDC, USDC_PRICE_FEED);
@@ -276,12 +276,12 @@ contract SecuritizeAttachHelper is AttachBase {
     // MARKETS //
     // ------- //
 
-    function _createMarketWithDefaultKYCUnderlying()
+    function _createMarketWithDefaultRWAUnderlying()
         internal
         returns (address underlying, address pool, address[] memory creditManagers, address zapper)
     {
         underlying = _deploy(
-            "KYC_UNDERLYING::DEFAULT", 3_10, abi.encode(addressProvider, factory, USDC, "Default compliant ", "dc")
+            "RWA_UNDERLYING::DEFAULT", 3_10, abi.encode(addressProvider, factory, USDC, "Default compliant ", "dc")
         );
         _allowPriceFeed(underlying, USDC_PRICE_FEED);
 
@@ -360,7 +360,7 @@ contract SecuritizeAttachHelper is AttachBase {
         }
     }
 
-    function _createMarketWithOnDemandKYCUnderlying(address depositor)
+    function _createMarketWithOnDemandRWAUnderlying(address depositor)
         internal
         returns (address underlying, address pool, address[] memory creditManagers, address liquidityProvider)
     {
@@ -368,7 +368,7 @@ contract SecuritizeAttachHelper is AttachBase {
             "ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor)
         );
         underlying = _deploy(
-            "KYC_UNDERLYING::ON_DEMAND",
+            "RWA_UNDERLYING::ON_DEMAND",
             3_10,
             abi.encode(
                 addressProvider, factory, liquidityProvider, marketConfigurator, USDC, "On-demand compliant ", "oc"
@@ -424,9 +424,9 @@ contract SecuritizeAttachHelper is AttachBase {
         _updateQuotaRates(pool);
 
         _startOmniPrank(riskCurator);
-        OnDemandKYCUnderlying(underlying).setPool(pool);
+        OnDemandRWAUnderlying(underlying).setPool(pool);
         MonopolizedOnDemandLP(liquidityProvider).addPool(pool);
-        OnDemandKYCUnderlying(underlying).setDepositorStatus(treasury, true);
+        OnDemandRWAUnderlying(underlying).setDepositorStatus(treasury, true);
         _stopOmniPrank();
 
         creditManagers = new address[](dsTokens.length);

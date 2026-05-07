@@ -2,10 +2,10 @@
 pragma solidity ^0.8.23;
 
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
-import {IKYCFactory} from "./base/IKYCFactory.sol";
+import {IRWAFactory} from "./base/IRWAFactory.sol";
 import {ISecuritizeDegenNFT} from "./ISecuritizeDegenNFT.sol";
 
-interface ISecuritizeKYCFactory is IKYCFactory {
+interface ISecuritizeRWAFactory is IRWAFactory {
     // ------ //
     // ERRORS //
     // ------ //
