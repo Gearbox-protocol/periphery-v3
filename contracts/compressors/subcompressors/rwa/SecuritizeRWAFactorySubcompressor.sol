@@ -32,7 +32,7 @@ contract SecuritizeRWAFactorySubcompressor is IRWAFactorySubcompressor {
         uint256 deadline;
     }
 
-    bytes32 public constant override contractType = "GLOBAL::SECURITIZE_KF_SC";
+    bytes32 public constant override contractType = "GLOBAL::SECURITIZE_RWA_F_SC";
     uint256 public constant override version = 3_10;
 
     function getCompressedType() external pure override returns (bytes32, bytes32) {

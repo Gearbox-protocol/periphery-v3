@@ -10,7 +10,7 @@ import {BaseLib, BaseParams} from "../../../libraries/BaseLib.sol";
 contract OnDemandRWAUnderlyingSubcompressor is IRWAUnderlyingSubcompressor {
     using BaseLib for address;
 
-    bytes32 public constant override contractType = "GLOBAL::ON_DEMAND_KU_SC";
+    bytes32 public constant override contractType = "GLOBAL::ON_DEMAND_RWA_U_SC";
     uint256 public constant override version = 3_10;
 
     function getCompressedType() external pure override returns (bytes32, bytes32) {
