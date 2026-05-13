@@ -18,6 +18,6 @@ contract AccountMigratorAdapterV31 is AccountMigratorAdapter {
     /// @notice Migrates collaterals to a new credit account, using the migrator bot as a target contract.
     function migrate(MigrationParams memory params) external whenUnlocked creditFacadeOnly returns (bool) {
         _migrate(params);
-        return false;
+        return true;
     }
 }
