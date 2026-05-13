@@ -4,6 +4,7 @@
 [submodule "lib/@gearbox-protocol/integrations-v3"]
 	path = lib/@gearbox-protocol/integrations-v3
 	url = https://github.com/Gearbox-protocol/integrations-v3
+	branch = securitize
 [submodule "lib/@gearbox-protocol/oracles-v3"]
 	path = lib/@gearbox-protocol/oracles-v3
 	url = https://github.com/Gearbox-protocol/oracles-v3
@@ -28,6 +29,7 @@
 [submodule "lib/@gearbox-protocol/permissionless"]
 	path = lib/@gearbox-protocol/permissionless
 	url = https://github.com/Gearbox-protocol/permissionless
+	branch = attach-test-base
 [submodule "lib/@gearbox-protocol/bots-v3"]
 	path = lib/@gearbox-protocol/bots-v3
 	url = https://github.com/Gearbox-protocol/bots-v3
