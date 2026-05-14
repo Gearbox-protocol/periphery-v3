@@ -9,7 +9,7 @@ import {MigrationParams} from "../types/AccountMigrationTypes.sol";
 
 contract AccountMigratorAdapterV31 is AccountMigratorAdapter {
     bytes32 public constant override contractType = "ADAPTER::ACCOUNT_MIGRATOR";
-    uint256 public constant override version = 3_10;
+    uint256 public constant override version = 3_11;
 
     constructor(address _creditManager, address _targetContract)
         AccountMigratorAdapter(_creditManager, _targetContract)

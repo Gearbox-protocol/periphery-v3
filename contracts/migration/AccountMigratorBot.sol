@@ -66,7 +66,7 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
     using CreditLogic for CollateralDebtData;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant override version = 3_10;
+    uint256 public constant override version = 3_11;
     bytes32 public constant override contractType = "BOT::ACCOUNT_MIGRATOR";
 
     uint192 public constant override requiredPermissions =
