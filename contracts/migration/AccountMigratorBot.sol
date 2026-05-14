@@ -51,8 +51,9 @@ import {IPriceFeedStore} from "@gearbox-protocol/core-v3/contracts/interfaces/ba
 import {IPriceOracleV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
 import {ACLTrait} from "@gearbox-protocol/core-v3/contracts/traits/ACLTrait.sol";
 import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
-import {IMarketConfiguratorFactory} from
-    "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
+import {
+    IMarketConfiguratorFactory
+} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfiguratorFactory.sol";
 import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/interfaces/IContractsRegister.sol";
 import {BitMask} from "@gearbox-protocol/core-v3/contracts/libraries/BitMask.sol";
 import {CreditLogic} from "@gearbox-protocol/core-v3/contracts/libraries/CreditLogic.sol";
@@ -65,7 +66,7 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
     using CreditLogic for CollateralDebtData;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant override version = 3_10;
+    uint256 public constant override version = 3_11;
     bytes32 public constant override contractType = "BOT::ACCOUNT_MIGRATOR";
 
     uint192 public constant override requiredPermissions =
@@ -230,7 +231,8 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
                 calls[k++] = MultiCall({
                     target: creditFacade,
                     callData: abi.encodeCall(
-                        ICreditFacadeV3Multicall.updateQuota, (params.migratedCollaterals[i].collateral, type(int96).min, 0)
+                        ICreditFacadeV3Multicall.updateQuota,
+                        (params.migratedCollaterals[i].collateral, type(int96).min, 0)
                     )
                 });
             }
@@ -360,8 +362,7 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
         address adapter = ICreditManagerV3(creditManager).contractToAdapter(target);
 
         return MultiCall({
-            target: adapter,
-            callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (token, amount))
+            target: adapter, callData: abi.encodeCall(IPhantomTokenAdapter.depositPhantomToken, (token, amount))
         });
     }
 
@@ -438,9 +439,17 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
         _validateCreditManager(sourceCreditManager);
         _validateCreditManager(params.targetCreditManager);
 
+        uint256 accountDebt = _getAccountTotalDebt(params.sourceCreditAccount);
+        if (accountDebt > 0 && params.targetBorrowAmount == 0) {
+            revert("MigratorBot: no borrowing to repay non-zero debt");
+        }
+
         for (uint256 i = 0; i < params.migratedCollaterals.length; i++) {
-            try ICreditManagerV3(sourceCreditManager).getTokenMaskOrRevert(params.migratedCollaterals[i].collateral)
-            returns (uint256) {} catch {
+            try ICreditManagerV3(sourceCreditManager)
+                .getTokenMaskOrRevert(params.migratedCollaterals[i].collateral) returns (
+                uint256
+            ) {}
+            catch {
                 revert("MigratorBot: migrated token is not a valid collateral");
             }
 
@@ -579,8 +588,9 @@ contract AccountMigratorBot is Ownable, ReentrancyGuardTrait, IAccountMigratorBo
         address underlying,
         bytes calldata withdrawalCallData
     ) external onlyOwner {
-        _phantomTokenOverrides[phantomToken] =
-            PhantomTokenOverride({newToken: newToken, underlying: underlying, withdrawalCallData: withdrawalCallData});
+        _phantomTokenOverrides[phantomToken] = PhantomTokenOverride({
+            newToken: newToken, underlying: underlying, withdrawalCallData: withdrawalCallData
+        });
 
         _overridenPhantomTokens.add(phantomToken);
     }
