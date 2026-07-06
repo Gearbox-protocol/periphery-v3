@@ -14,30 +14,35 @@ import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditF
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Test} from "forge-std/Test.sol";
 import {WithdrawalCompressor} from "../../compressors/WithdrawalCompressor.sol";
-import {MellowWithdrawalSubcompressor} from
-    "../../compressors/subcompressors/withdrawal/MellowWithdrawalSubcompressor.sol";
-import {InfinifiWithdrawalSubcompressor} from
-    "../../compressors/subcompressors/withdrawal/InfinifiWithdrawalSubcompressor.sol";
-import {MidasWithdrawalSubcompressor} from
-    "../../compressors/subcompressors/withdrawal/MidasWithdrawalSubcompressor.sol";
-import {UpshiftWithdrawalSubcompressor} from
-    "../../compressors/subcompressors/withdrawal/UpshiftWithdrawalSubcompressor.sol";
-import {MidasRedemptionVaultGateway} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultGateway.sol";
-import {MidasRedemptionVaultPhantomToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol";
-import {KelpLRTWithdrawalSubcompressor} from
-    "../../compressors/subcompressors/withdrawal/KelpLRTWithdrawalSubcompressor.sol";
-import {IKelpLRTWithdrawalManager} from
-    "@gearbox-protocol/integrations-v3/contracts/integrations/kelp/IKelpLRTWithdrawalManager.sol";
-import {IKelpLRTWithdrawalManagerGateway} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/kelp/IKelpLRTWithdrawalManagerGateway.sol";
-import {KelpLRTWithdrawalPhantomToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/kelp/KelpLRTWithdrawalPhantomToken.sol";
-import {SecuritizeRedemptionSubcompressor} from "../../compressors/subcompressors/withdrawal/SecuritizeRedemptionSubcompressor.sol";
-import {SecuritizeRedemptionGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
-import {SecuritizeRedemptionPhantomToken} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
-import {SecuritizeRedemptionGatewayAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+import {
+    MellowWithdrawalSubcompressor
+} from "../../compressors/subcompressors/withdrawal/MellowWithdrawalSubcompressor.sol";
+import {
+    InfinifiWithdrawalSubcompressor
+} from "../../compressors/subcompressors/withdrawal/InfinifiWithdrawalSubcompressor.sol";
+import {
+    MidasWithdrawalSubcompressor
+} from "../../compressors/subcompressors/withdrawal/MidasWithdrawalSubcompressor.sol";
+import {
+    UpshiftWithdrawalSubcompressor
+} from "../../compressors/subcompressors/withdrawal/UpshiftWithdrawalSubcompressor.sol";
+import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasGateway.sol";
+import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedeemer.sol";
+import {
+    MidasRedemptionVaultPhantomToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol";
+import {
+    SecuritizeRedemptionSubcompressor
+} from "../../compressors/subcompressors/withdrawal/SecuritizeRedemptionSubcompressor.sol";
+import {
+    SecuritizeRedemptionGateway
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+import {
+    SecuritizeRedemptionPhantomToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {
+    SecuritizeRedemptionGatewayAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
 
 import {
     WithdrawalLib,
@@ -79,40 +84,12 @@ interface IMellowQueueAdmin {
     function handleBatches(uint256 batches) external returns (uint256);
 }
 
-interface IKelpLRTWithdrawalManagerAdmin {
-    function unlockQueue(
-        address asset,
-        uint256 firstExcludedIndex,
-        uint256 minimumAssetPrice,
-        uint256 minimumRsEthPrice,
-        uint256 maximumAssetPrice,
-        uint256 maximumRsEthPrice
-    ) external;
-    function lrtConfig() external view returns (address);
-}
-
-interface IKelpLRTConfig {
-    function getContract(bytes32 cType) external view returns (address);
-}
-
-interface IKelpLRTOracle {
-    function rsETHPrice() external view returns (uint256);
-    function getAssetPrice(address asset) external view returns (uint256);
-}
-
-interface IKelpGatewayExt {
-    function weth() external view returns (address);
-}
-
 interface IStETH {
     function submit(address referral) external payable;
 }
 
 address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 address constant STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
-
-bytes32 constant KELP_LRT_ORACLE = keccak256("LRT_ORACLE");
-bytes32 constant KELP_LRT_UNSTAKING_VAULT = keccak256("LRT_UNSTAKING_VAULT");
 
 contract WithdrawalCompressorTest is Test {
     using Address for address;
@@ -122,7 +99,6 @@ contract WithdrawalCompressorTest is Test {
     InfinifiWithdrawalSubcompressor public iusc;
     MidasWithdrawalSubcompressor public midwsc;
     UpshiftWithdrawalSubcompressor public uwsc;
-    KelpLRTWithdrawalSubcompressor public klrtwsc;
 
     address user;
 
@@ -135,18 +111,15 @@ contract WithdrawalCompressorTest is Test {
         iusc = new InfinifiWithdrawalSubcompressor();
         midwsc = new MidasWithdrawalSubcompressor();
         uwsc = new UpshiftWithdrawalSubcompressor();
-        klrtwsc = new KelpLRTWithdrawalSubcompressor();
 
         wc.setSubcompressor(address(mwsc));
         wc.setSubcompressor(address(iusc));
         wc.setSubcompressor(address(midwsc));
         wc.setSubcompressor(address(uwsc));
-        wc.setSubcompressor(address(klrtwsc));
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MELLOW_WITHDRAWAL", "GLOBAL::MELLOW_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::INFINIFI_UNWIND", "GLOBAL::INFINIFI_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MIDAS_REDEMPTION", "GLOBAL::MIDAS_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::UPSHIFT_WITHDRAW", "GLOBAL::UPSHIFT_WD_SC");
-        wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::KELP_WITHDRAWAL", "GLOBAL::KELP_LRT_WD_SC");
     }
 
     function test_WC_01_testWithdrawals() public {
@@ -201,48 +174,18 @@ contract WithdrawalCompressorTest is Test {
             vm.warp(claimableAt + 1);
         } else if (cType == "PHANTOM_TOKEN::UPSHIFT_WITHDRAW") {
             vm.warp(claimableAt + 1);
-        } else if (cType == "PHANTOM_TOKEN::KELP_WITHDRAWAL") {
-            vm.warp(claimableAt + 1);
-            address gateway = KelpLRTWithdrawalPhantomToken(withdrawalPhantomToken).withdrawalManagerGateway();
-            address withdrawalManager = IKelpLRTWithdrawalManagerGateway(gateway).withdrawalManager();
-            address lrtConfig = IKelpLRTWithdrawalManagerAdmin(withdrawalManager).lrtConfig();
-            address lrtOracle = IKelpLRTConfig(lrtConfig).getContract(KELP_LRT_ORACLE);
-            address lrtUnstakingVault = IKelpLRTConfig(lrtConfig).getContract(KELP_LRT_UNSTAKING_VAULT);
-            address asset = KelpLRTWithdrawalPhantomToken(withdrawalPhantomToken).tokenOut();
-            address weth = IKelpGatewayExt(gateway).weth();
-            address withdrawer = IKelpLRTWithdrawalManagerGateway(gateway).accountToWithdrawer(creditAccount);
-
-            if (_assetOrETH(asset, weth) == ETH) {
-                vm.deal(lrtUnstakingVault, 100000000 ether);
-            } else if (asset == STETH) {
-                vm.deal(address(this), 10000 ether);
-                IStETH(STETH).submit{value: 10000 ether}(address(0));
-                IERC20(STETH).transfer(lrtUnstakingVault, IERC20(STETH).balanceOf(address(this)));
-            } else {
-                deal(asset, lrtUnstakingVault, 100000000 ether);
-            }
-
-            uint256 assetPrice = IKelpLRTOracle(lrtOracle).getAssetPrice(_assetOrETH(asset, weth));
-            uint256 rsETHPrice = IKelpLRTOracle(lrtOracle).rsETHPrice();
-
-            (,,, uint256 userNonce) = IKelpLRTWithdrawalManager(withdrawalManager).getUserWithdrawalRequest(
-                _assetOrETH(asset, weth), withdrawer, 0
-            );
-
-            vm.prank(0xF2099c4783921f44Ac988B67e743DAeFd4A00efd);
-            IKelpLRTWithdrawalManagerAdmin(withdrawalManager).unlockQueue(
-                _assetOrETH(asset, weth), userNonce + 1, assetPrice, rsETHPrice, assetPrice, rsETHPrice
-            );
         } else if (cType == "PHANTOM_TOKEN::MIDAS_REDEMPTION") {
             vm.warp(claimableAt + 1);
             address gateway = MidasRedemptionVaultPhantomToken(withdrawalPhantomToken).gateway();
-            address midasRedemptionVault = MidasRedemptionVaultGateway(gateway).midasRedemptionVault();
-            (,, uint256 requestId,,) = MidasRedemptionVaultGateway(gateway).pendingRedemptions(creditAccount);
+            address midasRedemptionVault = MidasGateway(gateway).midasRedemptionVault();
             address mTokenDataFeed = IMidasRedemptionVaultExt(midasRedemptionVault).mTokenDataFeed();
             uint256 mTokenRate = IMidasDataFeed(mTokenDataFeed).getDataInBase18();
-
-            vm.prank(0x2ACB4BdCbEf02f81BF713b696Ac26390d7f79A12);
-            IMidasRedemptionVaultExt(midasRedemptionVault).safeApproveRequest(requestId, mTokenRate);
+            address[] memory redeemers = MidasGateway(gateway).pendingRedeemers(creditAccount);
+            for (uint256 i = 0; i < redeemers.length; ++i) {
+                uint256 requestId = MidasRedeemer(redeemers[i]).requestId();
+                vm.prank(0x2ACB4BdCbEf02f81BF713b696Ac26390d7f79A12);
+                IMidasRedemptionVaultExt(midasRedemptionVault).safeApproveRequest(requestId, mTokenRate);
+            }
         }
     }
 

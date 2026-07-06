@@ -287,7 +287,7 @@ contract WithdrawalCompressorTest is Test {
 
             vm.prank(user);
             SecuritizeLiquidator(securitizeLiquidator)
-                .liquidatePendingRedemption(creditAccount, redemptionGateway, new PriceUpdate[](0));
+                .liquidatePendingRedemption(creditAccount, redemptionGateway, new PriceUpdate[](0), "");
 
             SecuritizeRedemptionGateway(redemptionGateway).getUnclaimedRedeemers(creditAccount);
             SecuritizeRedemptionGateway(redemptionGateway).getUnclaimedRedeemers(user);
