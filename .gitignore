@@ -20,5 +20,6 @@ docs/
 .DS_Store
 address-provider.json
 addresses.json
+rwa-addresses.json
 
 *.generated.ts
