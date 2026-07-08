@@ -26,4 +26,12 @@ interface IWithdrawalSubcompressor is IVersion {
         external
         view
         returns (RequestableWithdrawal memory);
+
+    function getWithdrawalRequestResult(
+        address creditAccount,
+        address token,
+        address withdrawalToken,
+        uint256 amount,
+        bytes memory extraData
+    ) external view returns (RequestableWithdrawal memory);
 }

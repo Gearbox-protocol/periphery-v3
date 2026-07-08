@@ -179,14 +179,16 @@ contract WithdrawalCompressorTest is Test {
 
             (ClaimableWithdrawal[] memory claimableWithdrawals,) = wc.getCurrentWithdrawals(creditAccount);
 
-            vm.prank(user);
-            ISecuritizeKYCFactory(kycFactory)
-                .multicall(
-                    creditAccount,
-                    claimableWithdrawals[0].claimCalls,
-                    new address[](0),
-                    new ISecuritizeDegenNFT.RegisterMessage[](0)
-                );
+            for (uint256 j = 0; j < claimableWithdrawals.length; ++j) {
+                vm.prank(user);
+                ISecuritizeKYCFactory(kycFactory)
+                    .multicall(
+                        creditAccount,
+                        claimableWithdrawals[j].claimCalls,
+                        new address[](0),
+                        new ISecuritizeDegenNFT.RegisterMessage[](0)
+                    );
+            }
 
             IERC20(withdrawableAssets[i].withdrawalPhantomToken).balanceOf(creditAccount);
             IERC20(withdrawableAssets[i].underlying).balanceOf(creditAccount);

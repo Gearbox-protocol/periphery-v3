@@ -33,6 +33,7 @@ struct ClaimableWithdrawal {
     uint256 withdrawalTokenSpent;
     WithdrawalOutput[] outputs;
     MultiCall[] claimCalls;
+    bytes extraData;
 }
 
 struct PendingWithdrawal {

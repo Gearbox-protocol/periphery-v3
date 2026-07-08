@@ -18,14 +18,8 @@ import {
     MellowWithdrawalSubcompressor
 } from "../../compressors/subcompressors/withdrawal/MellowWithdrawalSubcompressor.sol";
 import {
-    InfinifiWithdrawalSubcompressor
-} from "../../compressors/subcompressors/withdrawal/InfinifiWithdrawalSubcompressor.sol";
-import {
     MidasWithdrawalSubcompressor
 } from "../../compressors/subcompressors/withdrawal/MidasWithdrawalSubcompressor.sol";
-import {
-    UpshiftWithdrawalSubcompressor
-} from "../../compressors/subcompressors/withdrawal/UpshiftWithdrawalSubcompressor.sol";
 import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasGateway.sol";
 import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedeemer.sol";
 import {
@@ -96,9 +90,7 @@ contract WithdrawalCompressorTest is Test {
 
     WithdrawalCompressor public wc;
     MellowWithdrawalSubcompressor public mwsc;
-    InfinifiWithdrawalSubcompressor public iusc;
     MidasWithdrawalSubcompressor public midwsc;
-    UpshiftWithdrawalSubcompressor public uwsc;
 
     address user;
 
@@ -108,18 +100,12 @@ contract WithdrawalCompressorTest is Test {
 
         wc = new WithdrawalCompressor(address(this), addressProvider);
         mwsc = new MellowWithdrawalSubcompressor();
-        iusc = new InfinifiWithdrawalSubcompressor();
         midwsc = new MidasWithdrawalSubcompressor();
-        uwsc = new UpshiftWithdrawalSubcompressor();
 
         wc.setSubcompressor(address(mwsc));
-        wc.setSubcompressor(address(iusc));
         wc.setSubcompressor(address(midwsc));
-        wc.setSubcompressor(address(uwsc));
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MELLOW_WITHDRAWAL", "GLOBAL::MELLOW_WD_SC");
-        wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::INFINIFI_UNWIND", "GLOBAL::INFINIFI_WD_SC");
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MIDAS_REDEMPTION", "GLOBAL::MIDAS_WD_SC");
-        wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::UPSHIFT_WITHDRAW", "GLOBAL::UPSHIFT_WD_SC");
     }
 
     function test_WC_01_testWithdrawals() public {
@@ -157,8 +143,10 @@ contract WithdrawalCompressorTest is Test {
 
             (ClaimableWithdrawal[] memory claimableWithdrawals,) = wc.getCurrentWithdrawals(creditAccount);
 
-            vm.prank(user);
-            ICreditFacadeV3(creditFacade).multicall(creditAccount, claimableWithdrawals[0].claimCalls);
+            for (uint256 j = 0; j < claimableWithdrawals.length; ++j) {
+                vm.prank(user);
+                ICreditFacadeV3(creditFacade).multicall(creditAccount, claimableWithdrawals[j].claimCalls);
+            }
 
             IERC20(withdrawableAssets[i].withdrawalPhantomToken).balanceOf(creditAccount);
             IERC20(withdrawableAssets[i].underlying).balanceOf(creditAccount);
@@ -169,10 +157,6 @@ contract WithdrawalCompressorTest is Test {
         bytes32 cType = IVersion(withdrawalPhantomToken).contractType();
 
         if (cType == "PHANTOM_TOKEN::MELLOW_WITHDRAWAL") {
-            vm.warp(claimableAt + 1);
-        } else if (cType == "PHANTOM_TOKEN::INFINIFI_UNWIND") {
-            vm.warp(claimableAt + 1);
-        } else if (cType == "PHANTOM_TOKEN::UPSHIFT_WITHDRAW") {
             vm.warp(claimableAt + 1);
         } else if (cType == "PHANTOM_TOKEN::MIDAS_REDEMPTION") {
             vm.warp(claimableAt + 1);

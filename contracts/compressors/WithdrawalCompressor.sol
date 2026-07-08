@@ -30,7 +30,7 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
     using WithdrawalLib for ClaimableWithdrawal[];
     using WithdrawalLib for PendingWithdrawal[];
 
-    uint256 public constant version = 3_12;
+    uint256 public constant version = 3_13;
     bytes32 public constant contractType = AP_WITHDRAWAL_COMPRESSOR;
 
     mapping(bytes32 => bytes32) public withdrawableTypeToCompressorType;
@@ -97,7 +97,17 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
         view
         returns (RequestableWithdrawal memory withdrawal)
     {
-        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount);
+        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount, new bytes(0));
+    }
+
+    function getWithdrawalRequestResult(
+        address creditAccount,
+        address token,
+        address withdrawalToken,
+        uint256 amount,
+        bytes calldata extraData
+    ) external view returns (RequestableWithdrawal memory withdrawal) {
+        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount, extraData);
     }
 
     function getWithdrawalRequestResult(address creditAccount, address token, uint256 amount)
@@ -107,14 +117,16 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
     {
         address creditManager = ICreditAccountV3(creditAccount).creditManager();
         address withdrawalToken = _getWithdrawalTokenForToken(creditManager, token);
-        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount);
+        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount, new bytes(0));
     }
 
-    function _getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
-        internal
-        view
-        returns (RequestableWithdrawal memory withdrawal)
-    {
+    function _getWithdrawalRequestResult(
+        address creditAccount,
+        address token,
+        address withdrawalToken,
+        uint256 amount,
+        bytes memory extraData
+    ) internal view returns (RequestableWithdrawal memory withdrawal) {
         uint256 balance = IERC20(token).balanceOf(creditAccount);
 
         if (balance < amount) {
@@ -125,7 +137,7 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
 
         if (compressor != address(0)) {
             withdrawal = IWithdrawalSubcompressor(compressor).getWithdrawalRequestResult(
-                creditAccount, token, withdrawalToken, amount
+                creditAccount, token, withdrawalToken, amount, extraData
             );
         }
 

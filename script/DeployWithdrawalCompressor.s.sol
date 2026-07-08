@@ -7,8 +7,6 @@ import {VmSafe} from "forge-std/Vm.sol";
 import {WithdrawalCompressor} from "../contracts/compressors/WithdrawalCompressor.sol";
 import {MellowWithdrawalSubcompressor} from
     "../contracts/compressors/subcompressors/withdrawal/MellowWithdrawalSubcompressor.sol";
-import {InfinifiWithdrawalSubcompressor} from
-    "../contracts/compressors/subcompressors/withdrawal/InfinifiWithdrawalSubcompressor.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -19,7 +17,6 @@ contract DeployWithdrawalCompressor is Script {
 
     WithdrawalCompressor public wc;
     MellowWithdrawalSubcompressor public mwsc;
-    InfinifiWithdrawalSubcompressor public iusc;
 
     function run() external {
         deployer = vm.createWallet(vm.envUint("DEPLOYER_PRIVATE_KEY"));
@@ -27,12 +24,9 @@ contract DeployWithdrawalCompressor is Script {
         vm.startBroadcast(deployer.privateKey);
         wc = new WithdrawalCompressor(deployer.addr, addressProvider);
         mwsc = new MellowWithdrawalSubcompressor();
-        iusc = new InfinifiWithdrawalSubcompressor();
 
         wc.setSubcompressor(address(mwsc));
-        wc.setSubcompressor(address(iusc));
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MELLOW_WITHDRAWAL", "GLOBAL::MELLOW_WD_SC");
-        wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::INFINIFI_UNWIND", "GLOBAL::INFINIFI_WD_SC");
 
         vm.stopBroadcast();
 

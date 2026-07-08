@@ -147,8 +147,10 @@ contract WithdrawalCompressorTest is Test {
 
             (ClaimableWithdrawal[] memory claimableWithdrawals,) = wc.getCurrentWithdrawals(creditAccount);
 
-            vm.prank(user);
-            ICreditFacadeV3(creditFacade).multicall(creditAccount, claimableWithdrawals[0].claimCalls);
+            for (uint256 j = 0; j < claimableWithdrawals.length; ++j) {
+                vm.prank(user);
+                ICreditFacadeV3(creditFacade).multicall(creditAccount, claimableWithdrawals[j].claimCalls);
+            }
 
             IERC20(withdrawableAssets[i].withdrawalPhantomToken).balanceOf(creditAccount);
             IERC20(withdrawableAssets[i].underlying).balanceOf(creditAccount);

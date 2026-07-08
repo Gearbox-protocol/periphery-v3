@@ -119,7 +119,7 @@ interface IMellowWithdrawalStrategy {
 contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
     using WithdrawalLib for PendingWithdrawal[];
 
-    uint256 public constant version = 3_12;
+    uint256 public constant version = 3_13;
     bytes32 public constant contractType = "GLOBAL::MELLOW_WD_SC";
 
     function getWithdrawableAssets(address, address token) external view returns (WithdrawableAsset[] memory) {
@@ -160,6 +160,25 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         view
         returns (RequestableWithdrawal memory requestableWithdrawal)
     {
+        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount);
+    }
+
+    function getWithdrawalRequestResult(
+        address creditAccount,
+        address token,
+        address withdrawalToken,
+        uint256 amount,
+        bytes memory
+    ) external view returns (RequestableWithdrawal memory requestableWithdrawal) {
+        return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount);
+    }
+
+    function _getWithdrawalRequestResult(
+        address creditAccount,
+        address token,
+        address withdrawalToken,
+        uint256 amount
+    ) internal view returns (RequestableWithdrawal memory requestableWithdrawal) {
         requestableWithdrawal.token = token;
         requestableWithdrawal.amountIn = amount;
 
