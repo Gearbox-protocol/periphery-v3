@@ -47,6 +47,7 @@ contract SecuritizeAttachHelper is AttachBase {
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant USDC_DONOR = 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640;
     address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
+    address public constant REDEMPTION_LOGGER = 0x8a6C7a0020321e3175b7Cb6fd76481330Ad9496C;
 
     function _setUpBytecode() internal {
         _addPublicDomain("RWA_FACTORY");
@@ -178,7 +179,8 @@ contract SecuritizeAttachHelper is AttachBase {
                 degenNFT,
                 liquidator,
                 dsToken.navProvider,
-                registryService
+                registryService,
+                REDEMPTION_LOGGER
             )
         );
         dsToken.redemptionPhantomToken =
