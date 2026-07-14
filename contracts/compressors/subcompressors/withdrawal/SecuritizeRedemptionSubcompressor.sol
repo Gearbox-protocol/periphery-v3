@@ -154,16 +154,18 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
 
         for (uint256 i = 0; i < redeemers.length; i++) {
             if (!_isRedeemerClaimable(redeemers[i], stableCoinToken)) {
+                address redeemer = redeemers[i];
                 pendingWithdrawals[redeemerCount].token = dsToken;
                 pendingWithdrawals[redeemerCount].expectedOutputs = new WithdrawalOutput[](1);
 
-                uint256 redemptionValue = SecuritizeRedeemer(redeemers[i]).getCurrentRedemptionValue();
+                uint256 redemptionValue = SecuritizeRedeemer(redeemer).getCurrentRedemptionValue();
                 pendingWithdrawals[redeemerCount].expectedOutputs[0] =
                     WithdrawalOutput(stableCoinToken, false, redemptionValue);
 
-                uint256 startingTimestamp = SecuritizeRedeemer(redeemers[i]).startingTimestamp();
+                uint256 startingTimestamp = SecuritizeRedeemer(redeemer).startingTimestamp();
                 pendingWithdrawals[redeemerCount].claimableAt =
                     block.timestamp > startingTimestamp + 90 days ? block.timestamp : startingTimestamp + 90 days;
+                pendingWithdrawals[redeemerCount].extraData = _getRedemptionExtraData(redemptionGateway, redeemer);
                 redeemerCount++;
             }
         }

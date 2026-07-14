@@ -188,6 +188,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
                     WithdrawalOutput(requestTokenOut, false, pendingTokenOutAmount);
                 pendingWithdrawals[nPending].claimableAt =
                     MidasRedeemer(redeemer).redemptionStartTimestamp() + expectedRedemptionDuration;
+                pendingWithdrawals[nPending].extraData = _getRedemptionExtraData(gateway, redeemer);
                 nPending++;
             }
         }
