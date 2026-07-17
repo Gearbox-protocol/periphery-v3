@@ -26,6 +26,7 @@ import {
 import {
     SecuritizeRedemptionPhantomToken
 } from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {RedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/helpers/RedemptionLogger.sol";
 import {
     ISecuritizeNAVProvider
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
@@ -175,6 +176,12 @@ contract SecuritizeAttachHelper is AttachBase {
         (dsToken.onRamp, dsToken.redemptionWallet, dsToken.navProvider, dsToken.priceFeed) =
             _getDSTokenInfo(dsToken.token);
 
+        address redemptionLogger = vm.envOr("REDEMPTION_LOGGER", address(0));
+
+        if (redemptionLogger == address(0)) {
+            redemptionLogger = address(new RedemptionLogger(address(this)));
+        }
+
         dsToken.redemptionGateway = _deploy(
             "GATEWAY::SECURITIZE_REDEMPTION",
             3_10,
@@ -185,11 +192,16 @@ contract SecuritizeAttachHelper is AttachBase {
                 degenNFT,
                 liquidator,
                 dsToken.navProvider,
-                registryService
+                registryService,
+                redemptionLogger
             )
         );
-        dsToken.redemptionPhantomToken =
-            _deploy("PHANTOM_TOKEN::SECURITIZE_RD", 3_10, abi.encode(dsToken.redemptionGateway));
+
+        _startOmniPrank(RedemptionLogger(redemptionLogger).owner());
+        RedemptionLogger(redemptionLogger).setGatewayAllowed(dsToken.redemptionGateway, true);
+        _stopOmniPrank();
+
+        dsToken.redemptionPhantomToken = SecuritizeRedemptionGateway(dsToken.redemptionGateway).phantomToken();
 
         _addPriceFeed(dsToken.priceFeed, 1 days, "Redstone DSToken / USD price feed");
         _allowPriceFeed(dsToken.token, dsToken.priceFeed);

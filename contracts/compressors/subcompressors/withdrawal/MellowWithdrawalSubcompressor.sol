@@ -13,12 +13,14 @@ import {
     RequestableWithdrawal,
     ClaimableWithdrawal,
     PendingWithdrawal,
-    WithdrawalLib
+    WithdrawalLib,
+    WithdrawalStatus
 } from "../../../types/WithdrawalInfo.sol";
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 
-import {MellowWithdrawalPhantomToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/mellow/MellowWithdrawalPhantomToken.sol";
+import {
+    MellowWithdrawalPhantomToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/mellow/MellowWithdrawalPhantomToken.sol";
 import {
     IMellowMultiVault,
     IMellowWithdrawalQueue,
@@ -26,10 +28,12 @@ import {
     Subvault,
     MellowProtocol
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/IMellowMultiVault.sol";
-import {IMellowClaimerAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/mellow/IMellowClaimerAdapter.sol";
-import {IMellow4626VaultAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/mellow/IMellow4626VaultAdapter.sol";
+import {
+    IMellowClaimerAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/interfaces/mellow/IMellowClaimerAdapter.sol";
+import {
+    IMellow4626VaultAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/interfaces/mellow/IMellow4626VaultAdapter.sol";
 import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/erc4626/IERC4626Adapter.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
@@ -127,7 +131,8 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address asset = IERC4626(multiVault).asset();
 
         WithdrawableAsset[] memory withdrawableAssets = new WithdrawableAsset[](1);
-        withdrawableAssets[0] = WithdrawableAsset(multiVault, token, asset, _getWithdrawalLength(multiVault), type(uint256).max);
+        withdrawableAssets[0] =
+            WithdrawableAsset(multiVault, token, asset, _getWithdrawalLength(multiVault), type(uint256).max);
 
         return withdrawableAssets;
     }
@@ -155,6 +160,14 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return (claimableWithdrawals, pendingWithdrawals);
     }
 
+    function getExternalAccountCurrentWithdrawals(address, address)
+        external
+        pure
+        returns (ClaimableWithdrawal[] memory claimableWithdrawals, PendingWithdrawal[] memory pendingWithdrawals)
+    {
+        return (claimableWithdrawals, pendingWithdrawals);
+    }
+
     function getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
         external
         view
@@ -173,12 +186,11 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return _getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount);
     }
 
-    function _getWithdrawalRequestResult(
-        address creditAccount,
-        address token,
-        address withdrawalToken,
-        uint256 amount
-    ) internal view returns (RequestableWithdrawal memory requestableWithdrawal) {
+    function _getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
+        internal
+        view
+        returns (RequestableWithdrawal memory requestableWithdrawal)
+    {
         requestableWithdrawal.token = token;
         requestableWithdrawal.amountIn = amount;
 
@@ -217,8 +229,7 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address vaultAdapter = ICreditManagerV3(creditManager).contractToAdapter(token);
 
         requestableWithdrawal.requestCalls[0] = MultiCall({
-            target: vaultAdapter,
-            callData: abi.encodeCall(IERC4626Adapter.redeem, (amount, address(0), address(0)))
+            target: vaultAdapter, callData: abi.encodeCall(IERC4626Adapter.redeem, (amount, address(0), address(0)))
         });
 
         address claimer = MellowWithdrawalPhantomToken(withdrawalToken).claimer();
@@ -236,6 +247,10 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
         requestableWithdrawal.claimableAt = block.timestamp + _getWithdrawalLength(token);
 
         return requestableWithdrawal;
+    }
+
+    function getWithdrawalStatus(address) external pure returns (WithdrawalStatus) {
+        return WithdrawalStatus.NULL;
     }
 
     function _getPendingWithdrawals(address creditAccount, address multiVault)
@@ -334,13 +349,15 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
                     pendingWithdrawals[i].token = multiVault;
                     pendingWithdrawals[i].expectedOutputs = new WithdrawalOutput[](1);
 
-                    uint256 unscaledShares = IEigenLayerWithdrawalQueueExt(withdrawalQueue).convertScaledSharesToShares(
-                        withdrawal, accountShares, shares
-                    );
+                    uint256 unscaledShares = IEigenLayerWithdrawalQueueExt(withdrawalQueue)
+                        .convertScaledSharesToShares(withdrawal, accountShares, shares);
 
                     uint256 expectedAmount = IEigenLayerIsolatedVault(
-                        IEigenLayerWithdrawalQueueExt(withdrawalQueue).isolatedVault()
-                    ).sharesToUnderlyingView(IEigenLayerWithdrawalQueueExt(withdrawalQueue).strategy(), unscaledShares);
+                            IEigenLayerWithdrawalQueueExt(withdrawalQueue).isolatedVault()
+                        )
+                        .sharesToUnderlyingView(
+                            IEigenLayerWithdrawalQueueExt(withdrawalQueue).strategy(), unscaledShares
+                        );
 
                     pendingWithdrawals[i].expectedOutputs[0] = WithdrawalOutput(asset, false, expectedAmount);
                     pendingWithdrawals[i].claimableAt =
@@ -427,8 +444,8 @@ contract MellowWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
             if (subvault.protocol == MellowProtocol.EIGEN_LAYER) {
                 uint256 eigenLayerWithdrawalLength = IEigenLayerDelegation(
-                    IEigenLayerWithdrawalQueueExt(subvault.withdrawalQueue).delegation()
-                ).minWithdrawalDelayBlocks() * 12;
+                        IEigenLayerWithdrawalQueueExt(subvault.withdrawalQueue).delegation()
+                    ).minWithdrawalDelayBlocks() * 12;
                 if (eigenLayerWithdrawalLength > withdrawalLength) {
                     withdrawalLength = eigenLayerWithdrawalLength;
                 }

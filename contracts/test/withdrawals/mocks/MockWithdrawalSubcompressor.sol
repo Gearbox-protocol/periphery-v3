@@ -8,7 +8,8 @@ import {
     WithdrawableAsset,
     RequestableWithdrawal,
     ClaimableWithdrawal,
-    PendingWithdrawal
+    PendingWithdrawal,
+    WithdrawalStatus
 } from "../../../types/WithdrawalInfo.sol";
 
 contract MockWithdrawalSubcompressor is IWithdrawalSubcompressor {
@@ -32,6 +33,14 @@ contract MockWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return (claimable, pending);
     }
 
+    function getExternalAccountCurrentWithdrawals(address, address)
+        external
+        pure
+        returns (ClaimableWithdrawal[] memory claimable, PendingWithdrawal[] memory pending)
+    {
+        return (claimable, pending);
+    }
+
     function getWithdrawalRequestResult(address, address, address, uint256)
         external
         pure
@@ -46,5 +55,9 @@ contract MockWithdrawalSubcompressor is IWithdrawalSubcompressor {
         returns (RequestableWithdrawal memory withdrawal)
     {
         return withdrawal;
+    }
+
+    function getWithdrawalStatus(address) external pure returns (WithdrawalStatus) {
+        return WithdrawalStatus.NULL;
     }
 }

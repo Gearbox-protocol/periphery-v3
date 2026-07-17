@@ -21,13 +21,8 @@ import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/helpers
 import {
     IMidasRedemptionVault
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/IMidasRedemptionVault.sol";
-import {
-    IMidasGatewayAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/interfaces/midas/IMidasGatewayAdapter.sol";
 import {IMidasGateway} from "@gearbox-protocol/integrations-v3/contracts/interfaces/midas/IMidasGateway.sol";
 import {IRedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/interfaces/IRedemptionLogger.sol";
-
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import {
     WithdrawalLib,
@@ -35,7 +30,8 @@ import {
     WithdrawableAsset,
     RequestableWithdrawal,
     ClaimableWithdrawal,
-    PendingWithdrawal
+    PendingWithdrawal,
+    WithdrawalStatus
 } from "../../../types/WithdrawalInfo.sol";
 
 import {WAD} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
@@ -60,13 +56,14 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     function getWithdrawableAssets(address, address token) external view returns (WithdrawableAsset[] memory) {
         address gateway = MidasRedemptionVaultPhantomToken(token).gateway();
 
-        address asset = MidasRedemptionVaultPhantomToken(token).tokenOut();
+        address asset = MidasRedemptionVaultPhantomToken(token).underlying();
 
         address mToken = MidasGateway(gateway).mToken();
+        uint256 expectedRedemptionDuration = MidasGateway(gateway).expectedRedemptionDuration();
 
         WithdrawableAsset[] memory withdrawableAssets = new WithdrawableAsset[](1);
 
-        withdrawableAssets[0] = WithdrawableAsset(mToken, token, asset, 2 days, 10);
+        withdrawableAssets[0] = WithdrawableAsset(mToken, token, asset, expectedRedemptionDuration, 10);
 
         return withdrawableAssets;
     }
@@ -78,9 +75,26 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     {
         address gateway = MidasRedemptionVaultPhantomToken(token).gateway();
 
-        ClaimableWithdrawal[] memory claimableWithdrawals = _getClaimableWithdrawals(creditAccount, gateway, token);
+        ClaimableWithdrawal[] memory claimableWithdrawals = _getClaimableWithdrawals(creditAccount, gateway, token, true);
 
         PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(creditAccount, gateway);
+
+        for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
+            pendingWithdrawals[i].withdrawalPhantomToken = token;
+        }
+
+        return (claimableWithdrawals, pendingWithdrawals);
+    }
+
+    function getExternalAccountCurrentWithdrawals(address account, address token)
+        external
+        view
+        returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory)
+    {
+        address gateway = MidasRedemptionVaultPhantomToken(token).gateway();
+
+        ClaimableWithdrawal[] memory claimableWithdrawals = _getClaimableWithdrawals(account, gateway, token, false);
+        PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(account, gateway);
 
         for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
             pendingWithdrawals[i].withdrawalPhantomToken = token;
@@ -119,17 +133,18 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address gatewayAdapter =
             ICreditManagerV3(ICreditAccountV3(creditAccount).creditManager()).contractToAdapter(gateway);
 
-        address asset = MidasRedemptionVaultPhantomToken(withdrawalToken).tokenOut();
+        address quoteToken = MidasGateway(gateway).quoteToken();
 
         uint256 outputAmount;
 
         {
             uint256 mTokenRate = _getMTokenRate(gateway);
-            uint256 tokenOutRate = _getTokenOutRate(gateway, asset);
+            uint256 tokenOutRate = _getTokenOutRate(gateway, quoteToken);
             if (mTokenRate == 0 || tokenOutRate == 0) return requestableWithdrawal;
 
-            outputAmount =
-                _convertToDecimals(mTokenRate * _getAmountAfterFee(gateway, asset, amount) / tokenOutRate, asset);
+            outputAmount = _convertToDecimals(
+                mTokenRate * _getAmountAfterFee(gateway, quoteToken, amount) / tokenOutRate, quoteToken
+            );
         }
 
         requestableWithdrawal.token = token;
@@ -140,12 +155,10 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         requestableWithdrawal.requestCalls = new MultiCall[](1);
         requestableWithdrawal.requestCalls[0] = MultiCall(
             address(gatewayAdapter),
-            abi.encodeWithSelector(
-                bytes4(keccak256("redeemRequest(address,uint256,bytes)")), asset, amount, extraData
-            )
+            abi.encodeWithSelector(bytes4(keccak256("redeemRequest(uint256,bytes)")), amount, extraData)
         );
 
-        requestableWithdrawal.claimableAt = block.timestamp + 2 days;
+        requestableWithdrawal.claimableAt = block.timestamp + MidasGateway(gateway).expectedRedemptionDuration();
 
         return requestableWithdrawal;
     }
@@ -156,18 +169,14 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         returns (PendingWithdrawal[] memory pendingWithdrawals)
     {
         address mToken = MidasGateway(gateway).mToken();
-        address midasRedemptionVault = MidasGateway(gateway).midasRedemptionVault();
+        address quoteToken = MidasGateway(gateway).quoteToken();
         uint256 expectedRedemptionDuration = MidasGateway(gateway).expectedRedemptionDuration();
 
         address[] memory redeemers = MidasGateway(gateway).pendingRedeemers(creditAccount);
         uint256 nPending = 0;
 
         for (uint256 i = 0; i < redeemers.length; ++i) {
-            uint256 requestId = MidasRedeemer(redeemers[i]).requestId();
-
-            (, address requestTokenOut,,,,) = IMidasRedemptionVault(midasRedemptionVault).redeemRequests(requestId);
-
-            if (MidasRedeemer(redeemers[i]).pendingTokenOutAmount(requestTokenOut) > 0) nPending++;
+            if (MidasRedeemer(redeemers[i]).pendingTokenOutAmount() > 0) nPending++;
         }
 
         pendingWithdrawals = new PendingWithdrawal[](nPending);
@@ -177,15 +186,12 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         for (uint256 i = 0; i < redeemers.length; ++i) {
             address redeemer = redeemers[i];
 
-            uint256 requestId = MidasRedeemer(redeemer).requestId();
-            (, address requestTokenOut,,,,) = IMidasRedemptionVault(midasRedemptionVault).redeemRequests(requestId);
-
-            uint256 pendingTokenOutAmount = MidasRedeemer(redeemer).pendingTokenOutAmount(requestTokenOut);
+            uint256 pendingTokenOutAmount = MidasRedeemer(redeemer).pendingTokenOutAmount();
             if (pendingTokenOutAmount > 0) {
                 pendingWithdrawals[nPending].token = mToken;
                 pendingWithdrawals[nPending].expectedOutputs = new WithdrawalOutput[](1);
                 pendingWithdrawals[nPending].expectedOutputs[0] =
-                    WithdrawalOutput(requestTokenOut, false, pendingTokenOutAmount);
+                    WithdrawalOutput(quoteToken, false, pendingTokenOutAmount);
                 pendingWithdrawals[nPending].claimableAt =
                     MidasRedeemer(redeemer).redemptionStartTimestamp() + expectedRedemptionDuration;
                 pendingWithdrawals[nPending].extraData = _getRedemptionExtraData(gateway, redeemer);
@@ -196,21 +202,24 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return pendingWithdrawals;
     }
 
-    function _getClaimableWithdrawals(address creditAccount, address gateway, address withdrawalToken)
-        internal
-        view
-        returns (ClaimableWithdrawal[] memory withdrawals)
-    {
+    function _getClaimableWithdrawals(
+        address account,
+        address gateway,
+        address withdrawalToken,
+        bool isCreditAccount
+    ) internal view returns (ClaimableWithdrawal[] memory withdrawals) {
         address mToken = MidasGateway(gateway).mToken();
-        address tokenOut = MidasRedemptionVaultPhantomToken(withdrawalToken).tokenOut();
-        address gatewayAdapter =
-            ICreditManagerV3(ICreditAccountV3(creditAccount).creditManager()).contractToAdapter(gateway);
+        address quoteToken = MidasGateway(gateway).quoteToken();
 
-        address[] memory redeemers = MidasGateway(gateway).pendingRedeemers(creditAccount);
+        address claimTarget = isCreditAccount
+            ? ICreditManagerV3(ICreditAccountV3(account).creditManager()).contractToAdapter(gateway)
+            : gateway;
+
+        address[] memory redeemers = MidasGateway(gateway).pendingRedeemers(account);
         uint256 claimableCount = 0;
 
         for (uint256 i = 0; i < redeemers.length; ++i) {
-            if (MidasRedeemer(redeemers[i]).claimableTokenOutAmount(tokenOut) > 0) {
+            if (MidasRedeemer(redeemers[i]).claimableTokenOutAmount() > 0) {
                 claimableCount++;
             }
         }
@@ -220,22 +229,33 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
         for (uint256 i = 0; i < redeemers.length; ++i) {
             address redeemer = redeemers[i];
-            uint256 claimableAmount = MidasRedeemer(redeemer).claimableTokenOutAmount(tokenOut);
+            uint256 claimableAmount = MidasRedeemer(redeemer).claimableTokenOutAmount();
             if (claimableAmount == 0) continue;
 
             withdrawals[idx].token = mToken;
             withdrawals[idx].withdrawalPhantomToken = withdrawalToken;
             withdrawals[idx].withdrawalTokenSpent = claimableAmount;
             withdrawals[idx].outputs = new WithdrawalOutput[](1);
-            withdrawals[idx].outputs[0] = WithdrawalOutput(tokenOut, false, claimableAmount);
+            withdrawals[idx].outputs[0] = WithdrawalOutput(quoteToken, false, claimableAmount);
             withdrawals[idx].claimCalls = new MultiCall[](1);
             withdrawals[idx].claimCalls[0] = MultiCall(
-                address(gatewayAdapter),
-                abi.encodeCall(IMidasGatewayAdapter.withdrawFromRedeemer, (redeemer, tokenOut, claimableAmount))
+                claimTarget, abi.encodeCall(IMidasGateway.withdrawFromRedeemer, (redeemer, claimableAmount))
             );
             withdrawals[idx].extraData = _getRedemptionExtraData(gateway, redeemer);
             idx++;
         }
+    }
+
+    function getWithdrawalStatus(address redeemer) external view returns (WithdrawalStatus) {
+        if (MidasRedeemer(redeemer).pendingTokenOutAmount() > 0) return WithdrawalStatus.PENDING;
+        if (MidasRedeemer(redeemer).claimableTokenOutAmount() > 0) return WithdrawalStatus.CLAIMABLE;
+
+        return WithdrawalStatus.CLAIMED;
+    }
+
+    function _isMidasRedeemer(address redeemer) internal view returns (bool) {
+        (bool success, bytes memory data) = redeemer.staticcall(abi.encodeWithSignature("gateway()"));
+        return success && data.length == 32 && abi.decode(data, (address)) != address(0);
     }
 
     function _getRedemptionExtraData(address gateway, address redeemer) internal view returns (bytes memory extraData) {
@@ -254,9 +274,10 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         }
     }
 
-    function _getTokenOutRate(address gateway, address asset) internal view returns (uint256) {
+    function _getTokenOutRate(address gateway, address quoteToken) internal view returns (uint256) {
         address midasRedemptionVault = MidasGateway(gateway).midasRedemptionVault();
-        (address dataFeed,,, bool stable) = IMidasRedemptionVaultTokensConfig(midasRedemptionVault).tokensConfig(asset);
+        (address dataFeed,,, bool stable) =
+            IMidasRedemptionVaultTokensConfig(midasRedemptionVault).tokensConfig(quoteToken);
         if (stable) {
             return WAD;
         } else {
@@ -273,9 +294,9 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return amount * tokenUnit / WAD;
     }
 
-    function _getAmountAfterFee(address gateway, address asset, uint256 amount) internal view returns (uint256) {
+    function _getAmountAfterFee(address gateway, address quoteToken, uint256 amount) internal view returns (uint256) {
         address midasRedemptionVault = MidasGateway(gateway).midasRedemptionVault();
-        (, uint256 fee,,) = IMidasRedemptionVaultTokensConfig(midasRedemptionVault).tokensConfig(asset);
+        (, uint256 fee,,) = IMidasRedemptionVaultTokensConfig(midasRedemptionVault).tokensConfig(quoteToken);
         return amount * (1e5 - fee) / 1e5;
     }
 }

@@ -255,7 +255,7 @@ contract WithdrawalCompressorTest is Test {
             _fulfillWithdrawal(user, withdrawableAssets[i].withdrawalPhantomToken, requestableWithdrawal.claimableAt);
 
             vm.prank(user);
-            MidasGateway(gateway).withdraw(withdrawableAssets[i].underlying, requestableWithdrawal.outputs[0].amount);
+            MidasGateway(gateway).withdraw(requestableWithdrawal.outputs[0].amount);
 
             MidasGateway(gateway).pendingRedeemers(user);
         }
@@ -270,7 +270,7 @@ contract WithdrawalCompressorTest is Test {
             address midasRedemptionVault = MidasGateway(gateway).midasRedemptionVault();
             address mTokenDataFeed = IMidasRedemptionVaultExt(midasRedemptionVault).mTokenDataFeed();
             uint256 mTokenRate = IMidasDataFeed(mTokenDataFeed).getDataInBase18();
-            address tokenOut = MidasRedemptionVaultPhantomToken(withdrawalPhantomToken).tokenOut();
+            address tokenOut = MidasRedemptionVaultPhantomToken(withdrawalPhantomToken).underlying();
             address[] memory redeemers = MidasGateway(gateway).pendingRedeemers(forAccount);
             for (uint256 i = 0; i < redeemers.length; ++i) {
                 address requestRedeemer = IMidasRedemptionVaultExt(midasRedemptionVault).requestRedeemer();

@@ -44,6 +44,13 @@ struct PendingWithdrawal {
     bytes extraData;
 }
 
+enum WithdrawalStatus {
+    NULL,
+    PENDING,
+    CLAIMABLE,
+    CLAIMED
+}
+
 library WithdrawalLib {
     function push(WithdrawableAsset[] memory w, WithdrawableAsset memory asset)
         internal

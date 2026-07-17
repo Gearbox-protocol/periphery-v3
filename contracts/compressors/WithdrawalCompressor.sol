@@ -19,7 +19,8 @@ import {
     WithdrawableAsset,
     RequestableWithdrawal,
     ClaimableWithdrawal,
-    PendingWithdrawal
+    PendingWithdrawal,
+    WithdrawalStatus
 } from "../types/WithdrawalInfo.sol";
 import {WithdrawalLib} from "../types/WithdrawalInfo.sol";
 
@@ -38,11 +39,13 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
     using WithdrawalLib for ClaimableWithdrawal[];
     using WithdrawalLib for PendingWithdrawal[];
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.Bytes32Set;
 
     uint256 public constant version = 3_13;
     bytes32 public constant contractType = AP_WITHDRAWAL_COMPRESSOR;
 
     mapping(bytes32 cType => VersionInfo) internal compressorVersionInfo;
+    EnumerableSet.Bytes32Set internal compressorTypesSet;
 
     mapping(bytes32 => bytes32) public withdrawableTypeToCompressorType;
 
@@ -103,6 +106,19 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
         }
 
         return (claimableWithdrawals.filterEmpty(), pendingWithdrawals.filterEmpty());
+    }
+
+    function getExternalAccountCurrentWithdrawals(address withdrawalToken, address account)
+        external
+        view
+        returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory)
+    {
+        address compressor = _getCompressorForToken(withdrawalToken);
+        if (compressor == address(0)) {
+            return (new ClaimableWithdrawal[](0), new PendingWithdrawal[](0));
+        }
+
+        return IWithdrawalSubcompressor(compressor).getExternalAccountCurrentWithdrawals(account, withdrawalToken);
     }
 
     function getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
@@ -170,6 +186,32 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
         uint256 minorVersion = _getMinorVersion(ver);
         if (ver > info.latestByMinor[minorVersion]) info.latestByMinor[minorVersion] = ver;
         info.versionsSet.add(ver);
+        compressorTypesSet.add(cType);
+    }
+
+    function getWithdrawalStatus(address[] memory redeemers) external view returns (WithdrawalStatus[] memory) {
+        WithdrawalStatus[] memory statuses = new WithdrawalStatus[](redeemers.length);
+        for (uint256 i = 0; i < redeemers.length; i++) {
+            statuses[i] = getWithdrawalStatus(redeemers[i]);
+        }
+        return statuses;
+    }
+
+    function getWithdrawalStatus(address redeemer) public view returns (WithdrawalStatus) {
+        (bool success, bytes memory result) =
+            OptionalCall.staticCallOptionalSafe(redeemer, abi.encodeWithSignature("gateway()"), 100_000);
+        if (!success || result.length != 32) return WithdrawalStatus.NULL;
+        address gateway = abi.decode(result, (address));
+
+        (success, result) =
+            OptionalCall.staticCallOptionalSafe(gateway, abi.encodeWithSignature("phantomToken()"), 100_000);
+        if (!success || result.length != 32) return WithdrawalStatus.NULL;
+        address phantomToken = abi.decode(result, (address));
+
+        address compressor = _getCompressorForToken(phantomToken);
+        if (compressor == address(0)) return WithdrawalStatus.NULL;
+
+        return IWithdrawalSubcompressor(compressor).getWithdrawalStatus(redeemer);
     }
 
     function setWithdrawableTypeToCompressorType(bytes32 withdrawableType, bytes32 compressorType) external onlyOwner {

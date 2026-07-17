@@ -8,7 +8,8 @@ import {
     WithdrawableAsset,
     RequestableWithdrawal,
     ClaimableWithdrawal,
-    PendingWithdrawal
+    PendingWithdrawal,
+    WithdrawalStatus
 } from "../types/WithdrawalInfo.sol";
 
 interface IWithdrawalSubcompressor is IVersion {
@@ -18,6 +19,11 @@ interface IWithdrawalSubcompressor is IVersion {
         returns (WithdrawableAsset[] memory);
 
     function getCurrentWithdrawals(address creditAccount, address token)
+        external
+        view
+        returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory);
+
+    function getExternalAccountCurrentWithdrawals(address account, address token)
         external
         view
         returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory);
@@ -34,4 +40,6 @@ interface IWithdrawalSubcompressor is IVersion {
         uint256 amount,
         bytes memory extraData
     ) external view returns (RequestableWithdrawal memory);
+
+    function getWithdrawalStatus(address redeemer) external view returns (WithdrawalStatus);
 }
