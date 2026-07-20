@@ -12,28 +12,21 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IPriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
 import {IAddressProvider} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAddressProvider.sol";
 
-import {
-    SecuritizeOnRampAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeOnRampAdapter.sol";
-import {
-    SecuritizeRedemptionGatewayAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
-import {
-    SecuritizeLiquidator
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
-import {
-    SecuritizeRedemptionGateway
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
-import {
-    SecuritizeRedemptionPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {SecuritizeOnRampAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeOnRampAdapter.sol";
+import {SecuritizeRedemptionGatewayAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+import {SecuritizeLiquidator} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
+import {SecuritizeRedemptionGateway} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+import {SecuritizeRedemptionPhantomToken} from
+    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
 import {RedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/helpers/RedemptionLogger.sol";
-import {
-    ISecuritizeNAVProvider
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
-import {
-    ISecuritizeOnRamp
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeOnRamp.sol";
+import {ISecuritizeNAVProvider} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
+import {ISecuritizeOnRamp} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeOnRamp.sol";
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
@@ -73,7 +66,6 @@ contract SecuritizeAttachHelper is AttachBase {
         _uploadContract("ADAPTER::SECURITIZE_REDEMPTION", 3_11, type(SecuritizeRedemptionGatewayAdapter).creationCode);
         _uploadContract("RWA_LIQUIDATOR::SECURITIZE", 3_10, type(SecuritizeLiquidator).creationCode);
         _uploadContract("GATEWAY::SECURITIZE_REDEMPTION", 3_11, type(SecuritizeRedemptionGateway).creationCode);
-        _uploadContract("PHANTOM_TOKEN::SECURITIZE_RD", 3_10, type(SecuritizeRedemptionPhantomToken).creationCode);
         _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
     }
 
