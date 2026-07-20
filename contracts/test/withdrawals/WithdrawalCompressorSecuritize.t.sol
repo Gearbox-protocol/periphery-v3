@@ -293,7 +293,7 @@ contract WithdrawalCompressorTest is Test {
                 (bool success,) = target.call(callData);
             }
 
-            SecuritizeRedemptionGateway(redemptionGateway).pendingRedeemers(user);
+            SecuritizeRedemptionGateway(redemptionGateway).getUnclaimedRedeemers(user);
         }
     }
 
