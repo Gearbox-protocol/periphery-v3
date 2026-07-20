@@ -56,6 +56,7 @@ contract SecuritizeAttachHelper is AttachBase {
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant USDC_DONOR = 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640;
     address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
+    address public constant REDEMPTION_LOGGER = 0x8a6C7a0020321e3175b7Cb6fd76481330Ad9496C;
 
     function _setUpBytecode() internal {
         _addPublicDomain("RWA_FACTORY");
@@ -241,14 +242,13 @@ contract SecuritizeAttachHelper is AttachBase {
         IDSRegistryService(registryService).registerInvestor("Fake investor", "Fake collision hash");
         IDSRegistryService(registryService).addWallet(investor, "Fake investor");
         IDSRegistryService(registryService).setCountry("Fake investor", "US");
-        IDSRegistryService(registryService)
-            .setAttribute(
-                "Fake investor",
-                IDSRegistryService(registryService).ACCREDITED(),
-                IDSRegistryService(registryService).APPROVED(),
-                type(uint256).max,
-                "Fake proof"
-            );
+        IDSRegistryService(registryService).setAttribute(
+            "Fake investor",
+            IDSRegistryService(registryService).ACCREDITED(),
+            IDSRegistryService(registryService).APPROVED(),
+            type(uint256).max,
+            "Fake proof"
+        );
         _stopOmniPrank();
     }
 
@@ -273,7 +273,8 @@ contract SecuritizeAttachHelper is AttachBase {
         return ISecuritizeDegenNFT.RegisterMessage({
             token: dsToken.token,
             signature: ISecuritizeDegenNFT.Signature({
-                deadline: type(uint256).max, signature: _sign(investor, domainSeparator, structHash)
+                deadline: type(uint256).max,
+                signature: _sign(investor, domainSeparator, structHash)
             })
         });
     }
@@ -382,9 +383,8 @@ contract SecuritizeAttachHelper is AttachBase {
         internal
         returns (address underlying, address pool, address[] memory creditManagers, address liquidityProvider)
     {
-        liquidityProvider = _deploy(
-            "ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor)
-        );
+        liquidityProvider =
+            _deploy("ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor));
         underlying = _deploy(
             "RWA_UNDERLYING::ON_DEMAND",
             3_10,
