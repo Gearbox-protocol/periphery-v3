@@ -10,6 +10,7 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {IPriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
+import {IAddressProvider} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAddressProvider.sol";
 
 import {
     SecuritizeOnRampAdapter
@@ -176,15 +177,9 @@ contract SecuritizeAttachHelper is AttachBase {
         (dsToken.onRamp, dsToken.redemptionWallet, dsToken.navProvider, dsToken.priceFeed) =
             _getDSTokenInfo(dsToken.token);
 
-        address redemptionLogger = vm.envOr("REDEMPTION_LOGGER", address(0));
-
-        if (redemptionLogger == address(0)) {
-            redemptionLogger = address(new RedemptionLogger(address(this)));
-        }
-
         dsToken.redemptionGateway = _deploy(
             "GATEWAY::SECURITIZE_REDEMPTION",
-            3_10,
+            3_11,
             abi.encode(
                 dsToken.token,
                 USDC,
@@ -193,13 +188,24 @@ contract SecuritizeAttachHelper is AttachBase {
                 liquidator,
                 dsToken.navProvider,
                 registryService,
-                redemptionLogger
+                addressProvider
             )
         );
 
-        _startOmniPrank(RedemptionLogger(redemptionLogger).owner());
-        RedemptionLogger(redemptionLogger).setGatewayAllowed(dsToken.redemptionGateway, true);
-        _stopOmniPrank();
+        address redemptionLogger;
+        try IAddressProvider(addressProvider).getAddressOrRevert("REDEMPTION_LOGGER", 3_10) returns (
+            address _redemptionLogger
+        ) {
+            redemptionLogger = _redemptionLogger;
+        } catch {
+            redemptionLogger = address(0);
+        }
+
+        if (redemptionLogger == address(0)) {
+            _startOmniPrank(RedemptionLogger(redemptionLogger).owner());
+            RedemptionLogger(redemptionLogger).setGatewayAllowed(dsToken.redemptionGateway, true);
+            _stopOmniPrank();
+        }
 
         dsToken.redemptionPhantomToken = SecuritizeRedemptionGateway(dsToken.redemptionGateway).phantomToken();
 
