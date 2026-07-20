@@ -12,21 +12,28 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IPriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
 import {IAddressProvider} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAddressProvider.sol";
 
-import {SecuritizeOnRampAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeOnRampAdapter.sol";
-import {SecuritizeRedemptionGatewayAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
-import {SecuritizeLiquidator} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
-import {SecuritizeRedemptionGateway} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
-import {SecuritizeRedemptionPhantomToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {
+    SecuritizeOnRampAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeOnRampAdapter.sol";
+import {
+    SecuritizeRedemptionGatewayAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+import {
+    SecuritizeLiquidator
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
+import {
+    SecuritizeRedemptionGateway
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+import {
+    SecuritizeRedemptionPhantomToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
 import {RedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/helpers/RedemptionLogger.sol";
-import {ISecuritizeNAVProvider} from
-    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
-import {ISecuritizeOnRamp} from
-    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeOnRamp.sol";
+import {
+    ISecuritizeNAVProvider
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
+import {
+    ISecuritizeOnRamp
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeOnRamp.sol";
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
@@ -56,6 +63,11 @@ contract SecuritizeAttachHelper is AttachBase {
         _addPublicDomain("RWA_LIQUIDATOR");
         _addPublicDomain("RWA_UNDERLYING");
         _addPublicDomain("ON_DEMAND_LP");
+
+        _startOmniPrank(0xb1576BBA248D48cBdF50000Db84a0dF8cDe7B3CA);
+        bytecodeRepository.removePublicContractType("ADAPTER::SECURITIZE_REDEMPTION");
+        bytecodeRepository.removePublicContractType("GATEWAY::SECURITIZE_REDEMPTION");
+        _stopOmniPrank();
 
         _uploadContract("DEGEN_NFT::SECURITIZE", 3_10, type(SecuritizeDegenNFT).creationCode);
         _uploadContract("RWA_FACTORY::SECURITIZE", 3_10, type(SecuritizeRWAFactory).creationCode);
@@ -234,13 +246,14 @@ contract SecuritizeAttachHelper is AttachBase {
         IDSRegistryService(registryService).registerInvestor("Fake investor", "Fake collision hash");
         IDSRegistryService(registryService).addWallet(investor, "Fake investor");
         IDSRegistryService(registryService).setCountry("Fake investor", "US");
-        IDSRegistryService(registryService).setAttribute(
-            "Fake investor",
-            IDSRegistryService(registryService).ACCREDITED(),
-            IDSRegistryService(registryService).APPROVED(),
-            type(uint256).max,
-            "Fake proof"
-        );
+        IDSRegistryService(registryService)
+            .setAttribute(
+                "Fake investor",
+                IDSRegistryService(registryService).ACCREDITED(),
+                IDSRegistryService(registryService).APPROVED(),
+                type(uint256).max,
+                "Fake proof"
+            );
         _stopOmniPrank();
     }
 
@@ -265,8 +278,7 @@ contract SecuritizeAttachHelper is AttachBase {
         return ISecuritizeDegenNFT.RegisterMessage({
             token: dsToken.token,
             signature: ISecuritizeDegenNFT.Signature({
-                deadline: type(uint256).max,
-                signature: _sign(investor, domainSeparator, structHash)
+                deadline: type(uint256).max, signature: _sign(investor, domainSeparator, structHash)
             })
         });
     }
@@ -375,8 +387,9 @@ contract SecuritizeAttachHelper is AttachBase {
         internal
         returns (address underlying, address pool, address[] memory creditManagers, address liquidityProvider)
     {
-        liquidityProvider =
-            _deploy("ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor));
+        liquidityProvider = _deploy(
+            "ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor)
+        );
         underlying = _deploy(
             "RWA_UNDERLYING::ON_DEMAND",
             3_10,
