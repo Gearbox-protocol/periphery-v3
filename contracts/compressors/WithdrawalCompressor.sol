@@ -4,6 +4,7 @@
 pragma solidity ^0.8.23;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
@@ -18,24 +19,39 @@ import {
     WithdrawableAsset,
     RequestableWithdrawal,
     ClaimableWithdrawal,
-    PendingWithdrawal
+    PendingWithdrawal,
+    WithdrawalStatus
 } from "../types/WithdrawalInfo.sol";
 import {WithdrawalLib} from "../types/WithdrawalInfo.sol";
 
 import {AP_WITHDRAWAL_COMPRESSOR} from "../libraries/Literals.sol";
+
+struct VersionInfo {
+    uint256 latest;
+    mapping(uint256 majorVersion => uint256) latestByMajor;
+    mapping(uint256 minorVersion => uint256) latestByMinor;
+    EnumerableSet.UintSet versionsSet;
+}
 
 contract WithdrawalCompressor is BaseCompressor, Ownable {
     using WithdrawalLib for WithdrawableAsset[];
     using WithdrawalLib for RequestableWithdrawal[];
     using WithdrawalLib for ClaimableWithdrawal[];
     using WithdrawalLib for PendingWithdrawal[];
+    using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.Bytes32Set;
 
     uint256 public constant version = 3_13;
     bytes32 public constant contractType = AP_WITHDRAWAL_COMPRESSOR;
 
+    mapping(bytes32 cType => VersionInfo) internal compressorVersionInfo;
+    EnumerableSet.Bytes32Set internal compressorTypesSet;
+
     mapping(bytes32 => bytes32) public withdrawableTypeToCompressorType;
 
-    mapping(bytes32 => address) public compressorTypeToCompressor;
+    mapping(bytes32 => mapping(uint256 => uint256)) public withdrawableTypeToSpecificCompressorVersion;
+
+    mapping(bytes32 => mapping(uint256 => address)) public compressorTypeToCompressor;
 
     constructor(address _owner, address addressProvider_) BaseCompressor(addressProvider_) {
         _transferOwnership(_owner);
@@ -92,6 +108,19 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
         return (claimableWithdrawals.filterEmpty(), pendingWithdrawals.filterEmpty());
     }
 
+    function getExternalAccountCurrentWithdrawals(address withdrawalToken, address account)
+        external
+        view
+        returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory)
+    {
+        address compressor = _getCompressorForToken(withdrawalToken);
+        if (compressor == address(0)) {
+            return (new ClaimableWithdrawal[](0), new PendingWithdrawal[](0));
+        }
+
+        return IWithdrawalSubcompressor(compressor).getExternalAccountCurrentWithdrawals(account, withdrawalToken);
+    }
+
     function getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
         external
         view
@@ -136,20 +165,65 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
         address compressor = _getCompressorForToken(withdrawalToken);
 
         if (compressor != address(0)) {
-            withdrawal = IWithdrawalSubcompressor(compressor).getWithdrawalRequestResult(
-                creditAccount, token, withdrawalToken, amount, extraData
-            );
+            withdrawal = IWithdrawalSubcompressor(compressor)
+                .getWithdrawalRequestResult(creditAccount, token, withdrawalToken, amount, extraData);
         }
 
         return withdrawal;
     }
 
     function setSubcompressor(address subcompressor) external onlyOwner {
-        compressorTypeToCompressor[IVersion(subcompressor).contractType()] = subcompressor;
+        bytes32 cType = IVersion(subcompressor).contractType();
+        uint256 ver = IVersion(subcompressor).version();
+
+        compressorTypeToCompressor[IVersion(subcompressor).contractType()][IVersion(subcompressor).version()] =
+        subcompressor;
+
+        VersionInfo storage info = compressorVersionInfo[cType];
+        if (ver > info.latest) info.latest = ver;
+        uint256 majorVersion = _getMajorVersion(ver);
+        if (ver > info.latestByMajor[majorVersion]) info.latestByMajor[majorVersion] = ver;
+        uint256 minorVersion = _getMinorVersion(ver);
+        if (ver > info.latestByMinor[minorVersion]) info.latestByMinor[minorVersion] = ver;
+        info.versionsSet.add(ver);
+        compressorTypesSet.add(cType);
+    }
+
+    function getWithdrawalStatus(address[] memory redeemers) external view returns (WithdrawalStatus[] memory) {
+        WithdrawalStatus[] memory statuses = new WithdrawalStatus[](redeemers.length);
+        for (uint256 i = 0; i < redeemers.length; i++) {
+            statuses[i] = getWithdrawalStatus(redeemers[i]);
+        }
+        return statuses;
+    }
+
+    function getWithdrawalStatus(address redeemer) public view returns (WithdrawalStatus) {
+        (bool success, bytes memory result) =
+            OptionalCall.staticCallOptionalSafe(redeemer, abi.encodeWithSignature("gateway()"), 100_000);
+        if (!success || result.length != 32) return WithdrawalStatus.NULL;
+        address gateway = abi.decode(result, (address));
+
+        (success, result) =
+            OptionalCall.staticCallOptionalSafe(gateway, abi.encodeWithSignature("phantomToken()"), 100_000);
+        if (!success || result.length != 32) return WithdrawalStatus.NULL;
+        address phantomToken = abi.decode(result, (address));
+
+        address compressor = _getCompressorForToken(phantomToken);
+        if (compressor == address(0)) return WithdrawalStatus.NULL;
+
+        return IWithdrawalSubcompressor(compressor).getWithdrawalStatus(redeemer);
     }
 
     function setWithdrawableTypeToCompressorType(bytes32 withdrawableType, bytes32 compressorType) external onlyOwner {
         withdrawableTypeToCompressorType[withdrawableType] = compressorType;
+    }
+
+    function setWithdrawableVersionToSpecificCompressorVersion(
+        bytes32 withdrawableType,
+        uint256 withdrawableVersion,
+        uint256 compressorVersion
+    ) external onlyOwner {
+        withdrawableTypeToSpecificCompressorVersion[withdrawableType][withdrawableVersion] = compressorVersion;
     }
 
     function _getWithdrawalTokenForToken(address creditManager, address token) internal view returns (address) {
@@ -165,17 +239,47 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
     }
 
     function _getCompressorForToken(address token) internal view returns (address) {
-        return compressorTypeToCompressor[withdrawableTypeToCompressorType[_getContractType(token)]];
+        (bytes32 cType, uint256 cVersion) = _getContractTypeAndVersion(token);
+        bytes32 compressorType = withdrawableTypeToCompressorType[cType];
+        uint256 specificVersion = withdrawableTypeToSpecificCompressorVersion[cType][cVersion];
+        if (specificVersion != 0) {
+            return compressorTypeToCompressor[compressorType][specificVersion];
+        } else {
+            uint256 minorVersion = _getMinorVersion(cVersion);
+            return compressorTypeToCompressor[compressorType][_getLatestPatchVersion(compressorType, minorVersion)];
+        }
     }
 
-    function _getContractType(address phantomToken) internal view returns (bytes32) {
+    function _getLatestPatchVersion(bytes32 cType, uint256 minorVersion) internal view returns (uint256 ver) {
+        ver = compressorVersionInfo[cType].latestByMinor[_getMinorVersion(minorVersion)];
+    }
+
+    function _getMajorVersion(uint256 ver) internal pure returns (uint256) {
+        return ver - ver % 100;
+    }
+
+    function _getMinorVersion(uint256 ver) internal pure returns (uint256) {
+        return ver - ver % 10;
+    }
+
+    function _getContractTypeAndVersion(address phantomToken) internal view returns (bytes32 cType, uint256 cVersion) {
         (bool success, bytes memory result) =
             OptionalCall.staticCallOptionalSafe(phantomToken, abi.encodeCall(IVersion.contractType, ()), 100_000);
 
         if (success) {
-            return abi.decode(result, (bytes32));
+            cType = abi.decode(result, (bytes32));
         } else {
-            return bytes32(0);
+            cType = bytes32(0);
         }
+
+        (success, result) =
+            OptionalCall.staticCallOptionalSafe(phantomToken, abi.encodeCall(IVersion.version, ()), 100_000);
+        if (success) {
+            cVersion = abi.decode(result, (uint256));
+        } else {
+            cVersion = 0;
+        }
+
+        return (cType, cVersion);
     }
 }

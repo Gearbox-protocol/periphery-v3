@@ -10,21 +10,30 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {IPriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
+import {IAddressProvider} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAddressProvider.sol";
 
-import {SecuritizeOnRampAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeOnRampAdapter.sol";
-import {SecuritizeRedemptionGatewayAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
-import {SecuritizeLiquidator} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
-import {SecuritizeRedemptionGateway} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
-import {SecuritizeRedemptionPhantomToken} from
-    "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
-import {ISecuritizeNAVProvider} from
-    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
-import {ISecuritizeOnRamp} from
-    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeOnRamp.sol";
+import {
+    SecuritizeOnRampAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeOnRampAdapter.sol";
+import {
+    SecuritizeRedemptionGatewayAdapter
+} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+import {
+    SecuritizeLiquidator
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
+import {
+    SecuritizeRedemptionGateway
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+import {
+    SecuritizeRedemptionPhantomToken
+} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {RedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/helpers/RedemptionLogger.sol";
+import {
+    ISecuritizeNAVProvider
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
+import {
+    ISecuritizeOnRamp
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeOnRamp.sol";
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
@@ -180,11 +189,26 @@ contract SecuritizeAttachHelper is AttachBase {
                 liquidator,
                 dsToken.navProvider,
                 registryService,
-                REDEMPTION_LOGGER
+                addressProvider
             )
         );
-        dsToken.redemptionPhantomToken =
-            _deploy("PHANTOM_TOKEN::SECURITIZE_RD", 3_10, abi.encode(dsToken.redemptionGateway));
+
+        address redemptionLogger;
+        try IAddressProvider(addressProvider).getAddressOrRevert("REDEMPTION_LOGGER", 3_10) returns (
+            address _redemptionLogger
+        ) {
+            redemptionLogger = _redemptionLogger;
+        } catch {
+            redemptionLogger = address(0);
+        }
+
+        if (redemptionLogger == address(0)) {
+            _startOmniPrank(RedemptionLogger(redemptionLogger).owner());
+            RedemptionLogger(redemptionLogger).setGatewayAllowed(dsToken.redemptionGateway, true);
+            _stopOmniPrank();
+        }
+
+        dsToken.redemptionPhantomToken = SecuritizeRedemptionGateway(dsToken.redemptionGateway).phantomToken();
 
         _addPriceFeed(dsToken.priceFeed, 1 days, "Redstone DSToken / USD price feed");
         _allowPriceFeed(dsToken.token, dsToken.priceFeed);

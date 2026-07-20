@@ -41,6 +41,14 @@ struct PendingWithdrawal {
     address withdrawalPhantomToken;
     WithdrawalOutput[] expectedOutputs;
     uint256 claimableAt;
+    bytes extraData;
+}
+
+enum WithdrawalStatus {
+    NULL,
+    PENDING,
+    CLAIMABLE,
+    CLAIMED
 }
 
 library WithdrawalLib {

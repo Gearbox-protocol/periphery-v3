@@ -16,7 +16,8 @@ import {
     RequestableWithdrawal,
     ClaimableWithdrawal,
     PendingWithdrawal,
-    WithdrawalLib
+    WithdrawalLib,
+    WithdrawalStatus
 } from "../../../types/WithdrawalInfo.sol";
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 
@@ -69,10 +70,29 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
         address securitizeRedemptionGateway = SecuritizeRedemptionPhantomToken(token).redemptionGateway();
 
         ClaimableWithdrawal[] memory claimableWithdrawals =
-            _getClaimableWithdrawals(creditAccount, token, securitizeRedemptionGateway);
+            _getClaimableWithdrawals(creditAccount, token, securitizeRedemptionGateway, true);
 
         PendingWithdrawal[] memory pendingWithdrawals =
             _getPendingWithdrawals(creditAccount, securitizeRedemptionGateway);
+
+        for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
+            pendingWithdrawals[i].withdrawalPhantomToken = token;
+        }
+
+        return (claimableWithdrawals, pendingWithdrawals);
+    }
+
+    function getExternalAccountCurrentWithdrawals(address account, address token)
+        external
+        view
+        returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory)
+    {
+        address securitizeRedemptionGateway = SecuritizeRedemptionPhantomToken(token).redemptionGateway();
+
+        ClaimableWithdrawal[] memory claimableWithdrawals =
+            _getClaimableWithdrawals(account, token, securitizeRedemptionGateway, false);
+
+        PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(account, securitizeRedemptionGateway);
 
         for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
             pendingWithdrawals[i].withdrawalPhantomToken = token;
@@ -154,16 +174,18 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
 
         for (uint256 i = 0; i < redeemers.length; i++) {
             if (!_isRedeemerClaimable(redeemers[i], stableCoinToken)) {
+                address redeemer = redeemers[i];
                 pendingWithdrawals[redeemerCount].token = dsToken;
                 pendingWithdrawals[redeemerCount].expectedOutputs = new WithdrawalOutput[](1);
 
-                uint256 redemptionValue = SecuritizeRedeemer(redeemers[i]).getCurrentRedemptionValue();
+                uint256 redemptionValue = SecuritizeRedeemer(redeemer).getCurrentRedemptionValue();
                 pendingWithdrawals[redeemerCount].expectedOutputs[0] =
                     WithdrawalOutput(stableCoinToken, false, redemptionValue);
 
-                uint256 startingTimestamp = SecuritizeRedeemer(redeemers[i]).startingTimestamp();
+                uint256 startingTimestamp = SecuritizeRedeemer(redeemer).startingTimestamp();
                 pendingWithdrawals[redeemerCount].claimableAt =
                     block.timestamp > startingTimestamp + 90 days ? block.timestamp : startingTimestamp + 90 days;
+                pendingWithdrawals[redeemerCount].extraData = _getRedemptionExtraData(redemptionGateway, redeemer);
                 redeemerCount++;
             }
         }
@@ -171,15 +193,16 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
         return pendingWithdrawals;
     }
 
-    function _getClaimableWithdrawals(address creditAccount, address withdrawalToken, address redemptionGateway)
-        internal
-        view
-        returns (ClaimableWithdrawal[] memory withdrawals)
-    {
+    function _getClaimableWithdrawals(
+        address account,
+        address withdrawalToken,
+        address redemptionGateway,
+        bool isCreditAccount
+    ) internal view returns (ClaimableWithdrawal[] memory withdrawals) {
         address stableCoinToken = ISecuritizeRedemptionGateway(redemptionGateway).stableCoinToken();
         address dsToken = ISecuritizeRedemptionGateway(redemptionGateway).dsToken();
 
-        address[] memory redeemers = ISecuritizeRedemptionGateway(redemptionGateway).getRedeemers(creditAccount);
+        address[] memory redeemers = ISecuritizeRedemptionGateway(redemptionGateway).getRedeemers(account);
         uint256 claimableCount = 0;
 
         for (uint256 i = 0; i < redeemers.length; i++) {
@@ -189,8 +212,9 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
         withdrawals = new ClaimableWithdrawal[](claimableCount);
         if (claimableCount == 0) return withdrawals;
 
-        address securitizeRedemptionGatewayAdapter =
-            ICreditManagerV3(ICreditAccountV3(creditAccount).creditManager()).contractToAdapter(redemptionGateway);
+        address claimTarget = isCreditAccount
+            ? ICreditManagerV3(ICreditAccountV3(account).creditManager()).contractToAdapter(redemptionGateway)
+            : redemptionGateway;
 
         uint256 idx = 0;
 
@@ -209,13 +233,24 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
 
             address[] memory claimableRedeemers = new address[](1);
             claimableRedeemers[0] = redeemer;
-            withdrawals[idx].claimCalls[0] = MultiCall(
-                securitizeRedemptionGatewayAdapter,
-                abi.encodeCall(ISecuritizeRedemptionGateway.claim, (claimableRedeemers))
-            );
+            withdrawals[idx].claimCalls[0] =
+                MultiCall(claimTarget, abi.encodeCall(ISecuritizeRedemptionGateway.claim, (claimableRedeemers)));
             withdrawals[idx].extraData = _getRedemptionExtraData(redemptionGateway, redeemer);
             idx++;
         }
+    }
+
+    function getWithdrawalStatus(address redeemer) external view returns (WithdrawalStatus) {
+        address stableCoinToken = SecuritizeRedeemer(redeemer).stableCoinToken();
+        if (_isClaimableRedeemer(redeemer, stableCoinToken)) return WithdrawalStatus.CLAIMABLE;
+        if (SecuritizeRedeemer(redeemer).pendingDsTokenAmount() > 0) return WithdrawalStatus.PENDING;
+
+        return WithdrawalStatus.CLAIMED;
+    }
+
+    function _isSecuritizeRedeemer(address redeemer) internal view returns (bool) {
+        (bool success, bytes memory data) = redeemer.staticcall(abi.encodeWithSignature("gateway()"));
+        return success && data.length == 32 && abi.decode(data, (address)) != address(0);
     }
 
     function _isClaimableRedeemer(address redeemer, address stableCoinToken) internal view returns (bool) {
