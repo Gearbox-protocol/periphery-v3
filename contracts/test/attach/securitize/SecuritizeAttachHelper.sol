@@ -202,7 +202,7 @@ contract SecuritizeAttachHelper is AttachBase {
             redemptionLogger = address(0);
         }
 
-        if (redemptionLogger == address(0)) {
+        if (redemptionLogger != address(0)) {
             _startOmniPrank(RedemptionLogger(redemptionLogger).owner());
             RedemptionLogger(redemptionLogger).setGatewayAllowed(dsToken.redemptionGateway, true);
             _stopOmniPrank();
