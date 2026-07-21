@@ -30,9 +30,9 @@
     }
   },
   "lib/@gearbox-protocol/permissionless": {
-    "branch": {
-      "name": "attach-test-base",
-      "rev": "6381ac0376fdfadf7f6662ac182c0ed03c5182d8"
+    "tag": {
+      "name": "v1.8.1",
+      "rev": "b1b5e5bac7d2183a1f10c4bcc3d4bbf88c8b7769"
     }
   },
   "lib/@gearbox-protocol/sdk-gov": {
