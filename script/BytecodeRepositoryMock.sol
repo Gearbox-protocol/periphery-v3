@@ -36,6 +36,14 @@ contract BytecodeRepositoryMock is BytecodeRepository {
             source: bytecode.source,
             authorSignature: bytecode.authorSignature
         });
+        emit UploadBytecode(
+            bytecodeHash,
+            bytecode.contractType,
+            bytecode.version,
+            bytecode.author,
+            bytecode.source,
+            bytecode.authorSignature
+        );
     }
 
     function exposed_addBytecode(Bytecode[] calldata bytecodes) external {
