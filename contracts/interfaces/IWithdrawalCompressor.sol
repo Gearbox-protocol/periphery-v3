@@ -25,10 +25,30 @@ interface IWithdrawalCompressor is IVersion {
         view
         returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory);
 
+    function getExternalAccountCurrentWithdrawals(address[] memory withdrawalTokens, address account)
+        external
+        view
+        returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory);
+
     function getWithdrawalRequestResult(address creditAccount, address token, uint256 amount)
         external
         view
         returns (RequestableWithdrawal memory);
 
+    function getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
+        external
+        view
+        returns (RequestableWithdrawal memory);
+
+    function getWithdrawalRequestResult(
+        address creditAccount,
+        address token,
+        address withdrawalToken,
+        uint256 amount,
+        bytes calldata extraData
+    ) external view returns (RequestableWithdrawal memory);
+
     function getWithdrawalStatus(address redeemer) external view returns (WithdrawalStatus);
+
+    function getWithdrawalStatus(address[] memory redeemers) external view returns (WithdrawalStatus[] memory);
 }

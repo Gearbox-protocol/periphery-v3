@@ -121,6 +121,29 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
         return IWithdrawalSubcompressor(compressor).getExternalAccountCurrentWithdrawals(account, withdrawalToken);
     }
 
+    function getExternalAccountCurrentWithdrawals(address[] memory withdrawalTokens, address account)
+        external
+        view
+        returns (ClaimableWithdrawal[] memory, PendingWithdrawal[] memory)
+    {
+        ClaimableWithdrawal[] memory claimableWithdrawals = new ClaimableWithdrawal[](0);
+        PendingWithdrawal[] memory pendingWithdrawals = new PendingWithdrawal[](0);
+        
+        for (uint256 i = 0; i < withdrawalTokens.length; i++) {
+            address compressor = _getCompressorForToken(withdrawalTokens[i]);
+            if (compressor == address(0)) {
+                return (new ClaimableWithdrawal[](0), new PendingWithdrawal[](0));
+            }
+
+            (ClaimableWithdrawal[] memory cwCurrent, PendingWithdrawal[] memory pwCurrent) =
+                IWithdrawalSubcompressor(compressor).getExternalAccountCurrentWithdrawals(account, withdrawalTokens[i]);
+            claimableWithdrawals = claimableWithdrawals.concat(cwCurrent);
+            pendingWithdrawals = pendingWithdrawals.concat(pwCurrent);
+        }
+
+        return (claimableWithdrawals.filterEmpty(), pendingWithdrawals.filterEmpty());
+    }
+
     function getWithdrawalRequestResult(address creditAccount, address token, address withdrawalToken, uint256 amount)
         external
         view
