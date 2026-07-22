@@ -12,17 +12,17 @@ import {IWithdrawalSubcompressor} from "../../../interfaces/IWithdrawalSubcompre
 
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 
-import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasGateway.sol";
+import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasGateway.sol";
 import {
     MidasRedemptionVaultPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol";
-import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedeemer.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasRedemptionVaultPhantomToken.sol";
+import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasRedeemer.sol";
 
 import {
     IMidasRedemptionVault
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/IMidasRedemptionVault.sol";
-import {IMidasGateway} from "@gearbox-protocol/integrations-v3/contracts/interfaces/midas/IMidasGateway.sol";
-import {IRedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/interfaces/IRedemptionLogger.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/external/IMidasRedemptionVault.sol";
+import {IMidasGateway} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/IMidasGateway.sol";
+import {IRedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/integrations/common/interfaces/IRedemptionLogger.sol";
 
 import {
     WithdrawalLib,

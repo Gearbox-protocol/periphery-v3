@@ -20,21 +20,21 @@ import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditF
 
 import {
     MellowWithdrawalPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/mellow/MellowWithdrawalPhantomToken.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/MellowWithdrawalPhantomToken.sol";
 import {
     IMellowMultiVault,
     IMellowWithdrawalQueue,
     IEigenLayerWithdrawalQueue,
     Subvault,
     MellowProtocol
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/IMellowMultiVault.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/interfaces/external/IMellowMultiVault.sol";
 import {
     IMellowClaimerAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/interfaces/mellow/IMellowClaimerAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/interfaces/IMellowClaimerAdapter.sol";
 import {
     IMellow4626VaultAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/interfaces/mellow/IMellow4626VaultAdapter.sol";
-import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/erc4626/IERC4626Adapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/interfaces/IMellow4626VaultAdapter.sol";
+import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/erc4626/interfaces/IERC4626Adapter.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 struct EpochData {

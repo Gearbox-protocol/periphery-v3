@@ -20,23 +20,23 @@ import {
 import {
     MidasWithdrawalSubcompressor
 } from "../../compressors/subcompressors/withdrawal/MidasWithdrawalSubcompressor.sol";
-import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasGateway.sol";
-import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedeemer.sol";
+import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasGateway.sol";
+import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasRedeemer.sol";
 import {
     MidasRedemptionVaultPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasRedemptionVaultPhantomToken.sol";
 import {
     SecuritizeRedemptionSubcompressor
 } from "../../compressors/subcompressors/withdrawal/SecuritizeRedemptionSubcompressor.sol";
 import {
     SecuritizeRedemptionGateway
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGateway.sol";
 import {
     SecuritizeRedemptionPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionPhantomToken.sol";
 import {
     SecuritizeRedemptionGatewayAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGatewayAdapter.sol";
 
 import {
     WithdrawalLib,

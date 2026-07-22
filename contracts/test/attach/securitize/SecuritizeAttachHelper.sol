@@ -14,26 +14,26 @@ import {IAddressProvider} from "@gearbox-protocol/core-v3/contracts/interfaces/b
 
 import {
     SecuritizeOnRampAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeOnRampAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeOnRampAdapter.sol";
 import {
     SecuritizeRedemptionGatewayAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGatewayAdapter.sol";
 import {
     SecuritizeLiquidator
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeLiquidator.sol";
 import {
     SecuritizeRedemptionGateway
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGateway.sol";
 import {
     SecuritizeRedemptionPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
-import {RedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/helpers/RedemptionLogger.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {RedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/integrations/common/RedemptionLogger.sol";
 import {
     ISecuritizeNAVProvider
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeNAVProvider.sol";
 import {
     ISecuritizeOnRamp
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeOnRamp.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeOnRamp.sol";
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";

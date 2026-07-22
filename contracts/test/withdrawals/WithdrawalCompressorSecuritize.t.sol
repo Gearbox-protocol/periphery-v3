@@ -32,19 +32,19 @@ import {
 } from "../../compressors/subcompressors/withdrawal/SecuritizeRedemptionSubcompressor.sol";
 import {
     SecuritizeRedemptionGateway
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGateway.sol";
 import {
     SecuritizeRedemptionPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionPhantomToken.sol";
 import {
     SecuritizeRedemptionGatewayAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGatewayAdapter.sol";
 import {
     SecuritizeLiquidator
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeLiquidator.sol";
 import {
     SecuritizeRedeemer
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedeemer.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedeemer.sol";
 
 import {
     WithdrawalLib,

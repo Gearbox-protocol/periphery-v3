@@ -9,13 +9,13 @@ import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 import {ICreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditConfiguratorV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {IBaseRewardPool} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/IBaseRewardPool.sol";
-import {IBooster} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/IBooster.sol";
+import {IBaseRewardPool} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/interfaces/external/IBaseRewardPool.sol";
+import {IBooster} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/interfaces/external/IBooster.sol";
 import {IConvexV1BaseRewardPoolAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/convex/IConvexV1BaseRewardPoolAdapter.sol";
-import {IStakingRewards} from "@gearbox-protocol/integrations-v3/contracts/integrations/sky/IStakingRewards.sol";
+    "@gearbox-protocol/integrations-v3/contracts/integrations/convex/interfaces/IConvexV1BaseRewardPoolAdapter.sol";
+import {IStakingRewards} from "@gearbox-protocol/integrations-v3/contracts/integrations/sky/interfaces/external/IStakingRewards.sol";
 import {IStakingRewardsAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/sky/IStakingRewardsAdapter.sol";
+    "@gearbox-protocol/integrations-v3/contracts/integrations/sky/interfaces/IStakingRewardsAdapter.sol";
 
 import {IRewardsCompressor} from "../interfaces/IRewardsCompressor.sol";
 

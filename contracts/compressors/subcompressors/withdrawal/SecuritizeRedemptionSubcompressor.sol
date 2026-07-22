@@ -23,22 +23,22 @@ import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditF
 
 import {
     SecuritizeRedemptionGateway
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGateway.sol";
 import {
     SecuritizeRedemptionPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionPhantomToken.sol";
 import {
     ISecuritizeRedemptionGateway
-} from "@gearbox-protocol/integrations-v3/contracts/interfaces/securitize/ISecuritizeRedemptionGateway.sol";
-import {IRedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/interfaces/IRedemptionLogger.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/ISecuritizeRedemptionGateway.sol";
+import {IRedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/integrations/common/interfaces/IRedemptionLogger.sol";
 
 import {
     ISecuritizeNAVProvider
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeNAVProvider.sol";
 
 import {
     SecuritizeRedeemer
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedeemer.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedeemer.sol";
 
 import {WAD} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 

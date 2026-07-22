@@ -33,22 +33,22 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Test} from "forge-std/Test.sol";
 import {WithdrawalCompressor} from "../../compressors/WithdrawalCompressor.sol";
 
-import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasGateway.sol";
-import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedeemer.sol";
-import {MidasLiquidator} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasLiquidator.sol";
+import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasGateway.sol";
+import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasRedeemer.sol";
+import {MidasLiquidator} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasLiquidator.sol";
 import {
     IMidasGatewayAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/interfaces/midas/IMidasGatewayAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/IMidasGatewayAdapter.sol";
 import {
     MidasRedemptionVaultPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/midas/MidasRedemptionVaultPhantomToken.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasRedemptionVaultPhantomToken.sol";
 import {
     MidasWithdrawalSubcompressor
 } from "../../compressors/subcompressors/withdrawal/MidasWithdrawalSubcompressor.sol";
 
 import {
     IMidasAccessControl
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/IMidasAccessControl.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/external/IMidasAccessControl.sol";
 
 import {
     WithdrawalLib,
