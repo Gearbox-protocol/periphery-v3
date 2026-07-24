@@ -64,6 +64,12 @@ contract SecuritizeAttachHelper is AttachBase {
         _addPublicDomain("RWA_UNDERLYING");
         _addPublicDomain("ON_DEMAND_LP");
 
+        _startOmniPrank(0xb1576BBA248D48cBdF50000Db84a0dF8cDe7B3CA);
+        bytecodeRepository.removePublicContractType("ADAPTER::SECURITIZE_REDEMPTION");
+        bytecodeRepository.removePublicContractType("GATEWAY::SECURITIZE_REDEMPTION");
+        bytecodeRepository.removePublicContractType("RWA_LIQUIDATOR::SECURITIZE");
+        _stopOmniPrank();
+
         _uploadContract("DEGEN_NFT::SECURITIZE", 3_10, type(SecuritizeDegenNFT).creationCode);
         _uploadContract("RWA_FACTORY::SECURITIZE", 3_10, type(SecuritizeRWAFactory).creationCode);
         _uploadContract("RWA_UNDERLYING::DEFAULT", 3_10, type(DefaultRWAUnderlying).creationCode);
