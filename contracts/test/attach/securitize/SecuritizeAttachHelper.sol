@@ -71,7 +71,7 @@ contract SecuritizeAttachHelper is AttachBase {
         _uploadContract("ON_DEMAND_LP::MONOPOLIZED", 3_10, type(MonopolizedOnDemandLP).creationCode);
         _uploadContract("ADAPTER::SECURITIZE_ONRAMP", 3_10, type(SecuritizeOnRampAdapter).creationCode);
         _uploadContract("ADAPTER::SECURITIZE_REDEMPTION", 3_11, type(SecuritizeRedemptionGatewayAdapter).creationCode);
-        _uploadContract("RWA_LIQUIDATOR::SECURITIZE", 3_10, type(SecuritizeLiquidator).creationCode);
+        _uploadContract("RWA_LIQUIDATOR::SECURITIZE", 3_11, type(SecuritizeLiquidator).creationCode);
         _uploadContract("GATEWAY::SECURITIZE_REDEMPTION", 3_11, type(SecuritizeRedemptionGateway).creationCode);
         _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
     }
