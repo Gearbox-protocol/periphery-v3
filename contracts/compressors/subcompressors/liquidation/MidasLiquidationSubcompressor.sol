@@ -28,6 +28,9 @@ import {
     IMidasLiquidator
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/IMidasLiquidator.sol";
 import {
+    MidasMode
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/IMidasGateway.sol";
+import {
     IMidasAccessControl,
     GREENLISTED_ROLE
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/external/IMidasAccessControl.sol";
@@ -110,7 +113,7 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
     }
 
     function _setEligibility(LiquidationData memory data, address liquidator, address gateway) internal view {
-        if (!MidasGateway(gateway).checkBorrowerGreenlist()) {
+        if (MidasGateway(gateway).mode() != MidasMode.Permissioned) {
             data.isLiquidatorEligible = true;
             return;
         }
