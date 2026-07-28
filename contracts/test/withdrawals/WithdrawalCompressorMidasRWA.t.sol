@@ -59,9 +59,6 @@ import {
     PendingWithdrawal
 } from "../../types/WithdrawalInfo.sol";
 
-bytes32 constant GREENLIST_OPERATOR_ROLE = keccak256("GREENLIST_OPERATOR_ROLE");
-bytes32 constant GREENLISTED_ROLE = keccak256("GREENLISTED_ROLE");
-
 interface IMidasDataFeed {
     function getDataInBase18() external view returns (uint256);
 }
@@ -74,6 +71,14 @@ interface IMidasRedemptionVaultExt {
         returns (address dataFeed, uint256 fee, uint256 allowance, bool stable);
     function safeApproveRequest(uint256 requestId, uint256 newMTokenRate) external;
     function requestRedeemer() external view returns (address);
+}
+
+interface IMidasGatewayExt {
+    function greenlistedRole() external view returns (bytes32);
+}
+
+interface IMidasAccessControlExt {
+    function getRoleAdmin(bytes32 role) external view returns (bytes32);
 }
 
 contract WithdrawalCompressorTest is Test {
@@ -112,6 +117,7 @@ contract WithdrawalCompressorTest is Test {
                 midasLiquidator = MidasGateway(midasGateway).transferMaster();
                 _grantGreenlistAdmin(midasGateway);
                 _grantGreenlist(midasGateway, user);
+                _grantGreenlist(midasGateway, creditAccount);
             }
         }
     }
@@ -261,7 +267,7 @@ contract WithdrawalCompressorTest is Test {
                 address target = claimableWithdrawals[j].claimCalls[0].target;
                 bytes memory callData = claimableWithdrawals[j].claimCalls[0].callData;
                 vm.prank(user);
-                (bool success, ) = target.call(callData);
+                (bool success,) = target.call(callData);
             }
 
             MidasGateway(gateway).pendingRedeemers(user);
@@ -303,8 +309,10 @@ contract WithdrawalCompressorTest is Test {
             emit log_string("<WARNING>: MIDAS_ACL_ADMIN not set, skipping test:");
             return;
         }
+        bytes32 greenlistedRole = IMidasGatewayExt(midasGateway).greenlistedRole();
+        bytes32 greenlistOperatorRole = IMidasAccessControlExt(accessControl).getRoleAdmin(greenlistedRole);
         vm.prank(admin);
-        IMidasAccessControl(accessControl).grantRole(GREENLIST_OPERATOR_ROLE, midasGateway);
+        IMidasAccessControl(accessControl).grantRole(greenlistOperatorRole, midasGateway);
     }
 
     function _grantGreenlist(address midasGateway, address _user) internal {
@@ -317,9 +325,13 @@ contract WithdrawalCompressorTest is Test {
             emit log_string("<WARNING>: MIDAS_ACL_ADMIN not set, skipping test:");
             return;
         }
+
+        bytes32 greenlistedRole = IMidasGatewayExt(midasGateway).greenlistedRole();
+        bytes32 greenlistOperatorRole = IMidasAccessControlExt(accessControl).getRoleAdmin(greenlistedRole);
+
         vm.prank(admin);
-        IMidasAccessControl(accessControl).grantRole(GREENLIST_OPERATOR_ROLE, admin);
+        IMidasAccessControl(accessControl).grantRole(greenlistOperatorRole, admin);
         vm.prank(admin);
-        IMidasAccessControl(accessControl).grantRole(GREENLISTED_ROLE, _user);
+        IMidasAccessControl(accessControl).grantRole(greenlistedRole, _user);
     }
 }
