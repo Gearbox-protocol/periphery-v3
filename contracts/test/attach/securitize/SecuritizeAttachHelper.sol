@@ -119,7 +119,7 @@ contract SecuritizeAttachHelper is AttachBase {
     function _attachSecuritize() internal {
         factory = _deploy("RWA_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
         degenNFT = ISecuritizeRWAFactory(factory).getDegenNFT();
-        liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_10, abi.encode(factory));
+        liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_11, abi.encode(factory));
 
         _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
         _allowPriceFeed(USDC, USDC_PRICE_FEED);
