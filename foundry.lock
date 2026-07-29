@@ -31,8 +31,8 @@
   },
   "lib/@gearbox-protocol/permissionless": {
     "tag": {
-      "name": "v1.8.1",
-      "rev": "b1b5e5bac7d2183a1f10c4bcc3d4bbf88c8b7769"
+      "name": "v1.8.0",
+      "rev": "49ac690dad57f05fc8e4c215c406801cbca965d5"
     }
   },
   "lib/@gearbox-protocol/sdk-gov": {
