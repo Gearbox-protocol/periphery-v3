@@ -31,8 +31,7 @@ import {
     MidasMode
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/IMidasGateway.sol";
 import {
-    IMidasAccessControl,
-    GREENLISTED_ROLE
+    IMidasAccessControl
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/external/IMidasAccessControl.sol";
 
 import {ILiquidationSubcompressor} from "../../../interfaces/ILiquidationSubcompressor.sol";
@@ -119,7 +118,7 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
         }
 
         address accessControl = MidasGateway(gateway).accessControl();
-        if (IMidasAccessControl(accessControl).hasRole(GREENLISTED_ROLE, liquidator)) {
+        if (IMidasAccessControl(accessControl).hasRole(MidasGateway(gateway).greenlistedRole(), liquidator)) {
             data.isLiquidatorEligible = true;
         } else {
             data.isLiquidatorEligible = false;
