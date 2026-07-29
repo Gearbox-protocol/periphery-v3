@@ -4,11 +4,11 @@
 pragma solidity ^0.8.23;
 
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 import {LiquidationData} from "../types/LiquidationInfo.sol";
 
 interface ILiquidationCompressor is IVersion {
-    function getLiquidationData(address liquidator, address creditAccount)
+    function getLiquidationData(address liquidator, address creditAccount, PriceUpdate[] calldata priceUpdates)
         external
-        view
         returns (LiquidationData memory);
 }

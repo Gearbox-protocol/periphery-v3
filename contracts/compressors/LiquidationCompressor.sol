@@ -16,6 +16,7 @@ import {
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 import {BitMask} from "@gearbox-protocol/core-v3/contracts/libraries/BitMask.sol";
 import {OptionalCall} from "@gearbox-protocol/core-v3/contracts/libraries/OptionalCall.sol";
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
@@ -23,7 +24,8 @@ import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/C
 import {BaseCompressor} from "./BaseCompressor.sol";
 import {ILiquidationSubcompressor} from "../interfaces/ILiquidationSubcompressor.sol";
 import {ILiquidationCompressor} from "../interfaces/ILiquidationCompressor.sol";
-import {LiquidationData, LiquidationOutput} from "../types/LiquidationInfo.sol";
+import {LiquidationData, LiquidationLib, LiquidationOutput} from "../types/LiquidationInfo.sol";
+import {LiquidationPriceUpdates} from "../libraries/LiquidationPriceUpdates.sol";
 
 import {AP_LIQUIDATION_COMPRESSOR} from "../libraries/Literals.sol";
 
@@ -34,10 +36,21 @@ struct VersionInfo {
     EnumerableSet.UintSet versionsSet;
 }
 
+struct StandardLiquidationParams {
+    address liquidator;
+    address creditAccount;
+    address creditManager;
+    address creditFacade;
+    uint256 enabledTokensMask;
+    uint256 requiredUnderlyingAmount;
+}
+
 contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompressor {
     using BitMask for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    using LiquidationLib for MultiCall[];
+    using LiquidationLib for LiquidationOutput[];
 
     uint256 public constant version = 3_13;
     bytes32 public constant contractType = AP_LIQUIDATION_COMPRESSOR;
@@ -57,12 +70,15 @@ contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompresso
 
     /// @notice Returns liquidation preview data for the credit account's withdrawal token (at most one).
     ///         If none is found, returns a standard CreditFacade liquidation path for all enabled collateral.
-    function getLiquidationData(address liquidator, address creditAccount)
+    /// @dev Applies `priceUpdates` before computing amounts so preview matches liquidation-time pricing.
+    function getLiquidationData(address liquidator, address creditAccount, PriceUpdate[] calldata priceUpdates)
         external
-        view
         returns (LiquidationData memory)
     {
         address creditManager = ICreditAccountV3(creditAccount).creditManager();
+        address creditFacade = ICreditManagerV3(creditManager).creditFacade();
+        LiquidationPriceUpdates.applyUpdates(creditFacade, priceUpdates);
+
         uint256 collateralTokensCount = ICreditManagerV3(creditManager).collateralTokensCount();
 
         for (uint256 i = 0; i < collateralTokensCount; i++) {
@@ -73,19 +89,21 @@ contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompresso
                 continue;
             }
 
-            return ILiquidationSubcompressor(compressor).getLiquidationData(liquidator, creditAccount, token);
+            return ILiquidationSubcompressor(compressor)
+                .getLiquidationData(liquidator, creditAccount, token, priceUpdates);
         }
 
-        return _getStandardLiquidationData(liquidator, creditAccount, creditManager);
+        return _getStandardLiquidationData(liquidator, creditAccount, creditManager, priceUpdates);
     }
 
     /// @dev Standard liquidation: repay `totalValue * liquidationDiscount` in underlying and withdraw all
     ///      enabled collateral tokens to the liquidator via a single CreditFacade.liquidateCreditAccount call.
-    function _getStandardLiquidationData(address liquidator, address creditAccount, address creditManager)
-        internal
-        view
-        returns (LiquidationData memory data)
-    {
+    function _getStandardLiquidationData(
+        address liquidator,
+        address creditAccount,
+        address creditManager,
+        PriceUpdate[] calldata priceUpdates
+    ) internal view returns (LiquidationData memory data) {
         uint256 enabledTokensMask;
         {
             CollateralDebtData memory cdd = ICreditManagerV3(creditManager)
@@ -100,77 +118,87 @@ contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompresso
         data.kycProtocol = "";
         data.kycToken = address(0);
 
-        (data.expectedOutputs, data.liquidationCall) = _buildStandardLiquidationCall(
-            liquidator, creditAccount, creditManager, enabledTokensMask, data.requiredUnderlyingAmount
-        );
+        StandardLiquidationParams memory params = StandardLiquidationParams({
+            liquidator: liquidator,
+            creditAccount: creditAccount,
+            creditManager: creditManager,
+            creditFacade: ICreditManagerV3(creditManager).creditFacade(),
+            enabledTokensMask: enabledTokensMask,
+            requiredUnderlyingAmount: data.requiredUnderlyingAmount
+        });
+        (data.expectedOutputs, data.liquidationCall) = _buildStandardLiquidationCall(params, priceUpdates);
     }
 
     function _buildStandardLiquidationCall(
-        address liquidator,
-        address creditAccount,
-        address creditManager,
-        uint256 enabledTokensMask,
-        uint256 requiredUnderlyingAmount
+        StandardLiquidationParams memory params,
+        PriceUpdate[] calldata priceUpdates
     ) internal view returns (LiquidationOutput[] memory expectedOutputs, MultiCall memory liquidationCall) {
-        address creditFacade = ICreditManagerV3(creditManager).creditFacade();
-        uint256 numTokens = enabledTokensMask.calcEnabledTokens();
+        expectedOutputs = new LiquidationOutput[](0);
+        MultiCall[] memory calls = new MultiCall[](0);
 
-        expectedOutputs = new LiquidationOutput[](numTokens);
-        MultiCall[] memory calls = new MultiCall[](numTokens + 1);
-
-        calls[0] = MultiCall({
-            target: creditFacade,
-            callData: abi.encodeCall(
-                ICreditFacadeV3Multicall.addCollateral,
-                (ICreditManagerV3(creditManager).underlying(), requiredUnderlyingAmount)
-            )
-        });
-
-        for (uint256 i; i < numTokens; ++i) {
-            (expectedOutputs[i], calls[i + 1], enabledTokensMask) = _nextEnabledTokenCall({
-                creditFacade: creditFacade,
-                creditManager: creditManager,
-                creditAccount: creditAccount,
-                liquidator: liquidator,
-                enabledTokensMask: enabledTokensMask
-            });
+        // CreditFacade reverts on addCollateral(0).
+        if (params.requiredUnderlyingAmount > 0) {
+            calls = calls.append(
+                MultiCall({
+                    target: params.creditFacade,
+                    callData: abi.encodeCall(
+                        ICreditFacadeV3Multicall.addCollateral,
+                        (ICreditManagerV3(params.creditManager).underlying(), params.requiredUnderlyingAmount)
+                    )
+                })
+            );
         }
 
+        uint256 enabledTokensMask = params.enabledTokensMask;
+        while (enabledTokensMask != 0) {
+            uint256 tokenMask = enabledTokensMask.lsbMask();
+            (expectedOutputs, calls) = _appendTokenWithdrawal(params, tokenMask, expectedOutputs, calls);
+            enabledTokensMask = enabledTokensMask.disable(tokenMask);
+        }
+
+        calls = LiquidationPriceUpdates.prependOnDemandPriceUpdates(params.creditFacade, priceUpdates, calls);
+
         liquidationCall = MultiCall({
-            target: creditFacade,
+            target: params.creditFacade,
             callData: abi.encodeWithSignature(
-                "liquidateCreditAccount(address,address,(address,bytes)[])", creditAccount, liquidator, calls
+                "liquidateCreditAccount(address,address,(address,bytes)[])",
+                params.creditAccount,
+                params.liquidator,
+                calls
             )
         });
     }
 
-    function _nextEnabledTokenCall(
-        address creditFacade,
-        address creditManager,
-        address creditAccount,
-        address liquidator,
-        uint256 enabledTokensMask
-    )
-        internal
-        view
-        returns (LiquidationOutput memory output, MultiCall memory call, uint256 remainingMask)
-    {
-        uint256 tokenMask = enabledTokensMask.lsbMask();
-        address token = ICreditManagerV3(creditManager).getTokenByMask(tokenMask);
-        uint256 amount = IERC20(token).balanceOf(creditAccount);
+    function _appendTokenWithdrawal(
+        StandardLiquidationParams memory params,
+        uint256 tokenMask,
+        LiquidationOutput[] memory expectedOutputs,
+        MultiCall[] memory calls
+    ) internal view returns (LiquidationOutput[] memory, MultiCall[] memory) {
+        address token = ICreditManagerV3(params.creditManager).getTokenByMask(tokenMask);
+        uint256 amount = IERC20(token).balanceOf(params.creditAccount);
 
-        output = LiquidationOutput({
-            token: token,
-            amount: amount,
-            delayed: false,
-            redeemerAddress: address(0),
-            claimableAt: 0
-        });
-        call = MultiCall({
-            target: creditFacade,
-            callData: abi.encodeCall(ICreditFacadeV3Multicall.withdrawCollateral, (token, amount, liquidator))
-        });
-        remainingMask = enabledTokensMask.disable(tokenMask);
+        // CreditFacade.withdrawCollateral reverts on amount == 0; skip dust (<= 1) like Midas.
+        if (amount <= 1) return (expectedOutputs, calls);
+
+        expectedOutputs = expectedOutputs.append(
+            LiquidationOutput({
+                token: token,
+                amount: amount,
+                delayed: false,
+                redeemerAddress: address(0),
+                claimableAt: 0
+            })
+        );
+        calls = calls.append(
+            MultiCall({
+                target: params.creditFacade,
+                callData: abi.encodeCall(
+                    ICreditFacadeV3Multicall.withdrawCollateral, (token, amount, params.liquidator)
+                )
+            })
+        );
+        return (expectedOutputs, calls);
     }
 
     function setSubcompressor(address subcompressor) external onlyOwner {

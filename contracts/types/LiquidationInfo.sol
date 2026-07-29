@@ -21,3 +21,37 @@ struct LiquidationData {
     string kycProtocol;
     address kycToken;
 }
+
+library LiquidationLib {
+    function append(MultiCall[] memory calls, MultiCall memory call)
+        internal
+        pure
+        returns (MultiCall[] memory newCalls)
+    {
+        newCalls = new MultiCall[](calls.length + 1);
+        for (uint256 i; i < calls.length; ++i) {
+            newCalls[i] = calls[i];
+        }
+        newCalls[calls.length] = call;
+    }
+
+    function append(LiquidationOutput[] memory outputs, LiquidationOutput memory output)
+        internal
+        pure
+        returns (LiquidationOutput[] memory newOutputs)
+    {
+        newOutputs = new LiquidationOutput[](outputs.length + 1);
+        for (uint256 i; i < outputs.length; ++i) {
+            newOutputs[i] = outputs[i];
+        }
+        newOutputs[outputs.length] = output;
+    }
+
+    function append(address[] memory items, address item) internal pure returns (address[] memory newItems) {
+        newItems = new address[](items.length + 1);
+        for (uint256 i; i < items.length; ++i) {
+            newItems[i] = items[i];
+        }
+        newItems[items.length] = item;
+    }
+}

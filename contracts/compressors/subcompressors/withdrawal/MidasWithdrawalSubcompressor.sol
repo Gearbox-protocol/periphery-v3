@@ -77,7 +77,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
 
         ClaimableWithdrawal[] memory claimableWithdrawals = _getClaimableWithdrawals(creditAccount, gateway, token, true);
 
-        PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(creditAccount, gateway);
+        PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(creditAccount, gateway, true);
 
         for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
             pendingWithdrawals[i].withdrawalPhantomToken = token;
@@ -94,7 +94,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address gateway = MidasRedemptionVaultPhantomToken(token).gateway();
 
         ClaimableWithdrawal[] memory claimableWithdrawals = _getClaimableWithdrawals(account, gateway, token, false);
-        PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(account, gateway);
+        PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(account, gateway, false);
 
         for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
             pendingWithdrawals[i].withdrawalPhantomToken = token;
@@ -163,7 +163,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         return requestableWithdrawal;
     }
 
-    function _getPendingWithdrawals(address creditAccount, address gateway)
+    function _getPendingWithdrawals(address account, address gateway, bool isCreditAccount)
         internal
         view
         returns (PendingWithdrawal[] memory pendingWithdrawals)
@@ -172,7 +172,9 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
         address quoteToken = MidasGateway(gateway).quoteToken();
         uint256 expectedRedemptionDuration = MidasGateway(gateway).expectedRedemptionDuration();
 
-        address[] memory redeemers = MidasGateway(gateway).pendingRedeemers(creditAccount);
+        address[] memory redeemers = isCreditAccount
+            ? MidasGateway(gateway).pendingRedeemers(account)
+            : MidasGateway(gateway).redeemers(account);
         uint256 nPending = 0;
 
         for (uint256 i = 0; i < redeemers.length; ++i) {
@@ -215,7 +217,9 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
             ? ICreditManagerV3(ICreditAccountV3(account).creditManager()).contractToAdapter(gateway)
             : gateway;
 
-        address[] memory redeemers = MidasGateway(gateway).pendingRedeemers(account);
+        address[] memory redeemers = isCreditAccount
+            ? MidasGateway(gateway).pendingRedeemers(account)
+            : MidasGateway(gateway).redeemers(account);
         uint256 claimableCount = 0;
 
         for (uint256 i = 0; i < redeemers.length; ++i) {

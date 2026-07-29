@@ -15,6 +15,7 @@ import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditF
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
 import {BitMask} from "@gearbox-protocol/core-v3/contracts/libraries/BitMask.sol";
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
+import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 
 import {MidasGateway} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasGateway.sol";
 import {MidasRedeemer} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/MidasRedeemer.sol";
@@ -27,19 +28,20 @@ import {
 import {
     IMidasLiquidator
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/IMidasLiquidator.sol";
-import {
-    MidasMode
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/IMidasGateway.sol";
+import {MidasMode} from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/IMidasGateway.sol";
 import {
     IMidasAccessControl
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/external/IMidasAccessControl.sol";
 
 import {ILiquidationSubcompressor} from "../../../interfaces/ILiquidationSubcompressor.sol";
-import {LiquidationData, LiquidationOutput} from "../../../types/LiquidationInfo.sol";
+import {LiquidationData, LiquidationLib, LiquidationOutput} from "../../../types/LiquidationInfo.sol";
+import {LiquidationPriceUpdates} from "../../../libraries/LiquidationPriceUpdates.sol";
 
 /// @title Midas liquidation subcompressor
 contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
     using BitMask for uint256;
+    using LiquidationLib for MultiCall[];
+    using LiquidationLib for LiquidationOutput[];
 
     uint256 public constant version = 3_13;
     bytes32 public constant contractType = "GLOBAL::MIDAS_LIQ_SC";
@@ -56,21 +58,23 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
         uint256 requiredUnderlyingAmount;
         uint256 enabledTokensMask;
         uint256 claimableTotal;
-        uint256 callIdx;
-        uint256 outputIdx;
         bool quoteTokenHandled;
         address[] redeemers;
         LiquidationOutput[] expectedOutputs;
         MultiCall[] calls;
     }
 
-    function getLiquidationData(address liquidator, address creditAccount, address phantomToken)
-        external
-        view
-        returns (LiquidationData memory data)
-    {
+    function getLiquidationData(
+        address liquidator,
+        address creditAccount,
+        address phantomToken,
+        PriceUpdate[] calldata priceUpdates
+    ) external returns (LiquidationData memory data) {
         address gateway = MidasRedemptionVaultPhantomToken(phantomToken).gateway();
         address creditManager = ICreditAccountV3(creditAccount).creditManager();
+        address creditFacade = ICreditManagerV3(creditManager).creditFacade();
+
+        LiquidationPriceUpdates.applyUpdates(creditFacade, priceUpdates);
 
         data.requiredUnderlyingAmount = _getRequiredUnderlyingAmount(creditAccount, creditManager);
         _setEligibility(data, liquidator, gateway);
@@ -88,14 +92,14 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
         _appendRedeemerCalls(ctx);
         _appendEnabledTokenWithdrawals(ctx);
         _appendClaimableQuoteIfNeeded(ctx);
-        _finalizeArrays(ctx);
+
+        ctx.calls = LiquidationPriceUpdates.prependOnDemandPriceUpdates(creditFacade, priceUpdates, ctx.calls);
 
         data.expectedOutputs = ctx.expectedOutputs;
         data.liquidationCall = MultiCall({
             target: MidasGateway(gateway).transferMaster(),
             callData: abi.encodeCall(
-                IMidasLiquidator.liquidateWithRedeemerTransfers,
-                (creditAccount, gateway, ctx.calls, bytes(""))
+                IMidasLiquidator.liquidateWithRedeemerTransfers, (creditAccount, gateway, ctx.calls, bytes(""))
             )
         });
     }
@@ -105,8 +109,8 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
         view
         returns (uint256)
     {
-        CollateralDebtData memory cdd =
-            ICreditManagerV3(creditManager).calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL);
+        CollateralDebtData memory cdd = ICreditManagerV3(creditManager)
+            .calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL);
         (,, uint16 liquidationDiscount,,) = ICreditManagerV3(creditManager).fees();
         return cdd.totalValue * liquidationDiscount / PERCENTAGE_FACTOR;
     }
@@ -147,39 +151,29 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
         ctx.quoteToken = MidasGateway(gateway).quoteToken();
         ctx.redeemers = MidasGateway(gateway).pendingRedeemers(creditAccount);
         ctx.enabledTokensMask = ICreditManagerV3(creditManager).enabledTokensMaskOf(creditAccount);
-
-        (uint256 pendingCount, uint256 claimableCount, uint256 claimableTotal) = _countRedeemers(ctx.redeemers);
-        ctx.claimableTotal = claimableTotal;
-
-        uint256 enabledCount = ctx.enabledTokensMask.calcEnabledTokens();
-        ctx.expectedOutputs = new LiquidationOutput[](pendingCount + enabledCount + 1);
-        ctx.calls = new MultiCall[](1 + claimableCount + pendingCount + enabledCount + 1);
+        ctx.claimableTotal = _claimableTotal(ctx.redeemers);
+        ctx.expectedOutputs = new LiquidationOutput[](0);
+        ctx.calls = new MultiCall[](0);
     }
 
-    function _countRedeemers(address[] memory redeemers)
-        internal
-        view
-        returns (uint256 pendingCount, uint256 claimableCount, uint256 claimableTotal)
-    {
+    function _claimableTotal(address[] memory redeemers) internal view returns (uint256 claimableTotal) {
         for (uint256 i; i < redeemers.length; ++i) {
-            uint256 pendingAmount = MidasRedeemer(redeemers[i]).pendingTokenOutAmount();
-            uint256 claimableAmount = MidasRedeemer(redeemers[i]).claimableTokenOutAmount();
-            if (pendingAmount > 0) ++pendingCount;
-            if (claimableAmount > 0) {
-                ++claimableCount;
-                claimableTotal += claimableAmount;
-            }
+            claimableTotal += MidasRedeemer(redeemers[i]).claimableTokenOutAmount();
         }
     }
 
     function _appendAddCollateral(LiquidationParams memory ctx) internal view {
-        ctx.calls[ctx.callIdx++] = MultiCall({
-            target: ctx.creditFacade,
-            callData: abi.encodeCall(
-                ICreditFacadeV3Multicall.addCollateral,
-                (ICreditManagerV3(ctx.creditManager).underlying(), ctx.requiredUnderlyingAmount)
-            )
-        });
+        if (ctx.requiredUnderlyingAmount == 0) return;
+
+        ctx.calls = ctx.calls.append(
+            MultiCall({
+                target: ctx.creditFacade,
+                callData: abi.encodeCall(
+                    ICreditFacadeV3Multicall.addCollateral,
+                    (ICreditManagerV3(ctx.creditManager).underlying(), ctx.requiredUnderlyingAmount)
+                )
+            })
+        );
     }
 
     function _appendRedeemerCalls(LiquidationParams memory ctx) internal view {
@@ -190,60 +184,70 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
 
             uint256 claimableAmount = MidasRedeemer(redeemer).claimableTokenOutAmount();
             if (claimableAmount > 0) {
-                ctx.calls[ctx.callIdx++] = MultiCall({
-                    target: ctx.gatewayAdapter,
-                    callData: abi.encodeCall(IMidasGatewayAdapter.withdrawFromRedeemer, (redeemer, claimableAmount))
-                });
+                ctx.calls = ctx.calls.append(
+                    MultiCall({
+                        target: ctx.gatewayAdapter,
+                        callData: abi.encodeCall(IMidasGatewayAdapter.withdrawFromRedeemer, (redeemer, claimableAmount))
+                    })
+                );
             }
 
             uint256 pendingAmount = MidasRedeemer(redeemer).pendingTokenOutAmount();
             if (pendingAmount > 0) {
-                ctx.calls[ctx.callIdx++] = MultiCall({
-                    target: ctx.gatewayAdapter,
-                    callData: abi.encodeCall(IMidasGatewayAdapter.transferRedeemer, (redeemer, ctx.liquidator))
-                });
+                ctx.calls = ctx.calls.append(
+                    MultiCall({
+                        target: ctx.gatewayAdapter,
+                        callData: abi.encodeCall(IMidasGatewayAdapter.transferRedeemer, (redeemer, ctx.liquidator))
+                    })
+                );
 
-                ctx.expectedOutputs[ctx.outputIdx++] = LiquidationOutput({
-                    token: ctx.quoteToken,
-                    amount: pendingAmount,
-                    delayed: true,
-                    redeemerAddress: redeemer,
-                    claimableAt: MidasRedeemer(redeemer).redemptionStartTimestamp() + expectedRedemptionDuration
-                });
+                ctx.expectedOutputs = ctx.expectedOutputs.append(
+                    LiquidationOutput({
+                        token: ctx.quoteToken,
+                        amount: pendingAmount,
+                        delayed: true,
+                        redeemerAddress: redeemer,
+                        claimableAt: MidasRedeemer(redeemer).redemptionStartTimestamp() + expectedRedemptionDuration
+                    })
+                );
             }
         }
     }
 
     function _appendEnabledTokenWithdrawals(LiquidationParams memory ctx) internal view {
         uint256 enabledTokensMask = ctx.enabledTokensMask;
-        uint256 numTokens = enabledTokensMask.calcEnabledTokens();
 
-        for (uint256 i; i < numTokens; ++i) {
+        while (enabledTokensMask != 0) {
             uint256 tokenMask = enabledTokensMask.lsbMask();
             address token = ICreditManagerV3(ctx.creditManager).getTokenByMask(tokenMask);
 
-            if (token == ctx.phantomToken) {
-                enabledTokensMask = enabledTokensMask.disable(tokenMask);
-                continue;
-            }
+            if (token != ctx.phantomToken) {
+                uint256 amount = IERC20(token).balanceOf(ctx.creditAccount);
+                if (token == ctx.quoteToken) {
+                    amount += ctx.claimableTotal;
+                    ctx.quoteTokenHandled = true;
+                }
 
-            uint256 amount = IERC20(token).balanceOf(ctx.creditAccount);
-            if (token == ctx.quoteToken) {
-                amount += ctx.claimableTotal;
-                ctx.quoteTokenHandled = true;
+                if (amount > 1) {
+                    ctx.expectedOutputs = ctx.expectedOutputs.append(
+                        LiquidationOutput({
+                            token: token,
+                            amount: amount,
+                            delayed: false,
+                            redeemerAddress: address(0),
+                            claimableAt: 0
+                        })
+                    );
+                    ctx.calls = ctx.calls.append(
+                        MultiCall({
+                            target: ctx.creditFacade,
+                            callData: abi.encodeCall(
+                                ICreditFacadeV3Multicall.withdrawCollateral, (token, amount, ctx.liquidator)
+                            )
+                        })
+                    );
+                }
             }
-
-            ctx.expectedOutputs[ctx.outputIdx++] = LiquidationOutput({
-                token: token,
-                amount: amount,
-                delayed: false,
-                redeemerAddress: address(0),
-                claimableAt: 0
-            });
-            ctx.calls[ctx.callIdx++] = MultiCall({
-                target: ctx.creditFacade,
-                callData: abi.encodeCall(ICreditFacadeV3Multicall.withdrawCollateral, (token, amount, ctx.liquidator))
-            });
 
             enabledTokensMask = enabledTokensMask.disable(tokenMask);
         }
@@ -252,30 +256,22 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
     function _appendClaimableQuoteIfNeeded(LiquidationParams memory ctx) internal pure {
         if (ctx.claimableTotal == 0 || ctx.quoteTokenHandled) return;
 
-        ctx.expectedOutputs[ctx.outputIdx++] = LiquidationOutput({
-            token: ctx.quoteToken,
-            amount: ctx.claimableTotal,
-            delayed: false,
-            redeemerAddress: address(0),
-            claimableAt: 0
-        });
-        ctx.calls[ctx.callIdx++] = MultiCall({
-            target: ctx.creditFacade,
-            callData: abi.encodeCall(
-                ICreditFacadeV3Multicall.withdrawCollateral, (ctx.quoteToken, ctx.claimableTotal, ctx.liquidator)
-            )
-        });
-    }
-
-    function _finalizeArrays(LiquidationParams memory ctx) internal pure {
-        LiquidationOutput[] memory expectedOutputs = ctx.expectedOutputs;
-        MultiCall[] memory calls = ctx.calls;
-        uint256 outputIdx = ctx.outputIdx;
-        uint256 callIdx = ctx.callIdx;
-
-        assembly {
-            mstore(expectedOutputs, outputIdx)
-            mstore(calls, callIdx)
-        }
+        ctx.expectedOutputs = ctx.expectedOutputs.append(
+            LiquidationOutput({
+                token: ctx.quoteToken,
+                amount: ctx.claimableTotal,
+                delayed: false,
+                redeemerAddress: address(0),
+                claimableAt: 0
+            })
+        );
+        ctx.calls = ctx.calls.append(
+            MultiCall({
+                target: ctx.creditFacade,
+                callData: abi.encodeCall(
+                    ICreditFacadeV3Multicall.withdrawCollateral, (ctx.quoteToken, ctx.claimableTotal, ctx.liquidator)
+                )
+            })
+        );
     }
 }
