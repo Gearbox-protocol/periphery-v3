@@ -187,6 +187,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
                 uint256 startingTimestamp = SecuritizeRedeemer(redeemer).startingTimestamp();
                 pendingWithdrawals[redeemerCount].claimableAt =
                     block.timestamp > startingTimestamp + 90 days ? block.timestamp : startingTimestamp + 90 days;
+                pendingWithdrawals[redeemerCount].redeemer = redeemer;
                 pendingWithdrawals[redeemerCount].extraData = _getRedemptionExtraData(redemptionGateway, redeemer);
                 redeemerCount++;
             }
@@ -237,6 +238,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
             claimableRedeemers[0] = redeemer;
             withdrawals[idx].claimCalls[0] =
                 MultiCall(claimTarget, abi.encodeCall(ISecuritizeRedemptionGateway.claim, (claimableRedeemers)));
+            withdrawals[idx].redeemer = redeemer;
             withdrawals[idx].extraData = _getRedemptionExtraData(redemptionGateway, redeemer);
             idx++;
         }

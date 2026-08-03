@@ -196,6 +196,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
                     WithdrawalOutput(quoteToken, false, pendingTokenOutAmount);
                 pendingWithdrawals[nPending].claimableAt =
                     MidasRedeemer(redeemer).redemptionStartTimestamp() + expectedRedemptionDuration;
+                pendingWithdrawals[nPending].redeemer = redeemer;
                 pendingWithdrawals[nPending].extraData = _getRedemptionExtraData(gateway, redeemer);
                 nPending++;
             }
@@ -245,6 +246,7 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
             withdrawals[idx].claimCalls[0] = MultiCall(
                 claimTarget, abi.encodeCall(IMidasGateway.withdrawFromRedeemer, (redeemer, claimableAmount))
             );
+            withdrawals[idx].redeemer = redeemer;
             withdrawals[idx].extraData = _getRedemptionExtraData(gateway, redeemer);
             idx++;
         }
