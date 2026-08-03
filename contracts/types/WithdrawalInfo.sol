@@ -33,6 +33,7 @@ struct ClaimableWithdrawal {
     uint256 withdrawalTokenSpent;
     WithdrawalOutput[] outputs;
     MultiCall[] claimCalls;
+    address redeemer;
     bytes extraData;
 }
 
@@ -41,6 +42,7 @@ struct PendingWithdrawal {
     address withdrawalPhantomToken;
     WithdrawalOutput[] expectedOutputs;
     uint256 claimableAt;
+    address redeemer;
     bytes extraData;
 }
 

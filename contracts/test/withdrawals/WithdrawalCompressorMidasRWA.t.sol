@@ -50,6 +50,11 @@ import {
     IMidasAccessControl
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/external/IMidasAccessControl.sol";
 
+import {LiquidationCompressor} from "../../compressors/LiquidationCompressor.sol";
+import {
+    MidasLiquidationSubcompressor
+} from "../../compressors/subcompressors/liquidation/MidasLiquidationSubcompressor.sol";
+
 import {
     WithdrawalLib,
     WithdrawalOutput,
@@ -58,6 +63,8 @@ import {
     ClaimableWithdrawal,
     PendingWithdrawal
 } from "../../types/WithdrawalInfo.sol";
+
+import {LiquidationData} from "../../types/LiquidationInfo.sol";
 
 interface IMidasDataFeed {
     function getDataInBase18() external view returns (uint256);
@@ -87,6 +94,9 @@ contract WithdrawalCompressorTest is Test {
     WithdrawalCompressor public wc;
     MidasWithdrawalSubcompressor public mwsc;
 
+    LiquidationCompressor public lc;
+    MidasLiquidationSubcompressor public mls;
+
     address public midasLiquidator;
 
     address public creditManager;
@@ -107,6 +117,12 @@ contract WithdrawalCompressorTest is Test {
 
         wc.setSubcompressor(address(mwsc));
         wc.setWithdrawableTypeToCompressorType("PHANTOM_TOKEN::MIDAS_REDEMPTION", "GLOBAL::MIDAS_WD_SC");
+
+        lc = new LiquidationCompressor(address(this), addressProvider);
+        mls = new MidasLiquidationSubcompressor();
+
+        lc.setSubcompressor(address(mls));
+        lc.setLiquidatableTypeToCompressorType("PHANTOM_TOKEN::MIDAS_REDEMPTION", "GLOBAL::MIDAS_LIQ_SC");
 
         address[] memory allowedAdapters = ICreditConfiguratorV3(creditConfigurator).allowedAdapters();
 
@@ -227,33 +243,13 @@ contract WithdrawalCompressorTest is Test {
                 ICreditConfiguratorV3(creditConfigurator).setLiquidationThreshold(withdrawalToken, 0);
             }
 
-            uint256 underlyingAmount;
-
-            {
-                CollateralDebtData memory cdd = ICreditManagerV3(creditManager)
-                    .calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL);
-
-                (,, uint16 liquidationDiscount,,) = ICreditManagerV3(creditManager).fees();
-
-                underlyingAmount = cdd.totalValue * liquidationDiscount / 10000;
-            }
-
             address gateway = MidasRedemptionVaultPhantomToken(withdrawalToken).gateway();
-            address gatewayAdapter = ICreditManagerV3(creditManager).contractToAdapter(gateway);
-            address redeemer = MidasGateway(gateway).pendingRedeemers(creditAccount)[0];
 
-            MultiCall[] memory calls = new MultiCall[](2);
-            calls[0] = MultiCall({
-                target: creditFacade,
-                callData: abi.encodeCall(ICreditFacadeV3Multicall.addCollateral, (underlying, underlyingAmount))
-            });
-            calls[1] = MultiCall({
-                target: gatewayAdapter,
-                callData: abi.encodeCall(IMidasGatewayAdapter.transferRedeemer, (redeemer, user))
-            });
+            LiquidationData memory liquidationData =
+                lc.getLiquidationData(user, creditAccount, new PriceUpdate[](0));
 
             vm.prank(user);
-            MidasLiquidator(midasLiquidator).liquidateWithRedeemerTransfers(creditAccount, gateway, calls, "");
+            liquidationData.liquidationCall.target.call(liquidationData.liquidationCall.callData);
 
             MidasGateway(gateway).pendingRedeemers(creditAccount);
             MidasGateway(gateway).pendingRedeemers(user);
@@ -267,7 +263,7 @@ contract WithdrawalCompressorTest is Test {
                 address target = claimableWithdrawals[j].claimCalls[0].target;
                 bytes memory callData = claimableWithdrawals[j].claimCalls[0].callData;
                 vm.prank(user);
-                (bool success,) = target.call(callData);
+                target.call(callData);
             }
 
             MidasGateway(gateway).pendingRedeemers(user);

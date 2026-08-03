@@ -73,7 +73,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
             _getClaimableWithdrawals(creditAccount, token, securitizeRedemptionGateway, true);
 
         PendingWithdrawal[] memory pendingWithdrawals =
-            _getPendingWithdrawals(creditAccount, securitizeRedemptionGateway);
+            _getPendingWithdrawals(creditAccount, securitizeRedemptionGateway, true);
 
         for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
             pendingWithdrawals[i].withdrawalPhantomToken = token;
@@ -92,7 +92,8 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
         ClaimableWithdrawal[] memory claimableWithdrawals =
             _getClaimableWithdrawals(account, token, securitizeRedemptionGateway, false);
 
-        PendingWithdrawal[] memory pendingWithdrawals = _getPendingWithdrawals(account, securitizeRedemptionGateway);
+        PendingWithdrawal[] memory pendingWithdrawals =
+            _getPendingWithdrawals(account, securitizeRedemptionGateway, false);
 
         for (uint256 i = 0; i < pendingWithdrawals.length; ++i) {
             pendingWithdrawals[i].withdrawalPhantomToken = token;
@@ -151,7 +152,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
         return requestableWithdrawal;
     }
 
-    function _getPendingWithdrawals(address creditAccount, address redemptionGateway)
+    function _getPendingWithdrawals(address account, address redemptionGateway, bool isCreditAccount)
         internal
         view
         returns (PendingWithdrawal[] memory pendingWithdrawals)
@@ -159,8 +160,9 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
         address stableCoinToken = ISecuritizeRedemptionGateway(redemptionGateway).stableCoinToken();
         address dsToken = ISecuritizeRedemptionGateway(redemptionGateway).dsToken();
 
-        address[] memory redeemers =
-            ISecuritizeRedemptionGateway(redemptionGateway).getUnclaimedRedeemers(creditAccount);
+        address[] memory redeemers = isCreditAccount
+            ? ISecuritizeRedemptionGateway(redemptionGateway).getUnclaimedRedeemers(account)
+            : ISecuritizeRedemptionGateway(redemptionGateway).getRedeemers(account);
 
         uint256 redeemerCount = 0;
 
@@ -185,6 +187,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
                 uint256 startingTimestamp = SecuritizeRedeemer(redeemer).startingTimestamp();
                 pendingWithdrawals[redeemerCount].claimableAt =
                     block.timestamp > startingTimestamp + 90 days ? block.timestamp : startingTimestamp + 90 days;
+                pendingWithdrawals[redeemerCount].redeemer = redeemer;
                 pendingWithdrawals[redeemerCount].extraData = _getRedemptionExtraData(redemptionGateway, redeemer);
                 redeemerCount++;
             }
@@ -235,6 +238,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
             claimableRedeemers[0] = redeemer;
             withdrawals[idx].claimCalls[0] =
                 MultiCall(claimTarget, abi.encodeCall(ISecuritizeRedemptionGateway.claim, (claimableRedeemers)));
+            withdrawals[idx].redeemer = redeemer;
             withdrawals[idx].extraData = _getRedemptionExtraData(redemptionGateway, redeemer);
             idx++;
         }
