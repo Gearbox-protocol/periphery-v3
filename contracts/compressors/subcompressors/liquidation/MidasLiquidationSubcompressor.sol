@@ -55,7 +55,7 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
         address gatewayAdapter;
         address quoteToken;
         address phantomToken;
-        uint256 requiredUnderlyingAmount;
+        uint256 requiredAmount;
         uint256 enabledTokensMask;
         uint256 claimableTotal;
         bool quoteTokenHandled;
@@ -76,7 +76,9 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
 
         LiquidationPriceUpdates.applyUpdates(creditFacade, priceUpdates);
 
-        data.requiredUnderlyingAmount = _getRequiredUnderlyingAmount(creditAccount, creditManager);
+        data.requiredToken = ICreditManagerV3(creditManager).underlying();
+        data.requiredAmount = _getRequiredAmount(creditAccount, creditManager);
+        data.isCreditAccountFrozen = false;
         _setEligibility(data, liquidator, gateway);
 
         LiquidationParams memory ctx = _initContext({
@@ -85,7 +87,7 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
             creditManager: creditManager,
             gateway: gateway,
             phantomToken: phantomToken,
-            requiredUnderlyingAmount: data.requiredUnderlyingAmount
+            requiredAmount: data.requiredAmount
         });
 
         _appendAddCollateral(ctx);
@@ -104,11 +106,7 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
         });
     }
 
-    function _getRequiredUnderlyingAmount(address creditAccount, address creditManager)
-        internal
-        view
-        returns (uint256)
-    {
+    function _getRequiredAmount(address creditAccount, address creditManager) internal view returns (uint256) {
         CollateralDebtData memory cdd = ICreditManagerV3(creditManager)
             .calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL);
         (,, uint16 liquidationDiscount,,) = ICreditManagerV3(creditManager).fees();
@@ -137,14 +135,14 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
         address creditManager,
         address gateway,
         address phantomToken,
-        uint256 requiredUnderlyingAmount
+        uint256 requiredAmount
     ) internal view returns (LiquidationParams memory ctx) {
         ctx.liquidator = liquidator;
         ctx.creditAccount = creditAccount;
         ctx.creditManager = creditManager;
         ctx.gateway = gateway;
         ctx.phantomToken = phantomToken;
-        ctx.requiredUnderlyingAmount = requiredUnderlyingAmount;
+        ctx.requiredAmount = requiredAmount;
 
         ctx.creditFacade = ICreditManagerV3(creditManager).creditFacade();
         ctx.gatewayAdapter = ICreditManagerV3(creditManager).contractToAdapter(gateway);
@@ -163,14 +161,14 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
     }
 
     function _appendAddCollateral(LiquidationParams memory ctx) internal view {
-        if (ctx.requiredUnderlyingAmount == 0) return;
+        if (ctx.requiredAmount == 0) return;
 
         ctx.calls = ctx.calls.append(
             MultiCall({
                 target: ctx.creditFacade,
                 callData: abi.encodeCall(
                     ICreditFacadeV3Multicall.addCollateral,
-                    (ICreditManagerV3(ctx.creditManager).underlying(), ctx.requiredUnderlyingAmount)
+                    (ICreditManagerV3(ctx.creditManager).underlying(), ctx.requiredAmount)
                 )
             })
         );

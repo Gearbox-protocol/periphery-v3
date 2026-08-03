@@ -42,7 +42,7 @@ struct StandardLiquidationParams {
     address creditManager;
     address creditFacade;
     uint256 enabledTokensMask;
-    uint256 requiredUnderlyingAmount;
+    uint256 requiredAmount;
 }
 
 contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompressor {
@@ -110,11 +110,13 @@ contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompresso
                 .calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL);
             (,, uint16 liquidationDiscount,,) = ICreditManagerV3(creditManager).fees();
 
-            data.requiredUnderlyingAmount = cdd.totalValue * liquidationDiscount / PERCENTAGE_FACTOR;
+            data.requiredToken = ICreditManagerV3(creditManager).underlying();
+            data.requiredAmount = cdd.totalValue * liquidationDiscount / PERCENTAGE_FACTOR;
             enabledTokensMask = cdd.enabledTokensMask;
         }
 
         data.isLiquidatorEligible = true;
+        data.isCreditAccountFrozen = false;
         data.kycProtocol = "";
         data.kycToken = address(0);
 
@@ -124,7 +126,7 @@ contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompresso
             creditManager: creditManager,
             creditFacade: ICreditManagerV3(creditManager).creditFacade(),
             enabledTokensMask: enabledTokensMask,
-            requiredUnderlyingAmount: data.requiredUnderlyingAmount
+            requiredAmount: data.requiredAmount
         });
         (data.expectedOutputs, data.liquidationCall) = _buildStandardLiquidationCall(params, priceUpdates);
     }
@@ -137,13 +139,13 @@ contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompresso
         MultiCall[] memory calls = new MultiCall[](0);
 
         // CreditFacade reverts on addCollateral(0).
-        if (params.requiredUnderlyingAmount > 0) {
+        if (params.requiredAmount > 0) {
             calls = calls.append(
                 MultiCall({
                     target: params.creditFacade,
                     callData: abi.encodeCall(
                         ICreditFacadeV3Multicall.addCollateral,
-                        (ICreditManagerV3(params.creditManager).underlying(), params.requiredUnderlyingAmount)
+                        (ICreditManagerV3(params.creditManager).underlying(), params.requiredAmount)
                     )
                 })
             );

@@ -14,10 +14,12 @@ struct LiquidationOutput {
 }
 
 struct LiquidationData {
-    uint256 requiredUnderlyingAmount;
+    address requiredToken;
+    uint256 requiredAmount;
     LiquidationOutput[] expectedOutputs;
     MultiCall liquidationCall;
     bool isLiquidatorEligible;
+    bool isCreditAccountFrozen;
     string kycProtocol;
     address kycToken;
 }

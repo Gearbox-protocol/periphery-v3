@@ -20,7 +20,7 @@
   "lib/@gearbox-protocol/integrations-v3": {
     "tag": {
       "name": "v1.55.0",
-      "rev": "1a607b9f4c7e99c4fddc546dfe20f590ae50c437"
+      "rev": "aede3910f23cd0acf39fc265d6898b3c59629177"
     }
   },
   "lib/@gearbox-protocol/oracles-v3": {

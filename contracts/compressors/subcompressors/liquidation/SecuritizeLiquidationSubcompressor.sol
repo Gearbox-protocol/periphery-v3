@@ -12,6 +12,7 @@ import {
 } from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
+import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
 import {PriceUpdate} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeedStore.sol";
 import {IPriceOracleV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPriceOracleV3.sol";
 import {CreditLogic} from "@gearbox-protocol/core-v3/contracts/libraries/CreditLogic.sol";
@@ -37,6 +38,8 @@ import {
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/ISecuritizeLiquidator.sol";
 
 import {ILiquidationSubcompressor} from "../../../interfaces/ILiquidationSubcompressor.sol";
+import {ISecuritizeWallet} from "../../../interfaces/ISecuritizeWallet.sol";
+import {IRWAFactory} from "../../../interfaces/base/IRWAFactory.sol";
 import {LiquidationData, LiquidationLib, LiquidationOutput} from "../../../types/LiquidationInfo.sol";
 import {LiquidationPriceUpdates} from "../../../libraries/LiquidationPriceUpdates.sol";
 
@@ -67,9 +70,10 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
         address stableCoinToken;
         address dsToken;
         address phantomToken;
-        uint256 requiredUnderlyingAmount;
+        uint256 requiredAmount;
         uint256 totalValue;
         uint16 liquidationDiscount;
+        bool isCreditAccountFrozen;
         address[] redeemers;
         PriceUpdate[] priceUpdates;
     }
@@ -95,7 +99,7 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
             return _buildStablecoinPath(ctx);
         }
 
-        ctx.requiredUnderlyingAmount = collateralValue * ctx.liquidationDiscount / PERCENTAGE_FACTOR;
+        ctx.requiredAmount = collateralValue * ctx.liquidationDiscount / PERCENTAGE_FACTOR;
         return _buildPendingRedemptionPath(ctx);
     }
 
@@ -123,6 +127,10 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
         ctx.priceUpdates = priceUpdates;
 
         (,, ctx.liquidationDiscount,,) = ICreditManagerV3(creditManager).fees();
+
+        address wallet = ICreditManagerV3(creditManager).getBorrowerOrRevert(creditAccount);
+        address factory = ISecuritizeWallet(wallet).getFactory();
+        ctx.isCreditAccountFrozen = IRWAFactory(factory).isFrozen(creditAccount);
     }
 
     function _calcCollateralAndLiquidityValues(LiquidationParams memory ctx)
@@ -146,33 +154,35 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
         collateralValue += IPriceOracleV3(priceOracle).convert(dsTokenBalance, ctx.dsToken, ctx.underlying);
     }
 
-    /// @dev Path A: claim claimable stablecoins, wrap to underlying, liquidate via CreditFacade with zero capital.
+    /// @dev Path A: claim claimable stablecoins, ensure premium is available in stablecoins (unwrapping
+    ///      underlying if needed), wrap the remainder, and withdraw the premium as stablecoins.
     function _buildStablecoinPath(LiquidationParams memory ctx) internal view returns (LiquidationData memory data) {
-        data.requiredUnderlyingAmount = 0;
+        data.requiredToken = address(0);
+        data.requiredAmount = 0;
         data.isLiquidatorEligible = true;
+        data.isCreditAccountFrozen = ctx.isCreditAccountFrozen;
 
         // Liquidator profit ≈ totalValue * liquidationPremium (= totalValue - discounted totalValue).
         uint256 premiumAmount = ctx.totalValue - ctx.totalValue * ctx.liquidationDiscount / PERCENTAGE_FACTOR;
 
+        address[] memory redeemersToClaim = _claimableRedeemers(ctx);
+        uint256 stableCoinBalance = IERC20(ctx.stableCoinToken).balanceOf(ctx.creditAccount);
+        uint256 stableAfterClaim = stableCoinBalance + _claimableStablecoinAmount(redeemersToClaim, ctx.stableCoinToken);
+        uint256 stablecoinShortfall =
+            premiumAmount > stableAfterClaim ? premiumAmount - stableAfterClaim : 0;
+
         data.expectedOutputs = new LiquidationOutput[](0);
-        data.expectedOutputs = data.expectedOutputs
-            .append(
+        if (premiumAmount > 0) {
+            data.expectedOutputs = data.expectedOutputs.append(
                 LiquidationOutput({
-                    token: ctx.underlying,
+                    token: ctx.stableCoinToken,
                     amount: premiumAmount,
                     delayed: false,
                     redeemerAddress: address(0),
                     claimableAt: 0
                 })
             );
-
-        address[] memory redeemersToClaim = _claimableRedeemers(ctx);
-        uint256 stableCoinBalance = IERC20(ctx.stableCoinToken).balanceOf(ctx.creditAccount);
-
-        // Avoid RemainingTokenBalanceIncreasedException: depositDiff leftover must be <= pre-multicall balance.
-        // If CA starts with 0 stablecoin, leftover must be 0 after claiming into it.
-        uint256 depositLeftover = stableCoinBalance > 0 ? 1 : 0;
-        bool shouldDeposit = redeemersToClaim.length > 0 || stableCoinBalance > depositLeftover;
+        }
 
         MultiCall[] memory calls = new MultiCall[](0);
 
@@ -184,11 +194,32 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
                 })
             );
         }
-        if (shouldDeposit) {
+        if (stablecoinShortfall > 0) {
+            // Convert underlying vault shares to stablecoins to cover the premium.
             calls = calls.append(
                 MultiCall({
                     target: ctx.underlyingAdapter,
-                    callData: abi.encodeCall(IERC4626Adapter.depositDiff, (depositLeftover))
+                    callData: abi.encodeCall(IERC4626Adapter.withdraw, (stablecoinShortfall, address(0), address(0)))
+                })
+            );
+        }
+        if (stableAfterClaim > premiumAmount) {
+            // Wrap excess stablecoins into underlying for debt repayment; leave premium for withdrawal.
+            calls = calls.append(
+                MultiCall({
+                    target: ctx.underlyingAdapter,
+                    callData: abi.encodeCall(IERC4626Adapter.depositDiff, (premiumAmount))
+                })
+            );
+        }
+        if (premiumAmount > 0) {
+            calls = calls.append(
+                MultiCall({
+                    target: ctx.creditFacade,
+                    callData: abi.encodeCall(
+                        ICreditFacadeV3Multicall.withdrawCollateral,
+                        (ctx.stableCoinToken, premiumAmount, ctx.liquidator)
+                    )
                 })
             );
         }
@@ -198,48 +229,51 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
         data.liquidationCall = MultiCall({
             target: ctx.creditFacade,
             callData: abi.encodeWithSignature(
-                "liquidateCreditAccount(address,address,(address,bytes)[])", ctx.creditAccount, ctx.liquidator, calls
+                "liquidateCreditAccount(address,address,(address,bytes)[])",
+                ctx.creditAccount,
+                ctx.liquidator,
+                calls
             )
         });
     }
 
-    /// @dev Path B: liquidate via SecuritizeLiquidator (redeemer transfers + DS withdraw built on-chain).
+    /// @dev Path B: liquidate via SecuritizeLiquidator (liquidator pays stablecoins that get wrapped on-chain).
     function _buildPendingRedemptionPath(LiquidationParams memory ctx)
         internal
         view
         returns (LiquidationData memory data)
     {
-        data.requiredUnderlyingAmount = ctx.requiredUnderlyingAmount;
+        data.requiredToken = ctx.stableCoinToken;
+        data.requiredAmount = ctx.requiredAmount;
+        data.isCreditAccountFrozen = ctx.isCreditAccountFrozen;
         _setEligibility(data, ctx);
 
         data.expectedOutputs = new LiquidationOutput[](0);
 
         for (uint256 i; i < ctx.redeemers.length; ++i) {
             address redeemer = ctx.redeemers[i];
-            data.expectedOutputs = data.expectedOutputs
-                .append(
-                    LiquidationOutput({
-                        token: ctx.stableCoinToken,
-                        amount: _redeemerOutputAmount(redeemer, ctx.stableCoinToken),
-                        delayed: true,
-                        redeemerAddress: redeemer,
-                        claimableAt: _claimableAt(redeemer)
-                    })
-                );
+            data.expectedOutputs = data.expectedOutputs.append(
+                LiquidationOutput({
+                    token: ctx.stableCoinToken,
+                    amount: _redeemerOutputAmount(redeemer, ctx.stableCoinToken),
+                    delayed: true,
+                    redeemerAddress: redeemer,
+                    claimableAt: _claimableAt(redeemer)
+                })
+            );
         }
 
         uint256 dsTokenBalance = IERC20(ctx.dsToken).balanceOf(ctx.creditAccount);
         if (dsTokenBalance > 0) {
-            data.expectedOutputs = data.expectedOutputs
-                .append(
-                    LiquidationOutput({
-                        token: ctx.dsToken,
-                        amount: dsTokenBalance,
-                        delayed: false,
-                        redeemerAddress: address(0),
-                        claimableAt: 0
-                    })
-                );
+            data.expectedOutputs = data.expectedOutputs.append(
+                LiquidationOutput({
+                    token: ctx.dsToken,
+                    amount: dsTokenBalance,
+                    delayed: false,
+                    redeemerAddress: address(0),
+                    claimableAt: 0
+                })
+            );
         }
 
         data.liquidationCall = MultiCall({
@@ -268,6 +302,16 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
             if (IERC20(ctx.stableCoinToken).balanceOf(ctx.redeemers[i]) > 0) {
                 result = result.append(ctx.redeemers[i]);
             }
+        }
+    }
+
+    function _claimableStablecoinAmount(address[] memory redeemers, address stableCoinToken)
+        internal
+        view
+        returns (uint256 amount)
+    {
+        for (uint256 i; i < redeemers.length; ++i) {
+            amount += IERC20(stableCoinToken).balanceOf(redeemers[i]);
         }
     }
 
