@@ -194,6 +194,7 @@ contract SecuritizeAttachHelper is AttachBase {
                 liquidator,
                 dsToken.navProvider,
                 registryService,
+                marketConfigurator,
                 addressProvider
             )
         );
