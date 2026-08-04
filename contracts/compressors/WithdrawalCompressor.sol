@@ -128,7 +128,7 @@ contract WithdrawalCompressor is BaseCompressor, Ownable {
     {
         ClaimableWithdrawal[] memory claimableWithdrawals = new ClaimableWithdrawal[](0);
         PendingWithdrawal[] memory pendingWithdrawals = new PendingWithdrawal[](0);
-        
+
         for (uint256 i = 0; i < withdrawalTokens.length; i++) {
             address compressor = _getCompressorForToken(withdrawalTokens[i]);
             if (compressor == address(0)) {

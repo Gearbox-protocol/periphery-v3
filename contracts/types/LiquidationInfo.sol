@@ -24,6 +24,12 @@ struct LiquidationData {
     address kycToken;
 }
 
+struct RWALiquidatorInfo {
+    address gateway;
+    address liquidatorAddress;
+    bytes32 contractType;
+}
+
 library LiquidationLib {
     function append(MultiCall[] memory calls, MultiCall memory call)
         internal

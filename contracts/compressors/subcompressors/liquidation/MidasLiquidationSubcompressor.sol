@@ -34,8 +34,9 @@ import {
 } from "@gearbox-protocol/integrations-v3/contracts/integrations/midas/interfaces/external/IMidasAccessControl.sol";
 
 import {ILiquidationSubcompressor} from "../../../interfaces/ILiquidationSubcompressor.sol";
-import {LiquidationData, LiquidationLib, LiquidationOutput} from "../../../types/LiquidationInfo.sol";
+import {LiquidationData, LiquidationLib, LiquidationOutput, RWALiquidatorInfo} from "../../../types/LiquidationInfo.sol";
 import {LiquidationPriceUpdates} from "../../../libraries/LiquidationPriceUpdates.sol";
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
 /// @title Midas liquidation subcompressor
 contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
@@ -103,7 +104,15 @@ contract MidasLiquidationSubcompressor is ILiquidationSubcompressor {
             callData: abi.encodeCall(
                 IMidasLiquidator.liquidateWithRedeemerTransfers, (creditAccount, gateway, ctx.calls, bytes(""))
             )
-        });
+        }        );
+    }
+
+    function getRWALiquidatorInfo(address token) external view returns (RWALiquidatorInfo memory info) {
+        address gateway = MidasRedemptionVaultPhantomToken(token).gateway();
+        address liquidator = MidasGateway(gateway).transferMaster();
+        info.gateway = gateway;
+        info.liquidatorAddress = liquidator;
+        info.contractType = IVersion(liquidator).contractType();
     }
 
     function _getRequiredAmount(address creditAccount, address creditManager) internal view returns (uint256) {

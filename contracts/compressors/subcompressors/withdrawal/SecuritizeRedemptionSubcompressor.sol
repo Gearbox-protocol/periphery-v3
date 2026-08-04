@@ -209,7 +209,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
         uint256 claimableCount = 0;
 
         for (uint256 i = 0; i < redeemers.length; i++) {
-            if (_isClaimableRedeemer(redeemers[i], stableCoinToken)) claimableCount++;
+            if (_isRedeemerClaimable(redeemers[i], stableCoinToken)) claimableCount++;
         }
 
         withdrawals = new ClaimableWithdrawal[](claimableCount);
@@ -223,7 +223,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
 
         for (uint256 i = 0; i < redeemers.length; i++) {
             address redeemer = redeemers[i];
-            if (!_isClaimableRedeemer(redeemer, stableCoinToken)) continue;
+            if (!_isRedeemerClaimable(redeemer, stableCoinToken)) continue;
 
             uint256 stableCoinAmount = IERC20(stableCoinToken).balanceOf(redeemer);
 
@@ -246,7 +246,7 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
 
     function getWithdrawalStatus(address redeemer) external view returns (WithdrawalStatus) {
         address stableCoinToken = SecuritizeRedeemer(redeemer).stableCoinToken();
-        if (_isClaimableRedeemer(redeemer, stableCoinToken)) return WithdrawalStatus.CLAIMABLE;
+        if (_isRedeemerClaimable(redeemer, stableCoinToken)) return WithdrawalStatus.CLAIMABLE;
         if (SecuritizeRedeemer(redeemer).pendingDsTokenAmount() > 0) return WithdrawalStatus.PENDING;
 
         return WithdrawalStatus.CLAIMED;
@@ -255,12 +255,6 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
     function _isSecuritizeRedeemer(address redeemer) internal view returns (bool) {
         (bool success, bytes memory data) = redeemer.staticcall(abi.encodeWithSignature("gateway()"));
         return success && data.length == 32 && abi.decode(data, (address)) != address(0);
-    }
-
-    function _isClaimableRedeemer(address redeemer, address stableCoinToken) internal view returns (bool) {
-        return _isRedeemerClaimable(redeemer, stableCoinToken)
-            || (SecuritizeRedeemer(redeemer).pendingDsTokenAmount() == 0
-                && IERC20(stableCoinToken).balanceOf(redeemer) > 1);
     }
 
     function _getRedemptionExtraData(address redemptionGateway, address redeemer)
@@ -290,6 +284,6 @@ contract SecuritizeRedemptionSubcompressor is IWithdrawalSubcompressor {
     function _isRedeemerClaimable(address redeemer, address stableCoinToken) internal view returns (bool) {
         uint256 actualAmount = IERC20(stableCoinToken).balanceOf(redeemer);
         uint256 minimumAmount = SecuritizeRedeemer(redeemer).getRedemptionAmount();
-        return actualAmount >= minimumAmount;
+        return actualAmount > 0 && actualAmount >= minimumAmount;
     }
 }

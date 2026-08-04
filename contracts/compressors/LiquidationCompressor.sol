@@ -21,10 +21,13 @@ import {BitMask} from "@gearbox-protocol/core-v3/contracts/libraries/BitMask.sol
 import {OptionalCall} from "@gearbox-protocol/core-v3/contracts/libraries/OptionalCall.sol";
 import {PERCENTAGE_FACTOR} from "@gearbox-protocol/core-v3/contracts/libraries/Constants.sol";
 
+import {IContractsRegister} from "@gearbox-protocol/permissionless/contracts/interfaces/IContractsRegister.sol";
+import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
+
 import {BaseCompressor} from "./BaseCompressor.sol";
 import {ILiquidationSubcompressor} from "../interfaces/ILiquidationSubcompressor.sol";
 import {ILiquidationCompressor} from "../interfaces/ILiquidationCompressor.sol";
-import {LiquidationData, LiquidationLib, LiquidationOutput} from "../types/LiquidationInfo.sol";
+import {LiquidationData, LiquidationLib, LiquidationOutput, RWALiquidatorInfo} from "../types/LiquidationInfo.sol";
 import {LiquidationPriceUpdates} from "../libraries/LiquidationPriceUpdates.sol";
 
 import {AP_LIQUIDATION_COMPRESSOR} from "../libraries/Literals.sol";
@@ -201,6 +204,42 @@ contract LiquidationCompressor is BaseCompressor, Ownable, ILiquidationCompresso
             })
         );
         return (expectedOutputs, calls);
+    }
+
+    /// @notice Returns gateway / liquidator / liquidator contractType for each CM in `marketConfigurator`
+    ///         that has an RWA phantom token with a registered liquidation subcompressor.
+    /// @dev Assumes each credit manager has at most one such phantom token.
+    function getRWALiquidators(address marketConfigurator)
+        external
+        view
+        returns (RWALiquidatorInfo[] memory liquidators)
+    {
+        address contractsRegister = IMarketConfigurator(marketConfigurator).contractsRegister();
+        address[] memory creditManagers = IContractsRegister(contractsRegister).getCreditManagers();
+
+        liquidators = new RWALiquidatorInfo[](creditManagers.length);
+        uint256 count;
+
+        for (uint256 i; i < creditManagers.length; ++i) {
+            address creditManager = creditManagers[i];
+            uint256 collateralTokensCount = ICreditManagerV3(creditManager).collateralTokensCount();
+
+            for (uint256 j; j < collateralTokensCount; ++j) {
+                address token = ICreditManagerV3(creditManager).getTokenByMask(1 << j);
+                address compressor = _getCompressorForToken(token);
+                if (compressor == address(0)) continue;
+
+                RWALiquidatorInfo memory info = ILiquidationSubcompressor(compressor).getRWALiquidatorInfo(token);
+                if (info.liquidatorAddress == address(0)) continue;
+
+                liquidators[count++] = info;
+                break;
+            }
+        }
+
+        assembly {
+            mstore(liquidators, count)
+        }
     }
 
     function setSubcompressor(address subcompressor) external onlyOwner {

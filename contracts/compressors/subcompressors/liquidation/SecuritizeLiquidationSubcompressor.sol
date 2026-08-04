@@ -40,8 +40,9 @@ import {
 import {ILiquidationSubcompressor} from "../../../interfaces/ILiquidationSubcompressor.sol";
 import {ISecuritizeWallet} from "../../../interfaces/ISecuritizeWallet.sol";
 import {IRWAFactory} from "../../../interfaces/base/IRWAFactory.sol";
-import {LiquidationData, LiquidationLib, LiquidationOutput} from "../../../types/LiquidationInfo.sol";
+import {LiquidationData, LiquidationLib, LiquidationOutput, RWALiquidatorInfo} from "../../../types/LiquidationInfo.sol";
 import {LiquidationPriceUpdates} from "../../../libraries/LiquidationPriceUpdates.sol";
+import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 
 /// @title Securitize liquidation subcompressor
 /// @notice Builds liquidation preview data for Securitize redemption phantom tokens.
@@ -294,6 +295,14 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
             data.kycProtocol = "securitize";
             data.kycToken = ctx.dsToken;
         }
+    }
+
+    function getRWALiquidatorInfo(address token) external view returns (RWALiquidatorInfo memory info) {
+        address gateway = SecuritizeRedemptionPhantomToken(token).redemptionGateway();
+        address liquidator = ISecuritizeRedemptionGateway(gateway).transferMaster();
+        info.gateway = gateway;
+        info.liquidatorAddress = liquidator;
+        info.contractType = IVersion(liquidator).contractType();
     }
 
     function _claimableRedeemers(LiquidationParams memory ctx) internal view returns (address[] memory result) {
