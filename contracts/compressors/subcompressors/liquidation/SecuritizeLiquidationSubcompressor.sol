@@ -88,11 +88,12 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
         LiquidationParams memory ctx = _initContext(liquidator, creditAccount, phantomToken, priceUpdates);
         LiquidationPriceUpdates.applyUpdates(ctx.creditFacade, priceUpdates);
 
-        (uint256 collateralValue, uint256 liquidityAmount) = _calcCollateralAndLiquidityValues(ctx);
-
         CollateralDebtData memory cdd = ICreditManagerV3(ctx.creditManager)
             .calcDebtAndCollateral(creditAccount, CollateralCalcTask.DEBT_COLLATERAL);
         ctx.totalValue = cdd.totalValue;
+        ctx.liquidationDiscount = _getLiquidationDiscount(ctx.creditManager, cdd);
+
+        (uint256 collateralValue, uint256 liquidityAmount) = _calcCollateralAndLiquidityValues(ctx);
 
         bool enoughLiquidity = liquidityAmount * ctx.liquidationDiscount >= cdd.calcTotalDebt() * PERCENTAGE_FACTOR;
 
@@ -127,11 +128,18 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
         ctx.redeemers = ISecuritizeRedemptionGateway(gateway).getUnclaimedRedeemers(creditAccount);
         ctx.priceUpdates = priceUpdates;
 
-        (,, ctx.liquidationDiscount,,) = ICreditManagerV3(creditManager).fees();
-
         address wallet = ICreditManagerV3(creditManager).getBorrowerOrRevert(creditAccount);
         address factory = ISecuritizeWallet(wallet).getFactory();
         ctx.isCreditAccountFrozen = IRWAFactory(factory).isFrozen(creditAccount);
+    }
+
+    function _getLiquidationDiscount(address creditManager, CollateralDebtData memory cdd)
+        internal
+        view
+        returns (uint16)
+    {
+        (,, uint16 liquidationDiscount,, uint16 liquidationDiscountExpired) = ICreditManagerV3(creditManager).fees();
+        return cdd.totalDebtUSD > cdd.twvUSD ? liquidationDiscount : liquidationDiscountExpired;
     }
 
     function _calcCollateralAndLiquidityValues(LiquidationParams memory ctx)
