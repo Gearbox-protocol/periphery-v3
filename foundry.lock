@@ -14,13 +14,13 @@
   "lib/@gearbox-protocol/core-v3": {
     "tag": {
       "name": "v1.52.1",
-      "rev": "b038597d9070d9fd18593a6ae9c3d28ca931bb73"
+      "rev": "dd1e0be09fccd22c4c3e89681b840716baaf739f"
     }
   },
   "lib/@gearbox-protocol/integrations-v3": {
     "tag": {
       "name": "v1.55.0",
-      "rev": "e56429547af7f9452d5d552b419d07079d2695c4"
+      "rev": "744a4f64a3fd711768ddce55d190e04513cd36f2"
     }
   },
   "lib/@gearbox-protocol/oracles-v3": {
@@ -32,7 +32,7 @@
   "lib/@gearbox-protocol/permissionless": {
     "tag": {
       "name": "v1.8.0",
-      "rev": "49ac690dad57f05fc8e4c215c406801cbca965d5"
+      "rev": "b1b5e5bac7d2183a1f10c4bcc3d4bbf88c8b7769"
     }
   },
   "lib/@gearbox-protocol/sdk-gov": {
