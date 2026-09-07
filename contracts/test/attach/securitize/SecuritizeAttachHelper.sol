@@ -12,28 +12,21 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IPriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
 import {IAddressProvider} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAddressProvider.sol";
 
-import {
-    SecuritizeOnRampAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeOnRampAdapter.sol";
-import {
-    SecuritizeRedemptionGatewayAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGatewayAdapter.sol";
-import {
-    SecuritizeLiquidator
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeLiquidator.sol";
-import {
-    SecuritizeRedemptionGateway
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGateway.sol";
-import {
-    SecuritizeRedemptionPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {SecuritizeOnRampAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeOnRampAdapter.sol";
+import {SecuritizeRedemptionGatewayAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+import {SecuritizeLiquidator} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeLiquidator.sol";
+import {SecuritizeRedemptionGateway} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGateway.sol";
+import {SecuritizeRedemptionPhantomToken} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionPhantomToken.sol";
 import {RedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/integrations/common/RedemptionLogger.sol";
-import {
-    ISecuritizeNAVProvider
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeNAVProvider.sol";
-import {
-    ISecuritizeOnRamp
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeOnRamp.sol";
+import {ISecuritizeNAVProvider} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeNAVProvider.sol";
+import {ISecuritizeOnRamp} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeOnRamp.sol";
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
@@ -77,7 +70,7 @@ contract SecuritizeAttachHelper is AttachBase {
         _uploadContract("ON_DEMAND_LP::MONOPOLIZED", 3_10, type(MonopolizedOnDemandLP).creationCode);
         _uploadContract("ADAPTER::SECURITIZE_ONRAMP", 3_10, type(SecuritizeOnRampAdapter).creationCode);
         _uploadContract("ADAPTER::SECURITIZE_REDEMPTION", 3_11, type(SecuritizeRedemptionGatewayAdapter).creationCode);
-        _uploadContract("RWA_LIQUIDATOR::SECURITIZE", 3_11, type(SecuritizeLiquidator).creationCode);
+        _uploadContract("RWA_LIQUIDATOR::SECURITIZE", 3_12, type(SecuritizeLiquidator).creationCode);
         _uploadContract("GATEWAY::SECURITIZE_REDEMPTION", 3_11, type(SecuritizeRedemptionGateway).creationCode);
         _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
     }
@@ -119,7 +112,7 @@ contract SecuritizeAttachHelper is AttachBase {
     function _attachSecuritize() internal {
         factory = _deploy("RWA_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
         degenNFT = ISecuritizeRWAFactory(factory).getDegenNFT();
-        liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_11, abi.encode(factory));
+        liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_12, abi.encode(factory));
 
         _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
         _allowPriceFeed(USDC, USDC_PRICE_FEED);
@@ -248,14 +241,13 @@ contract SecuritizeAttachHelper is AttachBase {
         IDSRegistryService(registryService).registerInvestor("Fake investor", "Fake collision hash");
         IDSRegistryService(registryService).addWallet(investor, "Fake investor");
         IDSRegistryService(registryService).setCountry("Fake investor", "US");
-        IDSRegistryService(registryService)
-            .setAttribute(
-                "Fake investor",
-                IDSRegistryService(registryService).ACCREDITED(),
-                IDSRegistryService(registryService).APPROVED(),
-                type(uint256).max,
-                "Fake proof"
-            );
+        IDSRegistryService(registryService).setAttribute(
+            "Fake investor",
+            IDSRegistryService(registryService).ACCREDITED(),
+            IDSRegistryService(registryService).APPROVED(),
+            type(uint256).max,
+            "Fake proof"
+        );
         _stopOmniPrank();
     }
 
@@ -280,7 +272,8 @@ contract SecuritizeAttachHelper is AttachBase {
         return ISecuritizeDegenNFT.RegisterMessage({
             token: dsToken.token,
             signature: ISecuritizeDegenNFT.Signature({
-                deadline: type(uint256).max, signature: _sign(investor, domainSeparator, structHash)
+                deadline: type(uint256).max,
+                signature: _sign(investor, domainSeparator, structHash)
             })
         });
     }
@@ -389,9 +382,8 @@ contract SecuritizeAttachHelper is AttachBase {
         internal
         returns (address underlying, address pool, address[] memory creditManagers, address liquidityProvider)
     {
-        liquidityProvider = _deploy(
-            "ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor)
-        );
+        liquidityProvider =
+            _deploy("ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor));
         underlying = _deploy(
             "RWA_UNDERLYING::ON_DEMAND",
             3_10,
