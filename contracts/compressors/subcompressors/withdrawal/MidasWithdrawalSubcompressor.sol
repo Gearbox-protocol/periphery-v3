@@ -47,10 +47,12 @@ interface IMidasRedemptionVaultTokensConfig {
         returns (address dataFeed, uint256 fee, uint256 allowance, bool stable);
 }
 
+constant uint256 FEE_DENOMINATOR = 1e4;
+
 contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     using WithdrawalLib for PendingWithdrawal[];
 
-    uint256 public constant version = 3_13;
+    uint256 public constant version = 3_14;
     bytes32 public constant contractType = "GLOBAL::MIDAS_WD_SC";
 
     function getWithdrawableAssets(address, address token) external view returns (WithdrawableAsset[] memory) {
@@ -303,6 +305,6 @@ contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     function _getAmountAfterFee(address gateway, address quoteToken, uint256 amount) internal view returns (uint256) {
         address midasRedemptionVault = MidasGateway(gateway).midasRedemptionVault();
         (, uint256 fee,,) = IMidasRedemptionVaultTokensConfig(midasRedemptionVault).tokensConfig(quoteToken);
-        return amount * (1e5 - fee) / 1e5;
+        return amount * (FEE_DENOMINATOR - fee) / FEE_DENOMINATOR;
     }
 }
