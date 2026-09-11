@@ -47,7 +47,7 @@ interface IMidasRedemptionVaultTokensConfig {
         returns (address dataFeed, uint256 fee, uint256 allowance, bool stable);
 }
 
-constant uint256 FEE_DENOMINATOR = 1e4;
+uint256 constant FEE_DENOMINATOR = 1e4;
 
 contract MidasWithdrawalSubcompressor is IWithdrawalSubcompressor {
     using WithdrawalLib for PendingWithdrawal[];
