@@ -42,12 +42,6 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
 
-      - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
@@ -79,3 +73,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

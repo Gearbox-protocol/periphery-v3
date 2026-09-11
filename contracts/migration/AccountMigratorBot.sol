@@ -42,7 +42,7 @@ import {
     IPhantomToken,
     IPhantomTokenWithdrawer
 } from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPhantomToken.sol";
-import {IPhantomTokenAdapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/IPhantomTokenAdapter.sol";
+import {IPhantomTokenAdapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/common/interfaces/IPhantomTokenAdapter.sol";
 import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVersion.sol";
 import {IPoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolQuotaKeeperV3.sol";
 import {IInterestRateModel} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IInterestRateModel.sol";

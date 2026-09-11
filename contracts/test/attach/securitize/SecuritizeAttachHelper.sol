@@ -10,28 +10,23 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {IPriceFeed} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IPriceFeed.sol";
+import {IAddressProvider} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IAddressProvider.sol";
 
-import {
-    SecuritizeOnRampAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeOnRampAdapter.sol";
-import {
-    SecuritizeRedemptionGatewayAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/securitize/SecuritizeRedemptionGatewayAdapter.sol";
-import {
-    SecuritizeLiquidator
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeLiquidator.sol";
-import {
-    SecuritizeRedemptionGateway
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionGateway.sol";
-import {
-    SecuritizeRedemptionPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/securitize/SecuritizeRedemptionPhantomToken.sol";
-import {
-    ISecuritizeNAVProvider
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeNAVProvider.sol";
-import {
-    ISecuritizeOnRamp
-} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/ISecuritizeOnRamp.sol";
+import {SecuritizeOnRampAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeOnRampAdapter.sol";
+import {SecuritizeRedemptionGatewayAdapter} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGatewayAdapter.sol";
+import {SecuritizeLiquidator} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeLiquidator.sol";
+import {SecuritizeRedemptionGateway} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionGateway.sol";
+import {SecuritizeRedemptionPhantomToken} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/SecuritizeRedemptionPhantomToken.sol";
+import {RedemptionLogger} from "@gearbox-protocol/integrations-v3/contracts/integrations/common/RedemptionLogger.sol";
+import {ISecuritizeNAVProvider} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeNAVProvider.sol";
+import {ISecuritizeOnRamp} from
+    "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/external/ISecuritizeOnRamp.sol";
 import {ERC4626UnderlyingZapper} from "@gearbox-protocol/integrations-v3/contracts/zappers/ERC4626UnderlyingZapper.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
@@ -54,6 +49,7 @@ contract SecuritizeAttachHelper is AttachBase {
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant USDC_DONOR = 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640;
     address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
+    address public constant REDEMPTION_LOGGER = 0x8a6C7a0020321e3175b7Cb6fd76481330Ad9496C;
 
     function _setUpBytecode() internal {
         _addPublicDomain("RWA_FACTORY");
@@ -61,16 +57,21 @@ contract SecuritizeAttachHelper is AttachBase {
         _addPublicDomain("RWA_UNDERLYING");
         _addPublicDomain("ON_DEMAND_LP");
 
+        _startOmniPrank(0xb1576BBA248D48cBdF50000Db84a0dF8cDe7B3CA);
+        bytecodeRepository.removePublicContractType("ADAPTER::SECURITIZE_REDEMPTION");
+        bytecodeRepository.removePublicContractType("GATEWAY::SECURITIZE_REDEMPTION");
+        bytecodeRepository.removePublicContractType("RWA_LIQUIDATOR::SECURITIZE");
+        _stopOmniPrank();
+
         _uploadContract("DEGEN_NFT::SECURITIZE", 3_10, type(SecuritizeDegenNFT).creationCode);
         _uploadContract("RWA_FACTORY::SECURITIZE", 3_10, type(SecuritizeRWAFactory).creationCode);
         _uploadContract("RWA_UNDERLYING::DEFAULT", 3_10, type(DefaultRWAUnderlying).creationCode);
         _uploadContract("RWA_UNDERLYING::ON_DEMAND", 3_10, type(OnDemandRWAUnderlying).creationCode);
         _uploadContract("ON_DEMAND_LP::MONOPOLIZED", 3_10, type(MonopolizedOnDemandLP).creationCode);
         _uploadContract("ADAPTER::SECURITIZE_ONRAMP", 3_10, type(SecuritizeOnRampAdapter).creationCode);
-        _uploadContract("ADAPTER::SECURITIZE_REDEMPTION", 3_10, type(SecuritizeRedemptionGatewayAdapter).creationCode);
-        _uploadContract("RWA_LIQUIDATOR::SECURITIZE", 3_10, type(SecuritizeLiquidator).creationCode);
-        _uploadContract("GATEWAY::SECURITIZE_REDEMPTION", 3_10, type(SecuritizeRedemptionGateway).creationCode);
-        _uploadContract("PHANTOM_TOKEN::SECURITIZE_RD", 3_10, type(SecuritizeRedemptionPhantomToken).creationCode);
+        _uploadContract("ADAPTER::SECURITIZE_REDEMPTION", 3_11, type(SecuritizeRedemptionGatewayAdapter).creationCode);
+        _uploadContract("RWA_LIQUIDATOR::SECURITIZE", 3_12, type(SecuritizeLiquidator).creationCode);
+        _uploadContract("GATEWAY::SECURITIZE_REDEMPTION", 3_11, type(SecuritizeRedemptionGateway).creationCode);
         _uploadContract("ZAPPER::ERC4626_UNDERLYING", 3_10, type(ERC4626UnderlyingZapper).creationCode);
     }
 
@@ -111,7 +112,7 @@ contract SecuritizeAttachHelper is AttachBase {
     function _attachSecuritize() internal {
         factory = _deploy("RWA_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
         degenNFT = ISecuritizeRWAFactory(factory).getDegenNFT();
-        liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_10, abi.encode(factory));
+        liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_12, abi.encode(factory));
 
         _addPriceFeed(USDC_PRICE_FEED, 1 days, "Chainlink USDC price feed");
         _allowPriceFeed(USDC, USDC_PRICE_FEED);
@@ -177,7 +178,7 @@ contract SecuritizeAttachHelper is AttachBase {
 
         dsToken.redemptionGateway = _deploy(
             "GATEWAY::SECURITIZE_REDEMPTION",
-            3_10,
+            3_11,
             abi.encode(
                 dsToken.token,
                 USDC,
@@ -185,11 +186,28 @@ contract SecuritizeAttachHelper is AttachBase {
                 degenNFT,
                 liquidator,
                 dsToken.navProvider,
-                registryService
+                registryService,
+                marketConfigurator,
+                addressProvider
             )
         );
-        dsToken.redemptionPhantomToken =
-            _deploy("PHANTOM_TOKEN::SECURITIZE_RD", 3_10, abi.encode(dsToken.redemptionGateway));
+
+        address redemptionLogger;
+        try IAddressProvider(addressProvider).getAddressOrRevert("REDEMPTION_LOGGER", 3_10) returns (
+            address _redemptionLogger
+        ) {
+            redemptionLogger = _redemptionLogger;
+        } catch {
+            redemptionLogger = address(0);
+        }
+
+        if (redemptionLogger != address(0)) {
+            _startOmniPrank(RedemptionLogger(redemptionLogger).owner());
+            RedemptionLogger(redemptionLogger).setGatewayAllowed(dsToken.redemptionGateway, true);
+            _stopOmniPrank();
+        }
+
+        dsToken.redemptionPhantomToken = SecuritizeRedemptionGateway(dsToken.redemptionGateway).phantomToken();
 
         _addPriceFeed(dsToken.priceFeed, 1 days, "Redstone DSToken / USD price feed");
         _allowPriceFeed(dsToken.token, dsToken.priceFeed);
@@ -223,14 +241,13 @@ contract SecuritizeAttachHelper is AttachBase {
         IDSRegistryService(registryService).registerInvestor("Fake investor", "Fake collision hash");
         IDSRegistryService(registryService).addWallet(investor, "Fake investor");
         IDSRegistryService(registryService).setCountry("Fake investor", "US");
-        IDSRegistryService(registryService)
-            .setAttribute(
-                "Fake investor",
-                IDSRegistryService(registryService).ACCREDITED(),
-                IDSRegistryService(registryService).APPROVED(),
-                type(uint256).max,
-                "Fake proof"
-            );
+        IDSRegistryService(registryService).setAttribute(
+            "Fake investor",
+            IDSRegistryService(registryService).ACCREDITED(),
+            IDSRegistryService(registryService).APPROVED(),
+            type(uint256).max,
+            "Fake proof"
+        );
         _stopOmniPrank();
     }
 
@@ -255,7 +272,8 @@ contract SecuritizeAttachHelper is AttachBase {
         return ISecuritizeDegenNFT.RegisterMessage({
             token: dsToken.token,
             signature: ISecuritizeDegenNFT.Signature({
-                deadline: type(uint256).max, signature: _sign(investor, domainSeparator, structHash)
+                deadline: type(uint256).max,
+                signature: _sign(investor, domainSeparator, structHash)
             })
         });
     }
@@ -364,9 +382,8 @@ contract SecuritizeAttachHelper is AttachBase {
         internal
         returns (address underlying, address pool, address[] memory creditManagers, address liquidityProvider)
     {
-        liquidityProvider = _deploy(
-            "ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor)
-        );
+        liquidityProvider =
+            _deploy("ON_DEMAND_LP::MONOPOLIZED", 3_10, abi.encode(addressProvider, marketConfigurator, depositor));
         underlying = _deploy(
             "RWA_UNDERLYING::ON_DEMAND",
             3_10,

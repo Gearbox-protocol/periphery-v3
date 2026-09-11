@@ -11,9 +11,9 @@ import {AccountMigratorBot} from "../contracts/migration/AccountMigratorBot.sol"
 import {AccountMigratorPreviewer} from "../contracts/migration/AccountMigratorPreviewer.sol";
 
 import {IConvexV1BaseRewardPoolAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/convex/IConvexV1BaseRewardPoolAdapter.sol";
+    "@gearbox-protocol/integrations-v3/contracts/integrations/convex/interfaces/IConvexV1BaseRewardPoolAdapter.sol";
 import {IStakingRewardsAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/sky/IStakingRewardsAdapter.sol";
+    "@gearbox-protocol/integrations-v3/contracts/integrations/sky/interfaces/IStakingRewardsAdapter.sol";
 
 import {console} from "forge-std/console.sol";
 
