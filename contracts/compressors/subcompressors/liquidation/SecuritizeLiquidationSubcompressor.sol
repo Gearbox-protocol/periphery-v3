@@ -60,7 +60,7 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
     using LiquidationLib for LiquidationOutput[];
     using LiquidationLib for address[];
 
-    uint256 public constant version = 3_13;
+    uint256 public constant version = 3_14;
     bytes32 public constant contractType = "GLOBAL::SECURITIZE_LIQ_SC";
 
     uint256 internal constant EXPECTED_REDEMPTION_DURATION = 90 days;
