@@ -3,7 +3,7 @@
 // (c) Gearbox Foundation, 2025.
 pragma solidity ^0.8.23;
 
-import {AbstractAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/AbstractAdapter.sol";
+import {AbstractAdapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/common/AbstractAdapter.sol";
 import {IAccountMigratorAdapter} from "../interfaces/IAccountMigratorBot.sol";
 import {MigrationParams, MigratedCollateral} from "../types/AccountMigrationTypes.sol";
 

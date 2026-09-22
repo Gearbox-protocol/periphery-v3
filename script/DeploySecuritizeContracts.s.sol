@@ -9,7 +9,7 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {
     IUniswapV3Adapter,
     UniswapV3PoolStatus
-} from "@gearbox-protocol/integrations-v3/contracts/interfaces/uniswap/IUniswapV3Adapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/uniswap/interfaces/IUniswapV3Adapter.sol";
 
 import {RWACompressor} from "../contracts/compressors/RWACompressor.sol";
 import {

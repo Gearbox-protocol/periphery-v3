@@ -10,13 +10,13 @@ import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditF
 import {ICreditFacadeV3Multicall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3Multicall.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
-import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/interfaces/erc4626/IERC4626Adapter.sol";
+import {IERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/erc4626/interfaces/IERC4626Adapter.sol";
 import {
     ISecuritizeOnRampAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/interfaces/securitize/ISecuritizeOnRampAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/securitize/interfaces/ISecuritizeOnRampAdapter.sol";
 import {
     IERC20ZapperDeposits
-} from "@gearbox-protocol/integrations-v3/contracts/interfaces/zappers/IERC20ZapperDeposits.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/zappers/interfaces/IERC20ZapperDeposits.sol";
 
 import {ISecuritizeDegenNFT} from "../../../interfaces/ISecuritizeDegenNFT.sol";
 import {ISecuritizeRWAFactory} from "../../../interfaces/ISecuritizeRWAFactory.sol";

@@ -12,52 +12,52 @@ import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/I
 
 import {
     ConvexStakedPositionToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/convex/ConvexV1_StakedPositionToken.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/ConvexV1_StakedPositionToken.sol";
 import {
     StakingRewardsPhantomToken
-} from "@gearbox-protocol/integrations-v3/contracts/helpers/sky/StakingRewardsPhantomToken.sol";
-import {IBaseRewardPool} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/IBaseRewardPool.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/sky/StakingRewardsPhantomToken.sol";
+import {IBaseRewardPool} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/interfaces/external/IBaseRewardPool.sol";
 
 import {
     UniswapV2Adapter,
     UniswapV2PairStatus
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/uniswap/UniswapV2.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/uniswap/UniswapV2.sol";
 import {
     UniswapV3Adapter,
     UniswapV3PoolStatus
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/uniswap/UniswapV3.sol";
-import {ERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/erc4626/ERC4626Adapter.sol";
-import {LidoV1Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/lido/LidoV1.sol";
-import {WstETHV1Adapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/lido/WstETHV1.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/uniswap/UniswapV3.sol";
+import {ERC4626Adapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/erc4626/ERC4626Adapter.sol";
+import {LidoV1Adapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/lido/LidoV1.sol";
+import {WstETHV1Adapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/lido/WstETHV1.sol";
 import {
     CamelotV3Adapter,
     CamelotV3PoolStatus
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/camelot/CamelotV3Adapter.sol";
-import {PendleRouterAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/pendle/PendleRouterAdapter.sol";
-import {PendlePairStatus} from "@gearbox-protocol/integrations-v3/contracts/interfaces/pendle/IPendleRouterAdapter.sol";
-import {CurveV1Adapter2Assets} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_2.sol";
-import {CurveV1Adapter3Assets} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_3.sol";
-import {CurveV1Adapter4Assets} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_4.sol";
-import {CurveV1AdapterStableNG} from "@gearbox-protocol/integrations-v3/contracts/adapters/curve/CurveV1_StableNG.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/camelot/CamelotV3Adapter.sol";
+import {PendleRouterAdapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/pendle/PendleRouterAdapter.sol";
+import {PendlePairStatus} from "@gearbox-protocol/integrations-v3/contracts/integrations/pendle/interfaces/IPendleRouterAdapter.sol";
+import {CurveV1Adapter2Assets} from "@gearbox-protocol/integrations-v3/contracts/integrations/curve/CurveV1_2.sol";
+import {CurveV1Adapter3Assets} from "@gearbox-protocol/integrations-v3/contracts/integrations/curve/CurveV1_3.sol";
+import {CurveV1Adapter4Assets} from "@gearbox-protocol/integrations-v3/contracts/integrations/curve/CurveV1_4.sol";
+import {CurveV1AdapterStableNG} from "@gearbox-protocol/integrations-v3/contracts/integrations/curve/CurveV1_StableNG.sol";
 import {
     ConvexV1BaseRewardPoolAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/convex/ConvexV1_BaseRewardPool.sol";
-import {ConvexV1BoosterAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/convex/ConvexV1_Booster.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/ConvexV1_BaseRewardPool.sol";
+import {ConvexV1BoosterAdapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/convex/ConvexV1_Booster.sol";
 import {
     VelodromeV2RouterAdapter,
     VelodromeV2PoolStatus
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/velodrome/VelodromeV2RouterAdapter.sol";
-import {DaiUsdsAdapter} from "@gearbox-protocol/integrations-v3/contracts/adapters/sky/DaiUsdsAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/velodrome/VelodromeV2RouterAdapter.sol";
+import {DaiUsdsAdapter} from "@gearbox-protocol/integrations-v3/contracts/integrations/sky/DaiUsdsAdapter.sol";
 import {
     StakingRewardsAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/sky/StakingRewardsAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/sky/StakingRewardsAdapter.sol";
 import {
     BalancerV3RouterAdapter,
     BalancerV3PoolStatus
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/balancer/BalancerV3RouterAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/balancer/BalancerV3RouterAdapter.sol";
 import {
     Mellow4626VaultAdapter
-} from "@gearbox-protocol/integrations-v3/contracts/adapters/mellow/Mellow4626VaultAdapter.sol";
+} from "@gearbox-protocol/integrations-v3/contracts/integrations/mellow/Mellow4626VaultAdapter.sol";
 
 interface IOldAdapter {
     function _gearboxAdapterType() external view returns (AdapterType aType);
@@ -65,6 +65,10 @@ interface IOldAdapter {
 
 interface IOldMellowVaultAdapter {
     function isUnderlyingAllowed(address underlying) external view returns (bool);
+}
+
+interface IOldBalancerV3RouterAdapter {
+    function getAllowedPools() external view returns (address[] memory);
 }
 
 address constant VELODROME_DEFAULT_FACTORY = 0xF1046053aa5682b4F9a81b5481394DA16BE5FF5a;

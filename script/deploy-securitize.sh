@@ -49,16 +49,21 @@ echo "usdc donor address is ${USDC_DONOR}"
 RLUSD_DONOR="0x7D98e5FD009Eb13fdD6baE736484CcD1a5A0ab9F"
 echo "rlusd donor address is ${RLUSD_DONOR}"
 
+CCM_PROXY="0xb1576BBA248D48cBdF50000Db84a0dF8cDe7B3CA"
+echo "ccm proxy address is ${CCM_PROXY}"
+
 cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $INSTANCE_OWNER
 cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $CROSS_CHAIN_GOVERNANCE
 cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $USDC_DONOR
 cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $RLUSD_DONOR
+cast rpc --rpc-url ${ANVIL_URL} anvil_impersonateAccount $CCM_PROXY
 
 # Set balance for instance owner, cross-chain governance and usdc donor to 100 ETH
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $INSTANCE_OWNER 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $CROSS_CHAIN_GOVERNANCE 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $USDC_DONOR 0x56BC75E2D63100000
 cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $RLUSD_DONOR 0x56BC75E2D63100000
+cast rpc --rpc-url ${ANVIL_URL} anvil_setBalance $CCM_PROXY 0x56BC75E2D63100000
 
 FORGE_CMD="forge script script/DeploySecuritizeContracts.s.sol --unlocked --broadcast --rpc-url ${ANVIL_URL} --slow --skip-simulation 2>&1"
 

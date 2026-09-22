@@ -11,9 +11,9 @@ import {IPoolV3} from "@gearbox-protocol/core-v3/contracts/interfaces/IPoolV3.so
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {IConvexV1BaseRewardPoolAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/convex/IConvexV1BaseRewardPoolAdapter.sol";
+    "@gearbox-protocol/integrations-v3/contracts/integrations/convex/interfaces/IConvexV1BaseRewardPoolAdapter.sol";
 import {IStakingRewardsAdapter} from
-    "@gearbox-protocol/integrations-v3/contracts/interfaces/sky/IStakingRewardsAdapter.sol";
+    "@gearbox-protocol/integrations-v3/contracts/integrations/sky/interfaces/IStakingRewardsAdapter.sol";
 
 address constant stkcvxRLUSD_USDC = 0x444FA0ffb033265591895b66c81c2e5fF606E097;
 address constant stkcvxllamathena = 0x72eD19788Bce2971A5ed6401662230ee57e254B7;
