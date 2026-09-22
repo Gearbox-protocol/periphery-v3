@@ -265,7 +265,9 @@ contract SecuritizeLiquidationSubcompressor is ILiquidationSubcompressor {
         } else {
             // Case 2: stableCoinToken can't be wrapped into underlying directly.
             // Withdraw the entire stableAfterClaim to the liquidator and replace it with discounted unwrappedUnderlying, and then wrap.
-            uint256 discountedUnwrappedUnderlying = stableAfterClaim * ctx.liquidationDiscount / PERCENTAGE_FACTOR;
+            uint256 discountedUnwrappedUnderlying = IPriceOracleV3(ctx.priceOracle)
+                    .convert(stableAfterClaim, ctx.stableCoinToken, ctx.unwrappedUnderlying) * ctx.liquidationDiscount
+                / PERCENTAGE_FACTOR;
 
             data.requiredToken = ctx.unwrappedUnderlying;
             data.requiredAmount = discountedUnwrappedUnderlying;
