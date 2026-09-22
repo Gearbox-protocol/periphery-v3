@@ -62,18 +62,24 @@ contract DeploySecuritizeContracts is Script, SecuritizeAttachHelper {
         // NOTE: adding degen NFT as periphery contract is required to use it in the credit suite
         _addPeripheryContract(degenNFT);
 
+        bool deployOnDemand = vm.envOr("DEPLOY_ON_DEMAND", true);
         _createMarketWithDefaultRWAUnderlying();
-        _createMarketWithOnDemandRWAUnderlying(depositor);
+        if (deployOnDemand) _createMarketWithOnDemandRWAUnderlying(depositor);
         _createMarketWithDefaultRWAUnderlyingRLUSD();
 
         _startOmniPrank(deployer);
         address compressor = address(new RWACompressor(addressProvider));
-        address onDemandUnderlyingSubcompressor = address(new OnDemandRWAUnderlyingSubcompressor());
+        address onDemandUnderlyingSubcompressor;
+        if (deployOnDemand) onDemandUnderlyingSubcompressor = address(new OnDemandRWAUnderlyingSubcompressor());
         address securitizeFactorySubcompressor = address(new SecuritizeRWAFactorySubcompressor());
         _stopOmniPrank();
 
         _setGlobalAddress(TYPE_RWA_COMPRESSOR, compressor, true);
-        _configureLocal(compressor, abi.encodeCall(RWACompressor.setSubcompressor, (onDemandUnderlyingSubcompressor)));
+        if (deployOnDemand) {
+            _configureLocal(
+                compressor, abi.encodeCall(RWACompressor.setSubcompressor, (onDemandUnderlyingSubcompressor))
+            );
+        }
         _configureLocal(compressor, abi.encodeCall(RWACompressor.setSubcompressor, (securitizeFactorySubcompressor)));
 
         string memory json;
