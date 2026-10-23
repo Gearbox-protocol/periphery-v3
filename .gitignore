@@ -9,9 +9,6 @@ cache/
 /broadcast
 /forge-out/
 
-# Docs
-docs/
-
 # Dotenv file
 .env*
 
