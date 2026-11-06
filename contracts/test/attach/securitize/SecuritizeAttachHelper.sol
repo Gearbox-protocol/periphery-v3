@@ -63,8 +63,8 @@ contract SecuritizeAttachHelper is AttachBase {
         bytecodeRepository.removePublicContractType("RWA_LIQUIDATOR::SECURITIZE");
         _stopOmniPrank();
 
-        _uploadContract("DEGEN_NFT::SECURITIZE", 3_10, type(SecuritizeDegenNFT).creationCode);
-        _uploadContract("RWA_FACTORY::SECURITIZE", 3_10, type(SecuritizeRWAFactory).creationCode);
+        _uploadContract("DEGEN_NFT::SECURITIZE", 3_11, type(SecuritizeDegenNFT).creationCode);
+        _uploadContract("RWA_FACTORY::SECURITIZE", 3_11, type(SecuritizeRWAFactory).creationCode);
         _uploadContract("RWA_UNDERLYING::DEFAULT", 3_10, type(DefaultRWAUnderlying).creationCode);
         _uploadContract("RWA_UNDERLYING::ON_DEMAND", 3_10, type(OnDemandRWAUnderlying).creationCode);
         _uploadContract("ON_DEMAND_LP::MONOPOLIZED", 3_10, type(MonopolizedOnDemandLP).creationCode);
@@ -110,7 +110,7 @@ contract SecuritizeAttachHelper is AttachBase {
     }
 
     function _attachSecuritize() internal {
-        factory = _deploy("RWA_FACTORY::SECURITIZE", 3_10, abi.encode(addressProvider, securitize));
+        factory = _deploy("RWA_FACTORY::SECURITIZE", 3_11, abi.encode(addressProvider, securitize, address(0)));
         degenNFT = ISecuritizeRWAFactory(factory).getDegenNFT();
         liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_12, abi.encode(factory));
 

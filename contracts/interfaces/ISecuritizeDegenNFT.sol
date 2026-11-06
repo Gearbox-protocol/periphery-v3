@@ -38,6 +38,7 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     // ------ //
 
     error CallerIsNotCreditFacadeException(address caller);
+    error CallerIsNotParentDegenNFTException(address caller);
     error CallerIsNotFactoryException(address caller);
     error CallerIsNotInstanceOwnerException(address caller);
     error CallerIsNotOperatorException(address token, address caller);
