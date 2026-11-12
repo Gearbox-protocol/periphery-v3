@@ -78,7 +78,8 @@ contract SecuritizeWallet is ISecuritizeWallet {
                 uint256 amount = abi.decode(calls[i].callData[4:], (uint256));
                 _UNDERLYING.beforeTokenBorrow(_CREDIT_ACCOUNT, amount);
             } else if (bytes4(calls[i].callData[:4]) == ICreditFacadeV3Multicall.setBotPermissions.selector) {
-                revert ForbiddenCallException();
+                (address bot,) = abi.decode(calls[i].callData[4:], (address, uint192));
+                if (!_FACTORY.isAllowedBot(bot)) revert ForbiddenCallException();
             }
         }
         _creditFacade().multicall(_CREDIT_ACCOUNT, calls);

@@ -110,7 +110,7 @@ contract SecuritizeAttachHelper is AttachBase {
     }
 
     function _attachSecuritize() internal {
-        factory = _deploy("RWA_FACTORY::SECURITIZE", 3_11, abi.encode(addressProvider, securitize, address(0)));
+        factory = _deploy("RWA_FACTORY::SECURITIZE", 3_12, abi.encode(addressProvider, securitize, address(0)));
         degenNFT = ISecuritizeRWAFactory(factory).getDegenNFT();
         liquidator = _deploy("RWA_LIQUIDATOR::SECURITIZE", 3_12, abi.encode(factory));
 

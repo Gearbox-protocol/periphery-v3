@@ -18,6 +18,7 @@ interface IRWAFactory is IVersion, IStateSerializer {
     event TransferCreditAccount(
         address indexed creditAccount, address indexed oldInvestor, address indexed newInvestor
     );
+    event SetAllowedBotStatus(address indexed bot, bool allowed);
 
     // ------ //
     // ERRORS //
@@ -33,6 +34,7 @@ interface IRWAFactory is IVersion, IStateSerializer {
 
     function getTokens() external view returns (address[] memory);
     function isCreditAccount(address creditAccount) external view returns (bool);
+    function isAllowedBot(address bot) external view returns (bool);
     function getCreditAccounts(address investor) external view returns (address[] memory);
     function getInvestor(address creditAccount) external view returns (address);
     function getWallet(address creditAccount) external view returns (address);
@@ -45,6 +47,8 @@ interface IRWAFactory is IVersion, IStateSerializer {
     function setCreditAccountFrozenStatus(address creditAccount, bool frozen) external;
     function setAllCreditAccountsFrozenStatus(address investor, bool frozen) external;
     function setAllCreditAccountsFrozenStatus(address creditManager, address investor, bool frozen) external;
+
+    function setAllowedBotStatus(address bot, bool allowed) external;
 
     function transferCreditAccount(address creditAccount, address newInvestor) external;
     function transferAllCreditAccounts(address investor, address newInvestor) external;

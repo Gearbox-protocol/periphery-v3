@@ -50,13 +50,14 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
     // --------------- //
 
     bytes32 public constant override contractType = TYPE_SECURITIZE_RWA_FACTORY;
-    uint256 public constant override version = 3_11;
+    uint256 public constant override version = 3_12;
 
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
     ISecuritizeDegenNFT internal immutable _DEGEN_NFT;
 
     mapping(address creditAccount => CreditAccountInfo) internal _creditAccountInfo;
     mapping(address investor => InvestorInfo) internal _investorInfo;
+    mapping(address bot => bool allowed) internal _allowedBots;
 
     /// @dev Prevents investor from spamming with too many credit accounts
     uint256 internal constant _MAX_SANE_NONCE = 255;
@@ -79,18 +80,19 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
     // CONSTRUCTOR //
     // ----------- //
 
-    constructor(IAddressProvider addressProvider, address securitizeAdmin, address parentDegenNFT) nonZeroAddress(securitizeAdmin) {
+    constructor(IAddressProvider addressProvider, address securitizeAdmin, address parentDegenNFT)
+        nonZeroAddress(securitizeAdmin)
+    {
         _ADDRESS_PROVIDER = addressProvider;
 
         address bytecodeRepository = _ADDRESS_PROVIDER.getGlobalAddress(TYPE_BYTECODE_REPOSITORY);
         _DEGEN_NFT = ISecuritizeDegenNFT(
-            IBytecodeRepository(bytecodeRepository)
-                .deploy({
-                    contractType: TYPE_SECURITIZE_DEGEN_NFT,
-                    version: 3_11,
-                    constructorParams: abi.encode(_ADDRESS_PROVIDER, this, parentDegenNFT),
-                    salt: bytes32(0)
-                })
+            IBytecodeRepository(bytecodeRepository).deploy({
+                contractType: TYPE_SECURITIZE_DEGEN_NFT,
+                version: 3_11,
+                constructorParams: abi.encode(_ADDRESS_PROVIDER, this, parentDegenNFT),
+                salt: bytes32(0)
+            })
         );
 
         _transferOwnership(securitizeAdmin);
@@ -114,6 +116,10 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
 
     function isCreditAccount(address creditAccount) public view override returns (bool) {
         return _creditAccountInfo[creditAccount].wallet != address(0);
+    }
+
+    function isAllowedBot(address bot) external view override returns (bool) {
+        return _allowedBots[bot];
     }
 
     function getWallet(address creditAccount)
@@ -290,6 +296,15 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
             address creditAccount = investorInfo.creditAccounts.at(i - 1);
             if (_getCreditManager(creditAccount) != creditManager) continue;
             _transferCreditAccount(creditAccount, investor, newInvestor);
+        }
+    }
+
+    /// @dev Changes the status of whether a bot is allowed
+    function setAllowedBotStatus(address bot, bool allowed) external override onlyOwner {
+        bool prev = _allowedBots[bot];
+        if (allowed != prev) {
+            _allowedBots[bot] = allowed;
+            emit SetAllowedBotStatus(bot, allowed);
         }
     }
 
