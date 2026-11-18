@@ -1,3 +1,170 @@
+---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.21.0
+        version: 12.21.0
+
+packages:
+
+  '@pnpm/exe.android-arm64@12.21.0':
+    resolution: {integrity: sha512-iaWidxR5B9NUBpwMznCQu1yUpKB6BjTY5BYX2lORj76VsfINdj8Z8XWSzSNrGI8qlxa28Jzdp5fiaspzOaJZlA==}
+    cpu: [arm64]
+    os: [android]
+
+  '@pnpm/exe.android-x64@12.21.0':
+    resolution: {integrity: sha512-35e5v3wlwjIYxDywq+R6/z8CE4gLOEgRxt18yqz1tMRLmx2mnW+CFJI2Q8+srTNjn7gykXUC0x1k195JNikC5A==}
+    cpu: [x64]
+    os: [android]
+
+  '@pnpm/exe.darwin-arm64@12.21.0':
+    resolution: {integrity: sha512-F5OyMX/6zLSowpTZEQRojbCmPS1Pq+fyRaIinslsIe6Glh3qbyQ52u+Fe0eEzSaRuIbWZkXmAAXSWh6Q5Wrlgg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@pnpm/exe.darwin-x64@12.21.0':
+    resolution: {integrity: sha512-EzpvcsaE6hrrgYeEiAFYd2rSgFybYyxXhkAY7K3y6Hg3loVfcyJ81hHczpFzi8lW5RXtUlFECRPZ8ZAMRFQYYg==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@pnpm/exe.freebsd-x64@12.21.0':
+    resolution: {integrity: sha512-wNjuEnmdLks4aayPu/QZWQ5tQM9Jn+odUp/vwQM8BXRYoulkTZhtZTHoD60N6mUdLWef1hgUeUh8llNGEUsimw==}
+    cpu: [x64]
+    os: [freebsd]
+
+  '@pnpm/exe.linux-arm64-musl@12.21.0':
+    resolution: {integrity: sha512-Ceit9zn4g5ZqCJtx1fV8eJE7p8aeXMrGZ+Dc01vRqZLIUNgNeI+Ur0ruyqxtsnJx6rGADyXzohumxPLHjaJ5AQ==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@pnpm/exe.linux-arm64@12.21.0':
+    resolution: {integrity: sha512-4Oj/iF2TDCe2lcH0n4TupPR5sSdrNLclJB6xBElLMPCUOAvBhdf2rRlSaO5M4erJ6g4Fyy7YTXTpcmfFsKyxEA==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.linux-ppc64@12.21.0':
+    resolution: {integrity: sha512-s2o7rdSDeUTBFsNqxptpZXlTgT6cojmMVUOvTQvFNSv6Easian02ha4tR32fwwD97Au4YzIIjMCwywCF4D82Sw==}
+    cpu: [ppc64]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.linux-riscv64@12.21.0':
+    resolution: {integrity: sha512-EYv3GzxeBTITCuM3yGHHbpRFpUvyulkXpQ6LsjKAQNL3iaba1E6h9iDmlouLb3Io4AMMsfdk0/uG6poQ41uewA==}
+    cpu: [riscv64]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.linux-s390x@12.21.0':
+    resolution: {integrity: sha512-8VXGNGVNEfs7pL9GTZOzFxjFEnMt4WL3rLOADR5/kPQ7ROTV9GfpVI2DPO/zArXFSkvfc9Zad/WypHLbvzoaTQ==}
+    cpu: [s390x]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.linux-x64-musl@12.21.0':
+    resolution: {integrity: sha512-MnC5vpIXYubhDZCgCwlfJMg7Cg6HupN2IuouT9gD/tUmOfVdQYqeyYccWbthyo/Jeto8de1oQlxeRN1+1Hl2DQ==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@pnpm/exe.linux-x64@12.21.0':
+    resolution: {integrity: sha512-8eufCjHXspKbNS/kh8q4Q0gqJoOuvC4Q5pgos6XS8By/nAMtP+jf8F1Cw9er840kfAX+PJ/ts+A9qnLE91rvXQ==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.netbsd-x64@12.21.0':
+    resolution: {integrity: sha512-eyh1M8hQZCkLWxuva7S/fc1SbFbgqg0/5di0dgWmyiuc2Io3dbWVihDun8X+XM8zsR5uhIDvvZpbS9aZQbCovg==}
+    cpu: [x64]
+    os: [netbsd]
+
+  '@pnpm/exe.win32-arm64@12.21.0':
+    resolution: {integrity: sha512-7xTxxUXo/grRLivSeIl6B21gnsz7ooe5EMPcJmQqwxc8WLJVReN8MzrlHru8bqXfVr4X3+6ZGZscntKenlCBqQ==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@pnpm/exe.win32-x64@12.21.0':
+    resolution: {integrity: sha512-9TpkJemVApxJ1Z1w0ZFGN+AuSx4nJOqXSJUqMqDvaXTYwGOzvBiiWdFP9GN0ketiWCQS1Q0/pza2E7I3pP0OBQ==}
+    cpu: [x64]
+    os: [win32]
+
+  pnpm@12.21.0:
+    resolution: {integrity: sha512-Zv2CeO4ok1zpUXktNDZ/869cQyonVkRYIwKVM4NbjaUpu+C+UTCv1W7QcT+4eJ5Hutgtk71a4v5UsVVi1idu8A==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+snapshots:
+
+  '@pnpm/exe.android-arm64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.android-x64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.darwin-arm64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.darwin-x64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.freebsd-x64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.linux-arm64-musl@12.21.0':
+    optional: true
+
+  '@pnpm/exe.linux-arm64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.linux-ppc64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.linux-riscv64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.linux-s390x@12.21.0':
+    optional: true
+
+  '@pnpm/exe.linux-x64-musl@12.21.0':
+    optional: true
+
+  '@pnpm/exe.linux-x64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.netbsd-x64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.win32-arm64@12.21.0':
+    optional: true
+
+  '@pnpm/exe.win32-x64@12.21.0':
+    optional: true
+
+  pnpm@12.21.0:
+    optionalDependencies:
+      '@pnpm/exe.android-arm64': 12.21.0
+      '@pnpm/exe.android-x64': 12.21.0
+      '@pnpm/exe.darwin-arm64': 12.21.0
+      '@pnpm/exe.darwin-x64': 12.21.0
+      '@pnpm/exe.freebsd-x64': 12.21.0
+      '@pnpm/exe.linux-arm64': 12.21.0
+      '@pnpm/exe.linux-arm64-musl': 12.21.0
+      '@pnpm/exe.linux-ppc64': 12.21.0
+      '@pnpm/exe.linux-riscv64': 12.21.0
+      '@pnpm/exe.linux-s390x': 12.21.0
+      '@pnpm/exe.linux-x64': 12.21.0
+      '@pnpm/exe.linux-x64-musl': 12.21.0
+      '@pnpm/exe.netbsd-x64': 12.21.0
+      '@pnpm/exe.win32-arm64': 12.21.0
+      '@pnpm/exe.win32-x64': 12.21.0
+
+---
 lockfileVersion: '9.0'
 
 settings:
@@ -10,7 +177,7 @@ importers:
     devDependencies:
       '@1inch/solidity-utils':
         specifier: ^2.2.27
-        version: 2.4.0(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))
+        version: 2.4.0(hardhat@2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))
       '@chainlink/contracts':
         specifier: ^0.4.0
         version: 0.4.2(ethers@5.7.2)
@@ -22,7 +189,7 @@ importers:
         version: 17.6.0
       '@gearbox-protocol/sdk':
         specifier: 3.0.0-vfour.190
-        version: 3.0.0-vfour.190(axios@1.7.9)(typescript@5.7.3)(zod@3.24.1)
+        version: 3.0.0-vfour.190(axios@1.7.9(debug@4.4.0(supports-color@8.1.1)))(debug@4.4.0(supports-color@8.1.1))(typescript@5.7.3)(zod@3.24.1)
       '@gearbox-protocol/sdk-gov':
         specifier: ^2.18.2
         version: 2.33.2
@@ -31,7 +198,7 @@ importers:
         version: 4.9.6
       '@redstone-finance/evm-connector':
         specifier: ^0.2.5
-        version: 0.2.5
+        version: 0.2.5(debug@4.4.0(supports-color@8.1.1))
       '@wagmi/cli':
         specifier: ^2.2.0
         version: 2.2.0(typescript@5.7.3)
@@ -39,14 +206,14 @@ importers:
         specifier: dapphub/ds-test
         version: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0
       forge-std:
-        specifier: foundry-rs/forge-std
+        specifier: foundry-rs/forge-std#726a6ee5fc8427a0013d6f624e486c9130c0e336
         version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/726a6ee5fc8427a0013d6f624e486c9130c0e336
       husky:
         specifier: ^8.0.3
         version: 8.0.3
       lint-staged:
         specifier: ^13.0.3
-        version: 13.3.0(enquirer@2.4.1)
+        version: 13.3.0(enquirer@2.4.1)(supports-color@8.1.1)
       prettier:
         specifier: ^3.0.3
         version: 3.4.2
@@ -548,6 +715,7 @@ packages:
 
   '@gearbox-protocol/sdk-gov@2.33.2':
     resolution: {integrity: sha512-P1Bcb8kBg1ZVdloLMQpqkJvPxp4cV7vIRBPRI0XRzsLciJM5ME1dAWiwaZENZGlN52aOzu024gal0HIYZYuR5g==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@gearbox-protocol/sdk@3.0.0-vfour.190':
     resolution: {integrity: sha512-WddueIZ+DyrvYrFA7lr16FUP5ThdUwCANwL/nRNK3C7FRBu44KA+r541581Eyhh9u3PBWtADNnDNhd+/CznU0A==}
@@ -1269,7 +1437,7 @@ packages:
     engines: {node: '>=12'}
 
   ds-test@https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0:
-    resolution: {tarball: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0}
     version: 1.0.0
 
   eastasianwidth@0.2.0:
@@ -1404,7 +1572,7 @@ packages:
         optional: true
 
   forge-std@https://codeload.github.com/foundry-rs/forge-std/tar.gz/726a6ee5fc8427a0013d6f624e486c9130c0e336:
-    resolution: {tarball: https://codeload.github.com/foundry-rs/forge-std/tar.gz/726a6ee5fc8427a0013d6f624e486c9130c0e336}
+    resolution: {gitHosted: true, integrity: sha512-R4fOZxMM/KeVDVI+klgalWGj1Oj9zuUhk9VhVMzJdcpOUkhmbp0RWlosFd3zE/MYFNBYtFtjH3OHq6UdWfzEfA==, tarball: https://codeload.github.com/foundry-rs/forge-std/tar.gz/726a6ee5fc8427a0013d6f624e486c9130c0e336}
     version: 1.9.5
 
   form-data@4.0.1:
@@ -2374,6 +2542,7 @@ packages:
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   v8-compile-cache-lib@3.0.1:
@@ -2505,11 +2674,11 @@ packages:
 
 snapshots:
 
-  '@1inch/solidity-utils@2.4.0(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))':
+  '@1inch/solidity-utils@2.4.0(hardhat@2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))':
     dependencies:
       '@metamask/eth-sig-util': 5.0.2
-      '@nomicfoundation/hardhat-network-helpers': 1.0.8(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))
-      '@nomiclabs/hardhat-ethers': 2.2.2(ethers@5.7.2)(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))
+      '@nomicfoundation/hardhat-network-helpers': 1.0.8(hardhat@2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))
+      '@nomiclabs/hardhat-ethers': 2.2.2(ethers@5.7.2)(hardhat@2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))
       '@openzeppelin/contracts': 4.8.2
       '@uniswap/permit2-sdk': 1.3.0
       ethereumjs-util: 7.1.5
@@ -3115,12 +3284,12 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@gearbox-protocol/sdk@3.0.0-vfour.190(axios@1.7.9)(typescript@5.7.3)(zod@3.24.1)':
+  '@gearbox-protocol/sdk@3.0.0-vfour.190(axios@1.7.9(debug@4.4.0(supports-color@8.1.1)))(debug@4.4.0(supports-color@8.1.1))(typescript@5.7.3)(zod@3.24.1)':
     dependencies:
-      '@redstone-finance/evm-connector': 0.7.5
+      '@redstone-finance/evm-connector': 0.7.5(debug@4.4.0(supports-color@8.1.1))
       '@redstone-finance/protocol': 0.7.5
       abitype: 1.0.8(typescript@5.7.3)(zod@3.24.1)
-      axios: 1.7.9
+      axios: 1.7.9(debug@4.4.0(supports-color@8.1.1))
       date-fns: 4.1.0
       decimal.js-light: 2.5.1
       viem: 2.22.10(typescript@5.7.3)(zod@3.24.1)
@@ -3225,10 +3394,10 @@ snapshots:
       '@nomicfoundation/ethereumjs-rlp': 5.0.4
       ethereum-cryptography: 0.1.3
 
-  '@nomicfoundation/hardhat-network-helpers@1.0.8(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))':
+  '@nomicfoundation/hardhat-network-helpers@1.0.8(hardhat@2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))':
     dependencies:
       ethereumjs-util: 7.1.5
-      hardhat: 2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3)
+      hardhat: 2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3)
 
   '@nomicfoundation/solidity-analyzer-darwin-arm64@0.1.2':
     optional: true
@@ -3261,10 +3430,10 @@ snapshots:
       '@nomicfoundation/solidity-analyzer-linux-x64-musl': 0.1.2
       '@nomicfoundation/solidity-analyzer-win32-x64-msvc': 0.1.2
 
-  '@nomiclabs/hardhat-ethers@2.2.2(ethers@5.7.2)(hardhat@2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))':
+  '@nomiclabs/hardhat-ethers@2.2.2(ethers@5.7.2)(hardhat@2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3))':
     dependencies:
       ethers: 5.7.2
-      hardhat: 2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3)
+      hardhat: 2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3)
 
   '@openzeppelin/contracts-upgradeable@4.9.6': {}
 
@@ -3276,27 +3445,27 @@ snapshots:
 
   '@openzeppelin/contracts@4.9.6': {}
 
-  '@redstone-finance/evm-connector@0.2.5':
+  '@redstone-finance/evm-connector@0.2.5(debug@4.4.0(supports-color@8.1.1))':
     dependencies:
       '@chainlink/contracts': 0.6.1(ethers@5.7.2)
       '@openzeppelin/contracts': 4.9.6
-      axios: 1.7.9
+      axios: 1.7.9(debug@4.4.0(supports-color@8.1.1))
       ethers: 5.7.2
       redstone-protocol: 1.0.5
-      redstone-sdk: 1.8.2
+      redstone-sdk: 1.8.2(debug@4.4.0(supports-color@8.1.1))
     transitivePeerDependencies:
       - bufferutil
       - debug
       - utf-8-validate
 
-  '@redstone-finance/evm-connector@0.7.5':
+  '@redstone-finance/evm-connector@0.7.5(debug@4.4.0(supports-color@8.1.1))':
     dependencies:
       '@chainlink/contracts': 0.6.1(ethers@5.7.2)
       '@openzeppelin/contracts': 4.9.6
       '@redstone-finance/protocol': 0.7.5
-      '@redstone-finance/sdk': 0.7.5
-      '@redstone-finance/utils': 0.7.5
-      axios: 1.7.9
+      '@redstone-finance/sdk': 0.7.5(debug@4.4.0(supports-color@8.1.1))
+      '@redstone-finance/utils': 0.7.5(debug@4.4.0(supports-color@8.1.1))
+      axios: 1.7.9(debug@4.4.0(supports-color@8.1.1))
       ethers: 5.7.2
     transitivePeerDependencies:
       - bufferutil
@@ -3314,15 +3483,15 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@redstone-finance/sdk@0.7.5':
+  '@redstone-finance/sdk@0.7.5(debug@4.4.0(supports-color@8.1.1))':
     dependencies:
       '@ethersproject/bytes': 5.7.0
       '@ethersproject/strings': 5.7.0
       '@redstone-finance/oracles-smartweave-contracts': 0.7.5
       '@redstone-finance/protocol': 0.7.5
-      '@redstone-finance/utils': 0.7.5
+      '@redstone-finance/utils': 0.7.5(debug@4.4.0(supports-color@8.1.1))
       '@types/lodash': 4.17.15
-      axios: 1.7.9
+      axios: 1.7.9(debug@4.4.0(supports-color@8.1.1))
       ethers: 5.7.2
       lodash: 4.17.21
       zod: 3.24.1
@@ -3331,10 +3500,10 @@ snapshots:
       - debug
       - utf-8-validate
 
-  '@redstone-finance/utils@0.7.5':
+  '@redstone-finance/utils@0.7.5(debug@4.4.0(supports-color@8.1.1))':
     dependencies:
       '@types/lodash': 4.17.15
-      axios: 1.7.9
+      axios: 1.7.9(debug@4.4.0(supports-color@8.1.1))
       consola: 2.15.3
       decimal.js: 10.4.3
       ethers: 5.7.2
@@ -3402,7 +3571,7 @@ snapshots:
       '@sentry/types': 5.30.0
       tslib: 1.14.1
 
-  '@sentry/node@5.30.0':
+  '@sentry/node@5.30.0(supports-color@8.1.1)':
     dependencies:
       '@sentry/core': 5.30.0
       '@sentry/hub': 5.30.0
@@ -3410,7 +3579,7 @@ snapshots:
       '@sentry/types': 5.30.0
       '@sentry/utils': 5.30.0
       cookie: 0.4.2
-      https-proxy-agent: 5.0.1
+      https-proxy-agent: 5.0.1(supports-color@8.1.1)
       lru_map: 0.3.3
       tslib: 1.14.1
     transitivePeerDependencies:
@@ -3532,7 +3701,7 @@ snapshots:
 
   aes-js@4.0.0-beta.5: {}
 
-  agent-base@6.0.2:
+  agent-base@6.0.2(supports-color@8.1.1):
     dependencies:
       debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
@@ -3591,16 +3760,16 @@ snapshots:
 
   asynckit@0.4.0: {}
 
-  axios@0.27.2:
+  axios@0.27.2(debug@4.4.0(supports-color@8.1.1)):
     dependencies:
-      follow-redirects: 1.15.9(debug@4.4.0)
+      follow-redirects: 1.15.9(debug@4.4.0(supports-color@8.1.1))
       form-data: 4.0.1
     transitivePeerDependencies:
       - debug
 
-  axios@1.7.9:
+  axios@1.7.9(debug@4.4.0(supports-color@8.1.1)):
     dependencies:
-      follow-redirects: 1.15.9(debug@4.4.0)
+      follow-redirects: 1.15.9(debug@4.4.0(supports-color@8.1.1))
       form-data: 4.0.1
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -3855,9 +4024,11 @@ snapshots:
 
   date-fns@4.1.0: {}
 
-  debug@4.3.4:
+  debug@4.3.4(supports-color@8.1.1):
     dependencies:
       ms: 2.1.2
+    optionalDependencies:
+      supports-color: 8.1.1
 
   debug@4.4.0(supports-color@8.1.1):
     dependencies:
@@ -4172,7 +4343,7 @@ snapshots:
 
   flat@5.0.2: {}
 
-  follow-redirects@1.15.9(debug@4.4.0):
+  follow-redirects@1.15.9(debug@4.4.0(supports-color@8.1.1)):
     optionalDependencies:
       debug: 4.4.0(supports-color@8.1.1)
 
@@ -4243,7 +4414,7 @@ snapshots:
 
   hard-rejection@2.1.0: {}
 
-  hardhat@2.22.18(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3):
+  hardhat@2.22.18(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.7.3))(typescript@5.7.3):
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@metamask/eth-sig-util': 4.0.1
@@ -4252,7 +4423,7 @@ snapshots:
       '@nomicfoundation/ethereumjs-tx': 5.0.4
       '@nomicfoundation/ethereumjs-util': 9.0.4
       '@nomicfoundation/solidity-analyzer': 0.1.2
-      '@sentry/node': 5.30.0
+      '@sentry/node': 5.30.0(supports-color@8.1.1)
       '@types/bn.js': 5.1.6
       '@types/lru-cache': 5.1.1
       adm-zip: 0.4.16
@@ -4281,7 +4452,7 @@ snapshots:
       raw-body: 2.5.2
       resolve: 1.17.0
       semver: 6.3.1
-      solc: 0.8.26(debug@4.4.0)
+      solc: 0.8.26(debug@4.4.0(supports-color@8.1.1))
       source-map-support: 0.5.21
       stacktrace-parser: 0.1.10
       tinyglobby: 0.2.10
@@ -4337,9 +4508,9 @@ snapshots:
       statuses: 2.0.1
       toidentifier: 1.0.1
 
-  https-proxy-agent@5.0.1:
+  https-proxy-agent@5.0.1(supports-color@8.1.1):
     dependencies:
-      agent-base: 6.0.2
+      agent-base: 6.0.2(supports-color@8.1.1)
       debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
@@ -4462,11 +4633,11 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  lint-staged@13.3.0(enquirer@2.4.1):
+  lint-staged@13.3.0(enquirer@2.4.1)(supports-color@8.1.1):
     dependencies:
       chalk: 5.3.0
       commander: 11.0.0
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       execa: 7.2.0
       lilconfig: 2.1.0
       listr2: 6.6.1(enquirer@2.4.1)
@@ -4827,21 +4998,21 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  redstone-sdk@1.8.2:
+  redstone-sdk@1.8.2(debug@4.4.0(supports-color@8.1.1)):
     dependencies:
-      axios: 0.27.2
+      axios: 0.27.2(debug@4.4.0(supports-color@8.1.1))
       ethers: 5.7.2
       redstone-oracles-smartweave-contracts: 1.0.6
       redstone-protocol: 1.0.5
-      redstone-utils: 0.1.0(ethers@5.7.2)
+      redstone-utils: 0.1.0(debug@4.4.0(supports-color@8.1.1))(ethers@5.7.2)
     transitivePeerDependencies:
       - bufferutil
       - debug
       - utf-8-validate
 
-  redstone-utils@0.1.0(ethers@5.7.2):
+  redstone-utils@0.1.0(debug@4.4.0(supports-color@8.1.1))(ethers@5.7.2):
     dependencies:
-      axios: 1.7.9
+      axios: 1.7.9(debug@4.4.0(supports-color@8.1.1))
       decimal.js: 10.4.3
       ethereum-multicall: 2.26.0
       ethers: 5.7.2
@@ -4944,11 +5115,11 @@ snapshots:
       ansi-styles: 6.2.1
       is-fullwidth-code-point: 4.0.0
 
-  solc@0.8.26(debug@4.4.0):
+  solc@0.8.26(debug@4.4.0(supports-color@8.1.1)):
     dependencies:
       command-exists: 1.2.9
       commander: 8.3.0
-      follow-redirects: 1.15.9(debug@4.4.0)
+      follow-redirects: 1.15.9(debug@4.4.0(supports-color@8.1.1))
       js-sha3: 0.8.0
       memorystream: 0.3.1
       semver: 5.7.2
