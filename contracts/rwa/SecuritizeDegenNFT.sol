@@ -34,7 +34,7 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
     ISecuritizeRWAFactory internal immutable _FACTORY;
 
-    address public immutable parentDegenNFT;
+    address public parentDegenNFT;
 
     EnumerableSet.AddressSet internal _walletsSet;
     EnumerableSet.AddressSet internal _tokensSet;
@@ -63,10 +63,9 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     // CONSTRUCTOR //
     // ----------- //
 
-    constructor(IAddressProvider addressProvider, ISecuritizeRWAFactory factory, address parentDegenNFT_) {
+    constructor(IAddressProvider addressProvider, ISecuritizeRWAFactory factory) {
         _ADDRESS_PROVIDER = addressProvider;
         _FACTORY = factory;
-        parentDegenNFT = parentDegenNFT_;
     }
 
     // ------- //
@@ -191,6 +190,11 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         if (approved && info.operators.add(operator) || !approved && info.operators.remove(operator)) {
             emit SetOperatorStatus(token, operator, approved);
         }
+    }
+
+    function setParentDegenNFT(address parentDegenNFT_) external override onlyInstanceOwner {
+        parentDegenNFT = parentDegenNFT_;
+        emit SetParentDegenNFT(parentDegenNFT_);
     }
 
     // --------- //

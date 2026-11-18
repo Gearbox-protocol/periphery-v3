@@ -32,6 +32,7 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     event Burn(address indexed wallet);
     event SetOperatorStatus(address indexed token, address indexed operator, bool approved);
     event SetRegistrar(address indexed token, address indexed registrar);
+    event SetParentDegenNFT(address indexed parentDegenNFT);
 
     // ------ //
     // ERRORS //
@@ -51,6 +52,7 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     // GETTERS //
     // ------- //
 
+    function parentDegenNFT() external view returns (address);
     function getFactory() external view returns (address);
     function getDSTokensData() external view returns (DSTokenData[] memory);
     function getDSTokens() external view returns (address[] memory);
@@ -68,6 +70,7 @@ interface ISecuritizeDegenNFT is IDegenNFT {
     function burn(address wallet, uint256) external override;
     function addRegistrar(address registrar) external;
     function setOperatorStatus(address token, address operator, bool approved) external;
+    function setParentDegenNFT(address parentDegenNFT_) external;
     function cacheRegisterSignatures(address investor, RegisterMessage[] calldata signatures) external;
     function registerCreditAccount(address creditAccount, address[] calldata tokens) external;
     function registerHelperAccount(address creditAccount, address helperAccount, address token) external;

@@ -80,9 +80,7 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
     // CONSTRUCTOR //
     // ----------- //
 
-    constructor(IAddressProvider addressProvider, address securitizeAdmin, address parentDegenNFT)
-        nonZeroAddress(securitizeAdmin)
-    {
+    constructor(IAddressProvider addressProvider, address securitizeAdmin) nonZeroAddress(securitizeAdmin) {
         _ADDRESS_PROVIDER = addressProvider;
 
         address bytecodeRepository = _ADDRESS_PROVIDER.getGlobalAddress(TYPE_BYTECODE_REPOSITORY);
@@ -90,7 +88,7 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
             IBytecodeRepository(bytecodeRepository).deploy({
                 contractType: TYPE_SECURITIZE_DEGEN_NFT,
                 version: 3_11,
-                constructorParams: abi.encode(_ADDRESS_PROVIDER, this, parentDegenNFT),
+                constructorParams: abi.encode(_ADDRESS_PROVIDER, this),
                 salt: bytes32(0)
             })
         );
