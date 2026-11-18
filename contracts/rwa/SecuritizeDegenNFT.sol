@@ -198,10 +198,13 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     // --------- //
 
     function _ensureCallerCanBurn() internal view {
-        if (parentDegenNFT != address(0) && msg.sender != parentDegenNFT) {
-            revert CallerIsNotParentDegenNFTException(msg.sender);
+        if (parentDegenNFT != address(0)) {
+            if (msg.sender != parentDegenNFT) {
+                revert CallerIsNotParentDegenNFTException(msg.sender);
+            }
+        } else {
+            if (!_ADDRESS_PROVIDER.isCreditFacade(msg.sender)) revert CallerIsNotCreditFacadeException(msg.sender);
         }
-        if (!_ADDRESS_PROVIDER.isCreditFacade(msg.sender)) revert CallerIsNotCreditFacadeException(msg.sender);
     }
 
     function _ensureCallerIsFactory() internal view {
