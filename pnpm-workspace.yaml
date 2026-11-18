@@ -1,5 +1,9 @@
 packages:
   - "@gearbox-protocol/periphery-v3"
-minimumReleaseAge: 1440
+allowBuilds:
+  esbuild: true
+  keccak: true
+  secp256k1: true
+minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - "@gearbox-protocol/*"
