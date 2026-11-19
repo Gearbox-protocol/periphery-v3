@@ -3,10 +3,14 @@ pragma solidity ^0.8.23;
 
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {IAddressProvider} from "@gearbox-protocol/permissionless/contracts/interfaces/IAddressProvider.sol";
+import {IACL} from "@gearbox-protocol/permissionless/contracts/interfaces/IACL.sol";
 import {IBytecodeRepository} from "@gearbox-protocol/permissionless/contracts/interfaces/IBytecodeRepository.sol";
+import {IMarketConfigurator} from "@gearbox-protocol/permissionless/contracts/interfaces/IMarketConfigurator.sol";
 import {ICreditAccountV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditAccountV3.sol";
 import {ICreditFacadeV3, MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
@@ -17,7 +21,9 @@ import {ISecuritizeRWAFactory} from "../interfaces/ISecuritizeRWAFactory.sol";
 import {
     AddressValidation,
     DOMAIN_RWA_UNDERLYING,
+    ROLE_OPENING_SIGNER,
     TYPE_BYTECODE_REPOSITORY,
+    TYPE_INSTANCE_MANAGER_PROXY,
     TYPE_SECURITIZE_DEGEN_NFT,
     TYPE_SECURITIZE_RWA_FACTORY
 } from "../libraries/AddressValidation.sol";
@@ -25,8 +31,11 @@ import {
 /// @title  Securitize RWA Factory
 /// @author Gearbox Foundation
 /// @notice A factory contract that allows investors to open credit accounts whitelisted to interact
-///         with DSTokens by Securitize while also allowing the latter to enforce RWA compliance
-contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
+///         with DSTokens by Securitize while also allowing the latter to enforce RWA compliance.
+/// @dev Opening can optionally be gated by EIP-712 approvals from `ROLE_OPENING_SIGNER` accounts on
+///      the credit manager's market ACL. When `minSignaturesRequired[marketConfigurator] == 0`
+///      (default), opening-signature checks are skipped.
+contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step, EIP712 {
     using AddressValidation for IAddressProvider;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -50,7 +59,11 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
     // --------------- //
 
     bytes32 public constant override contractType = TYPE_SECURITIZE_RWA_FACTORY;
-    uint256 public constant override version = 3_12;
+    uint256 public constant override version = 3_11;
+
+    /// @notice EIP-712 typehash for opening approvals
+    bytes32 public constant MINT_TYPEHASH =
+        keccak256("Mint(address creditManager,address accountOwner,uint32 deadline,uint32 nonce)");
 
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
     ISecuritizeDegenNFT internal immutable _DEGEN_NFT;
@@ -58,6 +71,12 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
     mapping(address creditAccount => CreditAccountInfo) internal _creditAccountInfo;
     mapping(address investor => InvestorInfo) internal _investorInfo;
     mapping(address bot => bool allowed) internal _allowedBots;
+
+    /// @notice Minimum opening signatures required per market configurator (`0` = gate disabled)
+    mapping(address marketConfigurator => uint16) public override minSignaturesRequired;
+
+    /// @notice Opening deadline and nonce for `accountOwner` on `creditManager`
+    mapping(address accountOwner => mapping(address creditManager => OpeningInfo)) public override openingDeadlines;
 
     /// @dev Prevents investor from spamming with too many credit accounts
     uint256 internal constant _MAX_SANE_NONCE = 255;
@@ -76,18 +95,26 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
         _;
     }
 
+    modifier onlyInstanceOwner() {
+        _ensureCallerIsInstanceOwner();
+        _;
+    }
+
     // ----------- //
     // CONSTRUCTOR //
     // ----------- //
 
-    constructor(IAddressProvider addressProvider, address securitizeAdmin) nonZeroAddress(securitizeAdmin) {
+    constructor(IAddressProvider addressProvider, address securitizeAdmin)
+        nonZeroAddress(securitizeAdmin)
+        EIP712("SecuritizeRWAFactory", "3_11")
+    {
         _ADDRESS_PROVIDER = addressProvider;
 
         address bytecodeRepository = _ADDRESS_PROVIDER.getGlobalAddress(TYPE_BYTECODE_REPOSITORY);
         _DEGEN_NFT = ISecuritizeDegenNFT(
             IBytecodeRepository(bytecodeRepository).deploy({
                 contractType: TYPE_SECURITIZE_DEGEN_NFT,
-                version: 3_11,
+                version: 3_10,
                 constructorParams: abi.encode(_ADDRESS_PROVIDER, this),
                 salt: bytes32(0)
             })
@@ -166,7 +193,8 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
         address creditManager,
         MultiCall[] calldata calls,
         address[] calldata tokensToRegister,
-        ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
+        ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache,
+        bytes calldata openingData
     ) external override returns (address creditAccount, address wallet) {
         if (!_ADDRESS_PROVIDER.isCreditManager(creditManager) || _getDegenNFT(creditManager) != address(_DEGEN_NFT)) {
             revert InvalidCreditManagerException(creditManager);
@@ -175,6 +203,8 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
         if (!_ADDRESS_PROVIDER.hasDomain(underlying, DOMAIN_RWA_UNDERLYING)) {
             revert InvalidUnderlyingTokenException(underlying);
         }
+
+        _handleOpening(creditManager, msg.sender, openingData);
 
         _DEGEN_NFT.mint(precomputeWalletAddress(creditManager, msg.sender));
         wallet = Create2.deploy(0, _getSalt(msg.sender), _getWalletBytecode(creditManager));
@@ -212,6 +242,20 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
             _registerCreditAccount(_getCreditManager(creditAccount), creditAccount, tokensToRegister);
         }
         _multicall(creditAccountInfo.wallet, calls);
+    }
+
+    /// @notice Records an opening approval if EIP-712 signatures are valid
+    function approveOpening(OpeningSignature[] memory openingSignatures) external override {
+        _approveOpening(openingSignatures);
+    }
+
+    /// @notice Revokes an opening approval; callable by the credit manager's market emergency admin
+    function revokeOpening(address accountOwner, address creditManager) external override {
+        _ensureCallerIsEmergencyAdmin(creditManager);
+        openingDeadlines[accountOwner][creditManager].deadline = 0;
+        openingDeadlines[accountOwner][creditManager].nonce += 1;
+
+        emit RevokeOpening(accountOwner, creditManager);
     }
 
     // ------------- //
@@ -306,9 +350,98 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
         }
     }
 
+    /// @notice Sets opening-signature threshold for `marketConfigurator` (`0` disables the gate)
+    function setMinSignaturesRequired(address marketConfigurator, uint16 minSignaturesRequired_)
+        external
+        override
+        onlyInstanceOwner
+    {
+        if (minSignaturesRequired[marketConfigurator] == minSignaturesRequired_) return;
+        minSignaturesRequired[marketConfigurator] = minSignaturesRequired_;
+        emit SetMinSignaturesRequired(marketConfigurator, minSignaturesRequired_);
+    }
+
     // --------- //
     // INTERNALS //
     // --------- //
+
+    function _handleOpening(address creditManager, address investor, bytes calldata openingData) internal {
+        address marketConfigurator = _getMarketConfigurator(creditManager);
+        uint16 threshold = minSignaturesRequired[marketConfigurator];
+        if (threshold == 0) return;
+
+        if (openingData.length != 0) {
+            OpeningSignature[] memory openingSignatures = abi.decode(openingData, (OpeningSignature[]));
+            if (
+                openingSignatures[0].accountOwner != investor || openingSignatures[0].creditManager != creditManager
+            ) {
+                revert InvalidSignatureParamsException();
+            }
+            _approveOpening(openingSignatures);
+        }
+
+        _consumeOpening(investor, creditManager);
+    }
+
+    function _consumeOpening(address accountOwner, address creditManager) internal {
+        if (block.timestamp > openingDeadlines[accountOwner][creditManager].deadline) revert CannotOpenException();
+        openingDeadlines[accountOwner][creditManager].deadline = 0;
+
+        emit ConsumeOpening(accountOwner, creditManager);
+    }
+
+    function _approveOpening(OpeningSignature[] memory openingSignatures) internal {
+        address creditManager;
+        address accountOwner;
+        uint32 deadline;
+        uint32 nonce;
+        bytes32 digest;
+        uint16 nSignatures;
+        address prevSigner;
+
+        address marketConfigurator = _getMarketConfigurator(openingSignatures[0].creditManager);
+        uint16 threshold = minSignaturesRequired[marketConfigurator];
+        address acl = IMarketConfigurator(marketConfigurator).acl();
+
+        for (uint256 i = 0; i < openingSignatures.length; i++) {
+            if (i == 0) {
+                creditManager = openingSignatures[i].creditManager;
+                accountOwner = openingSignatures[i].accountOwner;
+                deadline = openingSignatures[i].deadline;
+                nonce = openingSignatures[i].nonce;
+                digest = _hashTypedDataV4(
+                    keccak256(abi.encode(MINT_TYPEHASH, creditManager, accountOwner, deadline, nonce))
+                );
+            } else {
+                if (
+                    openingSignatures[i].creditManager != creditManager
+                        || openingSignatures[i].accountOwner != accountOwner
+                        || openingSignatures[i].deadline != deadline || openingSignatures[i].nonce != nonce
+                ) revert OpeningParamsMismatchException();
+            }
+
+            address signer = ECDSA.recover(digest, openingSignatures[i].signature);
+            if (uint160(signer) <= uint160(prevSigner)) revert IncorrectSignerSortingException();
+            prevSigner = signer;
+
+            if (IACL(acl).hasRole(ROLE_OPENING_SIGNER, signer)) nSignatures++;
+        }
+
+        if (nSignatures < threshold) revert NotEnoughSignersException();
+
+        if (nonce == openingDeadlines[accountOwner][creditManager].nonce) {
+            return;
+        } else if (nonce != openingDeadlines[accountOwner][creditManager].nonce + 1) {
+            revert IncorrectNonceException();
+        }
+
+        if (block.timestamp > deadline) revert StaleOpeningException();
+
+        openingDeadlines[accountOwner][creditManager].deadline = deadline;
+        openingDeadlines[accountOwner][creditManager].nonce = nonce;
+
+        emit ApproveOpening(accountOwner, creditManager, deadline);
+    }
 
     function _ensureAddressIsNotZero(address addr) internal pure {
         if (addr == address(0)) revert ZeroAddressException();
@@ -316,6 +449,19 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
 
     function _ensureCreditAccountIsKnown(address creditAccount) internal view {
         if (!isCreditAccount(creditAccount)) revert UnknownCreditAccountException(creditAccount);
+    }
+
+    function _ensureCallerIsInstanceOwner() internal view {
+        if (msg.sender != _ADDRESS_PROVIDER.getGlobalAddress(TYPE_INSTANCE_MANAGER_PROXY)) {
+            revert CallerIsNotInstanceOwnerException(msg.sender);
+        }
+    }
+
+    function _ensureCallerIsEmergencyAdmin(address creditManager) internal view {
+        address marketConfigurator = _getMarketConfigurator(creditManager);
+        if (msg.sender != IMarketConfigurator(marketConfigurator).emergencyAdmin()) {
+            revert CallerIsNotEmergencyAdminException(msg.sender);
+        }
     }
 
     function _getSalt(address investor) internal view returns (bytes32) {
@@ -330,6 +476,10 @@ contract SecuritizeRWAFactory is ISecuritizeRWAFactory, Ownable2Step {
 
     function _getDegenNFT(address creditManager) internal view returns (address) {
         return ICreditFacadeV3(ICreditManagerV3(creditManager).creditFacade()).degenNFT();
+    }
+
+    function _getMarketConfigurator(address creditManager) internal view returns (address) {
+        return AddressValidation.getMarketConfigurator(ICreditManagerV3(creditManager).creditConfigurator());
     }
 
     function _getCreditManager(address creditAccount) internal view returns (address) {

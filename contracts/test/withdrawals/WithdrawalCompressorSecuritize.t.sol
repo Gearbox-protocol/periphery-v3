@@ -79,13 +79,30 @@ interface ISecuritizeDegenNFT {
     function setOperatorStatus(address operator, address gateway, bool status) external;
 }
 
+interface IAddressProviderLocal {
+    function getAddressOrRevert(bytes32 key, uint256 version) external view returns (address);
+}
+
+interface IACLLocal {
+    function getConfigurator() external view returns (address);
+}
+
+interface IACLTraitLocal {
+    function acl() external view returns (address);
+}
+
+interface IMarketConfiguratorLocal {
+    function addressProvider() external view returns (address);
+}
+
 interface ISecuritizeKYCFactory {
     function precomputeWalletAddress(address creditManager, address investor) external view returns (address);
     function openCreditAccount(
         address creditManager,
         MultiCall[] calldata calls,
         address[] calldata tokensToRegister,
-        ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache
+        ISecuritizeDegenNFT.RegisterMessage[] calldata signaturesToCache,
+        bytes calldata openingData
     ) external returns (address creditAccount, address wallet);
     function multicall(
         address creditAccount,
@@ -95,6 +112,7 @@ interface ISecuritizeKYCFactory {
     ) external;
     function getDegenNFT() external view returns (address);
     function isCreditAccount(address creditAccount) external view returns (bool);
+    function setMinSignaturesRequired(address marketConfigurator, uint16 minSignaturesRequired) external;
 }
 
 contract WithdrawalCompressorTest is Test {
@@ -143,6 +161,15 @@ contract WithdrawalCompressorTest is Test {
         address newSecuritizeLiquidator = address(new SecuritizeLiquidator(kycFactory));
 
         vm.etch(securitizeLiquidator, address(newSecuritizeLiquidator).code);
+
+        // Disable opening-signature gate for this live compressor flow
+        address creditConfigurator = ICreditManagerV3(creditManager).creditConfigurator();
+        address marketConfigurator = IACLLocal(IACLTraitLocal(creditConfigurator).acl()).getConfigurator();
+        address liveAddressProvider = IMarketConfiguratorLocal(marketConfigurator).addressProvider();
+        address instanceManagerProxy =
+            IAddressProviderLocal(liveAddressProvider).getAddressOrRevert(bytes32("INSTANCE_MANAGER_PROXY"), 0);
+        vm.prank(instanceManagerProxy);
+        ISecuritizeKYCFactory(kycFactory).setMinSignaturesRequired(marketConfigurator, 0);
     }
 
     function test_WCS_01_testWithdrawalsSecuritize() public {
@@ -328,7 +355,7 @@ contract WithdrawalCompressorTest is Test {
 
         vm.prank(user);
         (creditAccount,) = ISecuritizeKYCFactory(kycFactory)
-            .openCreditAccount(address(creditManager), new MultiCall[](0), dsToken, signaturesToCache);
+            .openCreditAccount(address(creditManager), new MultiCall[](0), dsToken, signaturesToCache, "");
     }
 
     function _sign(VmSafe.Wallet memory signer, bytes32 domainSeparator, bytes32 structHash)

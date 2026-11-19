@@ -29,12 +29,10 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     }
 
     bytes32 public constant override contractType = TYPE_SECURITIZE_DEGEN_NFT;
-    uint256 public constant override version = 3_11;
+    uint256 public constant override version = 3_10;
 
     IAddressProvider internal immutable _ADDRESS_PROVIDER;
     ISecuritizeRWAFactory internal immutable _FACTORY;
-
-    address public parentDegenNFT;
 
     EnumerableSet.AddressSet internal _walletsSet;
     EnumerableSet.AddressSet internal _tokensSet;
@@ -127,7 +125,7 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
     }
 
     function burn(address wallet, uint256) external override {
-        _ensureCallerCanBurn();
+        if (!_ADDRESS_PROVIDER.isCreditFacade(msg.sender)) revert CallerIsNotCreditFacadeException(msg.sender);
         if (!_walletsSet.contains(wallet)) revert UnknownWalletException(wallet);
         emit Burn(wallet);
     }
@@ -192,24 +190,9 @@ contract SecuritizeDegenNFT is ISecuritizeDegenNFT {
         }
     }
 
-    function setParentDegenNFT(address parentDegenNFT_) external override onlyInstanceOwner {
-        parentDegenNFT = parentDegenNFT_;
-        emit SetParentDegenNFT(parentDegenNFT_);
-    }
-
     // --------- //
     // INTERNALS //
     // --------- //
-
-    function _ensureCallerCanBurn() internal view {
-        if (parentDegenNFT != address(0)) {
-            if (msg.sender != parentDegenNFT) {
-                revert CallerIsNotParentDegenNFTException(msg.sender);
-            }
-        } else {
-            if (!_ADDRESS_PROVIDER.isCreditFacade(msg.sender)) revert CallerIsNotCreditFacadeException(msg.sender);
-        }
-    }
 
     function _ensureCallerIsFactory() internal view {
         if (msg.sender != address(_FACTORY)) revert CallerIsNotFactoryException(msg.sender);

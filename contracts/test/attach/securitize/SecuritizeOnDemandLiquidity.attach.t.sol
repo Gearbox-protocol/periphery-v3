@@ -108,7 +108,7 @@ contract SecuritizeOnDemandLiquidityAttachTest is Test, SecuritizeAttachHelper {
 
         _omniPrank(investor);
         ISecuritizeRWAFactory(factory)
-            .openCreditAccount(creditManagers[idx], calls, tokensToRegister, signaturesToCache);
+            .openCreditAccount(creditManagers[idx], calls, tokensToRegister, signaturesToCache, "");
     }
 
     function test_leverage_via_securitize_factory() public repeatTestForEachDSToken {
@@ -148,6 +148,6 @@ contract SecuritizeOnDemandLiquidityAttachTest is Test, SecuritizeAttachHelper {
 
         _omniPrank(investor);
         ISecuritizeRWAFactory(factory)
-            .openCreditAccount(creditManagers[idx], calls, tokensToRegister, signaturesToCache);
+            .openCreditAccount(creditManagers[idx], calls, tokensToRegister, signaturesToCache, "");
     }
 }

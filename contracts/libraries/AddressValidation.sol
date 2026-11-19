@@ -40,6 +40,9 @@ bytes32 constant TYPE_MONOPOLIZED_ON_DEMAND_LP = "ON_DEMAND_LP::MONOPOLIZED";
 bytes32 constant TYPE_RWA_COMPRESSOR = "GLOBAL::RWA_COMPRESSOR";
 bytes32 constant TYPE_TOKEN_COMPRESSOR = "GLOBAL::TOKEN_COMPRESSOR";
 
+/// @dev Mirrors permissionless `ROLE_OPENING_SIGNER` (not yet in the vendored dependency)
+bytes32 constant ROLE_OPENING_SIGNER = "OPENING_SIGNER";
+
 library AddressValidation {
     using Domain for bytes32;
 
