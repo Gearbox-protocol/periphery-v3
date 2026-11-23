@@ -23,3 +23,5 @@ addresses.json
 rwa-addresses.json
 
 *.generated.ts
+
+.vscode/mise-tools/

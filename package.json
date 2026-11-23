@@ -26,7 +26,7 @@
     "@redstone-finance/evm-connector": "^0.2.5",
     "@wagmi/cli": "^2.2.0",
     "ds-test": "dapphub/ds-test",
-    "forge-std": "foundry-rs/forge-std",
+    "forge-std": "foundry-rs/forge-std#726a6ee5fc8427a0013d6f624e486c9130c0e336",
     "husky": "^8.0.3",
     "lint-staged": "^13.0.3",
     "prettier": "^3.0.3",
@@ -38,5 +38,5 @@
     "*.sol": "forge fmt",
     "*.{json,md}": "prettier --write"
   },
-  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
+  "packageManager": "pnpm@12.21.0"
 }

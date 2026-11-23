@@ -4,49 +4,62 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 env:
   HUSKY: 0
   CI: true
-  FORK_RPC_URL: ${{ secrets.MAINNET_TESTS_FORK }}
-  FORK_ADDRESS_PROVIDER: "0x9ea7b04Da02a5373317D745c1571c84aaD03321D"
 
 jobs:
-  checks:
+  zizmor:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No GitHub Advanced Security here, so findings go to annotations, not code scanning.
+      - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          # Pinned, so a new audit cannot start failing releases with nothing changed here.
+          version: "1.32.0"
+          advanced-security: false
+          annotations: true
+
+  checks:
+    needs: [zizmor]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: recursive
+          persist-credentials: false
 
-      - name: Use Latest Corepack
-        run: |
-          echo "Before: corepack version => $(corepack --version || echo 'not installed')"
-          npm install -g corepack@latest
-          echo "After : corepack version => $(corepack --version)"
-          corepack enable
-          pnpm --version
-
-      - name: Setup node.js
-        uses: actions/setup-node@v4
+      - uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
         with:
-          cache: "pnpm"
-          node-version-file: ".nvmrc"
-
-      - name: Configure access to private npm packages
-        run: echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
-
-      - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
+          cache: true
+          require-lockfile: true
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
         with:
-          version: stable
+          version: v1.9.0
 
       - name: Run forge tests
+        env:
+          FORK_RPC_URL: ${{ secrets.MAINNET_TESTS_FORK }}
+          FORK_ADDRESS_PROVIDER: "0x9ea7b04Da02a5373317D745c1571c84aaD03321D"
         run: forge test
         timeout-minutes: 10
 
