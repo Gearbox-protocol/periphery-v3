@@ -14,7 +14,6 @@ import {ICreditSuiteCompressor} from "../interfaces/ICreditSuiteCompressor.sol";
 
 import {BaseLib} from "../libraries/BaseLib.sol";
 import {AP_CREDIT_SUITE_COMPRESSOR} from "../libraries/Literals.sol";
-import {ILegacyAdapter, Legacy} from "../libraries/Legacy.sol";
 
 import {BaseState} from "../types/BaseState.sol";
 import {
@@ -128,18 +127,8 @@ contract CreditSuiteCompressor is BaseCompressor, ICreditSuiteCompressor {
             address adapter = allowedAdapters[i];
             adapters[i].baseParams.addr = adapter;
 
-            try IAdapter(adapter).contractType() returns (bytes32 contractType_) {
-                adapters[i].baseParams.contractType = contractType_;
-            } catch {
-                adapters[i].baseParams.contractType =
-                    Legacy.getAdapterType(ILegacyAdapter(adapter)._gearboxAdapterType());
-            }
-
-            try IAdapter(adapter).version() returns (uint256 version_) {
-                adapters[i].baseParams.version = version_;
-            } catch {
-                adapters[i].baseParams.version = ILegacyAdapter(adapter)._gearboxAdapterVersion();
-            }
+            adapters[i].baseParams.contractType = IAdapter(adapter).contractType();
+            adapters[i].baseParams.version = IAdapter(adapter).version();
 
             try IAdapter(adapter).serialize() returns (bytes memory serializedParams) {
                 adapters[i].baseParams.serializedParams = serializedParams;

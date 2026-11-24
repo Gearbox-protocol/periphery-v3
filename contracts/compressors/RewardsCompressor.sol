@@ -19,7 +19,6 @@ import {IStakingRewardsAdapter} from
 
 import {IRewardsCompressor} from "../interfaces/IRewardsCompressor.sol";
 
-import {Legacy, ILegacyAdapter} from "../libraries/Legacy.sol";
 import {AP_REWARDS_COMPRESSOR} from "../libraries/Literals.sol";
 import {RewardInfoLib} from "../libraries/Rewards.sol";
 
@@ -67,7 +66,7 @@ contract RewardsCompressor is BaseCompressor, IRewardsCompressor {
 
         rewards = new RewardInfo[](0);
         for (uint256 i = 0; i < adapters.length; ++i) {
-            bytes32 adapterType = _getAdapterType(adapters[i]);
+            bytes32 adapterType = IVersion(adapters[i]).contractType();
 
             if (adapterType == "ADAPTER::CVX_V1_BASE_REWARD_POOL") {
                 rewards = rewards.concat(_getConvexRewards(adapters[i], creditAccount));
@@ -271,17 +270,9 @@ contract RewardsCompressor is BaseCompressor, IRewardsCompressor {
             rewards[0] = RewardInfo({
                 amount: earnedAmount,
                 rewardToken: stakingAdapter.rewardsToken(),
-                stakedPhantomToken: stakingAdapter.stakedPhantomToken(),
+                stakedPhantomToken: stakingAdapter.stakedPhantomToken(), 
                 adapter: adapter
             });
-        }
-    }
-
-    function _getAdapterType(address adapter) internal view returns (bytes32) {
-        try IVersion(adapter).contractType() returns (bytes32 adapterType) {
-            return adapterType;
-        } catch {
-            return Legacy.getAdapterType(ILegacyAdapter(adapter)._gearboxAdapterType());
         }
     }
 }

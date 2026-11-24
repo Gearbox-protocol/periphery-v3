@@ -17,7 +17,6 @@ import {ITokenCompressor} from "../interfaces/ITokenCompressor.sol";
 import {IPeripheryCompressor} from "../interfaces/IPeripheryCompressor.sol";
 
 import {BaseLib} from "../libraries/BaseLib.sol";
-import {ILegacyBotList} from "../libraries/Legacy.sol";
 import {AP_PERIPHERY_COMPRESSOR, AP_TOKEN_COMPRESSOR} from "../libraries/Literals.sol";
 
 import {PartialLiquidationBotSerializer} from "../serializers/periphery/PartialLiquidationBotSerializer.sol";
@@ -83,19 +82,13 @@ contract PeripheryCompressor is BaseCompressor, IPeripheryCompressor {
     {
         address creditManager = ICreditAccountV3(creditAccount).creditManager();
         address botList = ICreditFacadeV3(ICreditManagerV3(creditManager).creditFacade()).botList();
-        uint256 botListVersion = IBotListV3(botList).version();
 
         address[] memory bots = IMarketConfigurator(marketConfigurator).getPeripheryContracts(DOMAIN_BOT);
         botStates = new ConnectedBotState[](bots.length);
         uint256 num;
         for (uint256 i; i < bots.length; ++i) {
             ConnectedBotState memory botState;
-            if (botListVersion < 3_10) {
-                (botState.permissions, botState.forbidden,) =
-                    ILegacyBotList(botList).getBotStatus(bots[i], creditManager, creditAccount);
-            } else {
-                (botState.permissions, botState.forbidden) = IBotListV3(botList).getBotStatus(bots[i], creditAccount);
-            }
+            (botState.permissions, botState.forbidden) = IBotListV3(botList).getBotStatus(bots[i], creditAccount);
             if (botState.permissions != 0) {
                 botState.baseParams =
                     bots[i].getBaseParams("BOT::PARTIAL_LIQUIDATION", _partialLiquidationBotSerializer);

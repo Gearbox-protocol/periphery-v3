@@ -10,7 +10,6 @@ import {IVersion} from "@gearbox-protocol/core-v3/contracts/interfaces/base/IVer
 import {IPriceFeedCompressor} from "../interfaces/IPriceFeedCompressor.sol";
 
 import {BaseLib} from "../libraries/BaseLib.sol";
-import {ILegacyPriceFeed, ILegacyPriceOracle, Legacy} from "../libraries/Legacy.sol";
 import {AP_PRICE_FEED_COMPRESSOR} from "../libraries/Literals.sol";
 import {NestedPriceFeeds} from "../libraries/NestedPriceFeeds.sol";
 
@@ -208,14 +207,6 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
 
     /// @dev Returns `token`'s price feed in `priceOracle`
     function _getPriceFeed(address priceOracle, address token, bool reserve) internal view returns (address, uint32) {
-        if (IPriceOracleV3(priceOracle).version() < 3_10) {
-            try ILegacyPriceOracle(priceOracle).priceFeedsRaw(token, reserve) returns (address priceFeed) {
-                // NOTE: legacy oracle does not allow to fetch staleness period of a non-active feed
-                return (priceFeed, 0);
-            } catch {
-                return (address(0), 0);
-            }
-        }
         PriceFeedParams memory params = reserve
             ? IPriceOracleV3(priceOracle).reservePriceFeedParams(token)
             : IPriceOracleV3(priceOracle).priceFeedParams(token);
@@ -256,11 +247,8 @@ contract PriceFeedCompressor is BaseCompressor, IPriceFeedCompressor {
         try IVersion(priceFeed).contractType() returns (bytes32 contractType_) {
             data.baseParams.contractType = contractType_;
         } catch {
-            try ILegacyPriceFeed(priceFeed).priceFeedType() returns (uint8 priceFeedType) {
-                data.baseParams.contractType = Legacy.getPriceFeedType(priceFeedType);
-            } catch {
-                data.baseParams.contractType = "PRICE_FEED::EXTERNAL";
-            }
+            // Chainlink and other external aggregators that do not implement `IVersion`
+            data.baseParams.contractType = "PRICE_FEED::EXTERNAL";
         }
 
         data.baseParams =
