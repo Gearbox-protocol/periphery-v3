@@ -17,7 +17,7 @@ struct CollateralToken {
 
 struct CreditFacadeState {
     BaseParams baseParams;
-    address degenNFT;
+    BaseParams degenNFTParams;
     address botList;
     bool expirable;
     uint40 expirationDate;

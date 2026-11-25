@@ -31,7 +31,7 @@ import {BaseCompressor} from "./BaseCompressor.sol";
 contract CreditSuiteCompressor is BaseCompressor, ICreditSuiteCompressor {
     using BaseLib for address;
 
-    uint256 public constant override version = 3_10;
+    uint256 public constant override version = 3_11;
     bytes32 public constant override contractType = AP_CREDIT_SUITE_COMPRESSOR;
 
     constructor(address addressProvider_) BaseCompressor(addressProvider_) {}
@@ -98,7 +98,10 @@ contract CreditSuiteCompressor is BaseCompressor, ICreditSuiteCompressor {
     {
         result.baseParams = creditFacade.getBaseParams("CREDIT_FACADE", address(0));
 
-        result.degenNFT = ICreditFacadeV3(creditFacade).degenNFT();
+        address degenNFT = ICreditFacadeV3(creditFacade).degenNFT();
+
+        result.degenNFTParams = degenNFT.getBaseParams("DEGEN_NFT::DEFAULT", address(0));
+
         result.botList = ICreditFacadeV3(creditFacade).botList();
 
         result.expirable = ICreditFacadeV3(creditFacade).expirable();
