@@ -98,7 +98,10 @@ contract CreditSuiteCompressor is BaseCompressor, ICreditSuiteCompressor {
     {
         result.baseParams = creditFacade.getBaseParams("CREDIT_FACADE", address(0));
 
-        result.degenNFT = ICreditFacadeV3(creditFacade).degenNFT();
+        address degenNFT = ICreditFacadeV3(creditFacade).degenNFT();
+
+        result.degenNFTParams = degenNFT.getBaseParams("DEGEN_NFT::DEFAULT", address(0));
+
         result.botList = ICreditFacadeV3(creditFacade).botList();
 
         result.expirable = ICreditFacadeV3(creditFacade).expirable();
