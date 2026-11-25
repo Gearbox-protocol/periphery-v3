@@ -31,7 +31,7 @@ import {BaseCompressor} from "./BaseCompressor.sol";
 contract CreditSuiteCompressor is BaseCompressor, ICreditSuiteCompressor {
     using BaseLib for address;
 
-    uint256 public constant override version = 3_10;
+    uint256 public constant override version = 3_11;
     bytes32 public constant override contractType = AP_CREDIT_SUITE_COMPRESSOR;
 
     constructor(address addressProvider_) BaseCompressor(addressProvider_) {}
