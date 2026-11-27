@@ -1,7 +1,11 @@
 ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 @1inch/=lib/@1inch/
+@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
+@openzeppelin/contracts/=lib/@openzeppelin/contracts/
 @openzeppelin/=lib/@openzeppelin/
 @gearbox-protocol=lib/@gearbox-protocol/
 @redstone-finance=node_modules/@redstone-finance/
 @solady=lib/@solady/src/
+@chainlink/=node_modules/@chainlink/
+midas/=lib/midas-apps-contracts/contracts/

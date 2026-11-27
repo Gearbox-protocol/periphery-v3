@@ -49,5 +49,8 @@
       "name": "v1.14.0",
       "rev": "1801b0541f4fda118a10798fd3486bb7051c5dd6"
     }
+  },
+  "lib/midas-apps-contracts": {
+    "rev": "885e88ff96fd31436b64591cbb7967fd0e22453a"
   }
 }

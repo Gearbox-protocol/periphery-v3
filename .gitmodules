@@ -33,3 +33,6 @@
 [submodule "lib/@gearbox-protocol/bots-v3"]
 	path = lib/@gearbox-protocol/bots-v3
 	url = https://github.com/Gearbox-protocol/bots-v3
+[submodule "lib/midas-apps-contracts"]
+	path = lib/midas-apps-contracts
+	url = https://github.com/midas-apps/contracts

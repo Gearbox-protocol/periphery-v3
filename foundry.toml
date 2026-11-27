@@ -18,3 +18,27 @@ ffi = true
 
 [lint]
 lint_on_build = false
+
+# Midas vault fork harness (solc 0.8.34; midas-apps/contracts @ 885e88f)
+[profile.midas_fork]
+src = "lib/midas-apps-contracts/contracts"
+test = "contracts/test/midas-v2"
+script = "script/midas-v2"
+libs = ["lib"]
+out = "forge-out/midas-fork"
+solc_version = "0.8.34"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "none"
+ffi = true
+fs_permissions = [{ access = "read-write", path = "./" }]
+skip = [
+    "lib/midas-apps-contracts/contracts/misc/**",
+    "lib/midas-apps-contracts/contracts/mocks/**",
+    "lib/midas-apps-contracts/contracts/testers/**",
+    "lib/midas-apps-contracts/contracts/feeds/CustomAggregator*",
+    "lib/midas-apps-contracts/contracts/feeds/CompositeDataFeed.sol",
+    "lib/midas-apps-contracts/contracts/interfaces/IAggregatorV3CompatibleFeedGrowth.sol",
+    "lib/midas-apps-contracts/contracts/interfaces/ICustomAggregatorV3CompatibleFeed.sol",
+]
